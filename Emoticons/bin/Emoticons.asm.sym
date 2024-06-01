@@ -1,0 +1,186 @@
+--- Symbol List (sorted by symbol)
+0.AreWeInsideP0Sprite    f0a9                  
+0.AreWeInsideP1Sprite    f0be                  
+0.DrawSpriteP0           f0b3              (R )
+0.DrawSpriteP1           f0c8              (R )
+0.FREE_BYTES             0000                  
+0.GameLineLoop           f0a9              (R )
+0.GameLineLoop_End       f0e7              (R )
+0.P0Dir_Bottom           f192              (R )
+0.P0Dir_Left             f143              (R )
+0.P0Dir_Right            f134              (R )
+0.P0Dir_Top              f183              (R )
+0.P0Dir_x_Change         f150              (R )
+0.P0Dir_y_Change         f1a1              (R )
+0.P0Offset_15            f166                  
+0.P0Offset_15_2          f1b7                  
+0.P0Offset_End           f174              (R )
+0.P0Offset_End_2         f1c5              (R )
+0.P0Offset_Reset         f170              (R )
+0.P0Offset_Reset_2       f1c1              (R )
+0.P0P1Collided           f2cf              (R )
+0.P1Dir_Bottom           f232              (R )
+0.P1Dir_Left             f1e3              (R )
+0.P1Dir_Right            f1d4              (R )
+0.P1Dir_Top              f223              (R )
+0.P1Dir_x_Change         f1f0              (R )
+0.P1Dir_y_Change         f241              (R )
+0.P1Offset_15            f206                  
+0.P1Offset_15_2          f257                  
+0.P1Offset_End           f214              (R )
+0.P1Offset_End_2         f265              (R )
+0.P1Offset_Reset         f210              (R )
+0.P1Offset_Reset_2       f261              (R )
+1.CLEAR_STACK            f005              (R )
+2.Div15Loop              f2dc              (R )
+3.leftnotfree            f4a6              (R )
+3.leftnotlower           f4ad              (R )
+3.skipleftdec            f4c4              (R )
+3.ThingHappensP0_Bottom  f332              (R )
+3.ThingHappensP0_Left    f311              (R )
+3.ThingHappensP0_Right   f302                  
+3.ThingHappensP0_Top     f323                  
+3.ThingHappensP1_Bottom  f35c              (R )
+3.ThingHappensP1_Left    f34b              (R )
+3.ThingHappensP1_Right   f344                  
+3.ThingHappensP1_Top     f355                  
+AUDC0                    0015              (R )
+AUDC1                    0016                  
+AUDF0                    0017              (R )
+AUDF1                    0018                  
+AUDV0                    0019              (R )
+AUDV1                    001a                  
+BG_Gradation             f361              (R )
+BGColor                  008c              (R )
+CheckCollisionP0P1       f2c6                  
+CheckP0Direction_x       f12e                  
+CheckP0Direction_y       f17d              (R )
+CheckP0DirectionEnd      f1ce              (R )
+CheckP0Down              f279              (R )
+CheckP0Left              f28f              (R )
+CheckP0Right             f284              (R )
+CheckP0Up                f26e                  
+CheckP1Direction_x       f1ce                  
+CheckP1Direction_y       f21d              (R )
+CheckP1DirectionEnd      f26e              (R )
+CheckP1Down              f2a5              (R )
+CheckP1Left              f2bb              (R )
+CheckP1Right             f2b0              (R )
+CheckP1Up                f29a                  
+COLUBK                   0009              (R )
+COLUP0                   0006              (R )
+COLUP1                   0007              (R )
+COLUPF                   0008                  
+CTRLPF                   000a                  
+CXBLPF                   0006                  
+CXCLR                    002c              (R )
+CXM0FB                   0004                  
+CXM0P                    0000                  
+CXM1FB                   0005                  
+CXM1P                    0001                  
+CXP0FB                   0002                  
+CXP1FB                   0003                  
+CXPPMM                   0007              (R )
+ENABL                    001f                  
+ENAM0                    001d                  
+ENAM1                    001e                  
+EndCollisionCheck        f2d2              (R )
+GameVisibleLine          f0a7                  
+GRP0                     001b              (R )
+GRP1                     001c              (R )
+HMBL                     0024                  
+HMCLR                    002b                  
+HMM0                     0022                  
+HMM1                     0023                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+HMP1                     0021                  
+INPT0                    0008                  
+INPT1                    0009                  
+INPT2                    000a                  
+INPT3                    000b                  
+INPT4                    000c                  
+INPT5                    000d                  
+INTIM                    0284                  
+NO_ILLEGAL_OPCODES       0000 ????         (R )
+NUSIZ0                   0004              (R )
+NUSIZ1                   0005              (R )
+P0_HEIGHT                000f              (R )
+P0Dir_x                  0083              (R )
+P0Dir_y                  0084              (R )
+P0NoInput                f29a              (R )
+P0Offset                 0085              (R )
+P0Sprite                 f3c1              (R )
+P0Sprite_2               f3d0                  
+P0Sprite_3               f3df                  
+P0Sprite_4               f3ee                  
+P0Sprite_5               f3fd                  
+P0XPos                   0080              (R )
+P0YPos                   0082              (R )
+P1Dir_x                  0089              (R )
+P1Dir_y                  008a              (R )
+P1NoInput                f2c6              (R )
+P1Offset                 008b              (R )
+P1XPos                   0086              (R )
+P1YPos                   0088              (R )
+PF0                      000d                  
+PF1                      000e                  
+PF2                      000f                  
+REFP0                    000b                  
+REFP1                    000c                  
+RESBL                    0014                  
+Reset                    f000              (R )
+RESM0                    0012                  
+RESM1                    0013                  
+RESMP0                   0028                  
+RESMP1                   0029                  
+RESP0                    0010              (R )
+RESP1                    0011                  
+RSYNC                    0003                  
+SetObjectXPos            f2d9              (R )
+SFX_0                    008d              (R )
+SFX_CV                   f454              (R )
+SFX_End                  f2fc              (R )
+SFX_End_P0_x             f160              (R )
+SFX_End_P0_y             f1b1              (R )
+SFX_End_P1_x             f200              (R )
+SFX_End_P1_y             f251              (R )
+SFX_F                    f40c              (R )
+SFX_Next                 f2fa              (R )
+SFX_Next_P0_x            f15e              (R )
+SFX_Next_P0_y            f1af              (R )
+SFX_Next_P1_x            f1fe              (R )
+SFX_Next_P1_y            f24f              (R )
+SFX_Start                f2ec                  
+SFX_TRIGGER              f49c              (R )
+SFX_UPDATE               f4ae              (R )
+StartFrame               f036              (R )
+SWACNT                   0281                  
+SWBCNT                   0283                  
+SWCHA                    0280              (R )
+SWCHB                    0282                  
+t                        10000 ????             
+T1024T                   0297                  
+ThingHappens             f2ec              (R )
+ThingHappensP0_End       f33e              (R )
+ThingHappensP0_x         f2fc                  
+ThingHappensP0_y         f31d              (R )
+ThingHappensP1           f33e                  
+ThingHappensP1_End       f360              (R )
+ThingHappensP1_y         f34f              (R )
+TIA_BASE_ADDRESS         0000              (R )
+TIA_BASE_READ_ADDRESS    0000              (R )
+TIA_BASE_WRITE_ADDRESS   0000              (R )
+TIM1T                    0294                  
+TIM64T                   0296                  
+TIM8T                    0295                  
+TIMINT                   0285                  
+VBLANK                   0001              (R )
+VDELBL                   0027                  
+VDELP0                   0025                  
+VDELP1                   0026                  
+VERSION_MACRO            006d                  
+VERSION_VCS              006a                  
+VSYNC                    0000              (R )
+WSYNC                    0002              (R )
+--- End of Symbol List.

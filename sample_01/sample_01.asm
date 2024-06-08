@@ -1,177 +1,208 @@
     processor 6502
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Include required files with VCS register memory mapping and macros
+;; インクルード文
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     include "vcs.h"
     include "macro.h"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Declare the variables starting from memory address $80
+;; RAM領域 RAMは $80 から128バイト使える
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     seg.u Variables
     org $80
 
-JetXPos         byte         ; player0 x-position
-JetYPos         byte         ; player0 y-position
-Random          byte         ; used to generate random bomber x-position
-Temp          byte         ; used to generate random bomber x-position
+JetXPos byte ; 機体のX座標
+JetYPos byte ; 機体のY座標
+Random byte ; ランダム値
+Temp byte ; 一時領域
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Define constants
+;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-JET_HEIGHT = 9               ; player0 sprite height (# rows in lookup table)
+
+JET_HEIGHT = 9 ; 機体の高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Start our ROM code at memory address $F000
+;; プログラムコードを $F000 から開始する
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
     seg Code
     org $F000
 
 Reset:
-    CLEAN_START              ; call macro to reset memory and registers
+    CLEAN_START ; メモリとレジスタをクリアするマクロ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Initialize RAM variables and TIA registers
+;; 変数とTIAレジスタを初期化する
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;s
-    lda #68
-    sta JetXPos              ; JetXPos = 68
-    lda #10
-    sta JetYPos              ; JetYPos = 10
     
-    lda #%11010100
-    sta Random               ; Random = $D4
+    lda #60
+    sta JetXPos ; 機体のX座標を 60 に設定
+    lda #60
+    sta JetYPos ; 機体のY座標を 60 に設定
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Start the main display loop and frame rendering
+;; フレームの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 StartFrame:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Calculations and tasks performed in the pre-VBlank
+;;  垂直同期前の計算と処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda JetXPos
-    ldy #0
-    jsr SetObjectXPos        ; set player0 horizontal position
 
-    sta WSYNC
-    sta HMOVE                ; apply the horizontal offsets previously set
+    lda JetXPos ; Aレジスタに機体のX座標をロード
+    ldy #0 ; Yレジスタに0をロード
+    jsr SetObjectXPos ; SetObjectXPosサブルーチンを呼び出す(多分AとYレジスタを引数代わりにしてる) jsrはそのアドレスの命令にジャンプすること
+
+    sta WSYNC ; 水平同期を待つ
+    sta HMOVE ; 水平位置を反映する
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display VSYNC and VBLANK
+;; 垂直同期の開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #2
-    sta VBLANK               ; turn on VBLANK
-    sta VSYNC                ; turn on VSYNC
+
+    lda #%00000010
+    sta VSYNC ; 垂直同期信号を送る
     REPEAT 3
-        sta WSYNC            ; display 3 recommended lines of VSYNC
+        sta WSYNC ; 水平同期を3つ待つ(垂直同期信号を送ってから3ライン分待つ必要がある)
     REPEND
-    lda #0
-    sta VSYNC                ; turn off VSYNC
+    lda #%00000000
+    sta VSYNC ; 垂直同期信号を停止
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 垂直ブランク中の処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    lda #%00000010
+    sta VBLANK ; 垂直ブランクを開始(多分この間TIAからテレビに信号が送られない)
     REPEAT 37
-        sta WSYNC            ; display the 37 recommended lines of VBLANK
+        sta WSYNC ; 垂直ブランク分の期間(水平同期37回分)を待つ
     REPEND
-    sta VBLANK               ; turn off VBLANK
+    lda #%00000000
+    sta VBLANK ; 垂直ブランクを終了
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display 192 visible scanlines of our game (96 lines because 2-line kernel)
+;; 画面の描画処理(192スキャンライン分)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldx #192                  ; X counts the number of remaining scanlines
+
+    ldx #192 ; 192を X に入れる
 .GameLineLoop:
-.AreWeInsideJetSprite:       ; check if should render sprite player0
-    txa                      ; transfer X to A
-    sec                      ; make sure carry flag is set
-    sbc JetYPos              ; subtract sprite Y coordinate
-    cmp JET_HEIGHT           ; are we inside the sprite height bounds?
-    bcc .DrawSpriteP0        ; if result < SpriteHeight, call subroutine
-    lda #0                   ; else, set lookup index to 0
+.AreWeInsideJetSprite: ; 機体を描画するかどうかを判定する処理
+    txa ; X を A にコピー
+    sec ; キャリーフラグを1にセット(キャリーフラグは計算命令で繰り上がりや繰り下がりが起きたときに立つフラグ)
+    sbc JetYPos ; A - 機体のY座標 の計算を行いその結果を A に入れる
+    cmp JET_HEIGHT ; Aと機体の高さを比較(A - 機体の高さを計算してそのフラグを残す。もし繰り下がりが起きたらキャリーフラグが1になる)
+    bcc .DrawSpriteP0 ; キャリーフラグが0なら繰り下がりが発生しており描画範囲内なので機体を描画する
+    lda #0 ; 描画範囲内でない場合はA に 0 をセットして描画されないように調整(JetSprite+0は#%00000000のため結果的に何も描画されない)
+
+    ; 処理の流れの例:
+    ;   [ ] X:192, JetYPos:60 の場合は 192-60=132 が A に入りそこから 132-9=123 になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
+    ;   ...
+    ;   [ ] X:70,  JetYPos:60 の場合は 70-60=10   が A に入りそこから 10-9=1    になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
+    ;   [ ] X:69,  JetYPos:60 の場合は 69-60=9    が A に入りそこから 9-9=0     になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
+    ;   [#] X:68,  JetYPos:60 の場合は 68-60=8    が A に入りそこから 8-9=-1    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:67,  JetYPos:60 の場合は 67-60=7    が A に入りそこから 7-9=-2    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:66,  JetYPos:60 の場合は 66-60=6    が A に入りそこから 6-9=-3    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:65,  JetYPos:60 の場合は 65-60=5    が A に入りそこから 5-9=-4    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:64,  JetYPos:60 の場合は 64-60=4    が A に入りそこから 4-9=-5    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:63,  JetYPos:60 の場合は 63-60=3    が A に入りそこから 3-9=-6    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:62,  JetYPos:60 の場合は 62-60=2    が A に入りそこから 2-9=-7    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:61,  JetYPos:60 の場合は 61-60=1    が A に入りそこから 1-9=-8    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [#] X:60,  JetYPos:60 の場合は 60-60=0    が A に入りそこから 0-9=-9    になり繰り下がりが発生してキャリーフラグが0になり描画される
+    ;   [ ] X:59,  JetYPos:60 の場合は 59-60=-1   が A に入りそこから 255-9=246 になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
+    ;   [ ] X:58,  JetYPos:60 の場合は 58-60=-2   が A に入りそこから 254-9=245 になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
+    ;   ...
+    ;   [X] X:0 ,  JetYPos:60 の場合は 0-60=-60   が A に入りそこから 196-9=187 になり繰り下がりが発生せずキャリーフラグは1のままで描画されない
 .DrawSpriteP0:
-    tay                      ; load Y so we can work with pointer
-    lda JetSprite,Y     ; load player bitmap slice of data
-    sta WSYNC                ; wait for next scanline
-    sta GRP0                 ; set graphics for player 0
-    lda JetColor,Y      ; load player color from lookup table
-    sta COLUP0               ; set color for player 0 slice
+    tay ; A を Y にコピー(もし描画範囲内なら9~0の値がAに入っている。JetSpriteは上下反転になっているので9のときに上端が描画される)
+    lda JetSprite,Y ; JetSpriteのアドレスに Y を足してその値を A にロード
+    sta WSYNC ; 水平同期を待つ
+    sta GRP0 ; プレイヤー0に A の値をセット
+    lda JetColor,Y ; JetColorのアドレスに Y を足してその値を A にロード
+    sta COLUP0 ; プレイヤー0の色に A の値をセット
 
-    dex                      ; X--
-    bne .GameLineLoop        ; repeat next main game scanline until finished
+    dex ; X をデクリメント
+    bne .GameLineLoop ; 計算結果が 0 でない場合は .GameLineLoop に戻る
 
-    sta WSYNC                ; wait for a scanline
+    sta WSYNC ; 水平同期を待つ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Display Overscan
+;; オーバースキャン中の処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    lda #2
-    sta VBLANK               ; turn on VBLANK again
+    
+    lda #%00000010
+    sta VBLANK ; 垂直ブランクを開始(多分この間TIAからテレビに信号が送られない)
     REPEAT 30
-        sta WSYNC            ; display 30 recommended lines of VBlank Overscan
+        sta WSYNC ; オーバースキャン分の期間(水平同期30回分)を待つ
     REPEND
-    lda #0
-    sta VBLANK               ; turn off VBLANK
+    lda #%00000000
+    sta VBLANK ; 垂直ブランクを終了
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Process joystick input for player0
+;; ジョイスティックの処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 CheckP0Up:
-    lda #%00010000           ; player0 joystick up
-    bit SWCHA
-    bne CheckP0Down          ; if bit pattern doesnt match, bypass Up block
-    jsr UpJetYPos
+    lda #%00010000 ; ジョイスティック上のビットを立てた値を A にセット
+    bit SWCHA ; SWCHA とのビット比較演算(AND演算される)
+    bne CheckP0Down ; 計算結果が 0 でない場合はジョイスティック下の処理にジャンプ
+    jsr UpJetYPos ; 機体を上に移動するサブルーチンを呼び出す
 
 CheckP0Down:
-    lda #%00100000           ; player0 joystick down
-    bit SWCHA
-    bne CheckP0Left          ; if bit pattern doesnt match, bypass Down block
-    jsr DownJetYPos
+    lda #%00100000 ; ジョイスティック下のビットを立てた値を A にセット
+    bit SWCHA ; SWCHA とのビット比較演算(AND演算される)
+    bne CheckP0Left ; 計算結果が 0 でない場合はジョイスティック左の処理にジャンプ
+    jsr DownJetYPos ; 機体を下に移動するサブルーチンを呼び出す
 
 CheckP0Left:
-    lda #%01000000           ; player0 joystick left
-    bit SWCHA
-    bne CheckP0Right         ; if bit pattern doesnt match, bypass Left block
-    jsr LeftJetXPos
+    lda #%01000000 ; ジョイスティック左のビットを立てた値を A にセット
+    bit SWCHA ; SWCHA とのビット比較演算(AND演算される)
+    bne CheckP0Right ; 計算結果が 0 でない場合はジョイスティック右の処理にジャンプ
+    jsr LeftJetXPos ; 機体を左に移動するサブルーチンを呼び出す
 
 CheckP0Right:
-    lda #%10000000           ; player0 joystick right
-    bit SWCHA
-    bne EndInputCheck        ; if bit pattern doesnt match, bypass Right block
-    jsr RightJetXPos
+    lda #%10000000 ; ジョイスティック右のビットを立てた値を A にセット
+    bit SWCHA ; SWCHA とのビット比較演算(AND演算される)
+    bne EndInputCheck ; 計算結果が 0 でない場合はジョイスティック処理の終了にジャンプ
+    jsr RightJetXPos ; 機体を右に移動するサブルーチンを呼び出す
 
-EndInputCheck:               ; fallback when no input was performed
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Loop back to start a brand new frame
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    jmp StartFrame           ; continue to display the next frame
+EndInputCheck: ; ジョイスティック処理の終了
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Subroutine to handle object horizontal position with fine offset
+;; フレームの終了処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; A is the target x-coordinate position in pixels of our object
-;; Y is the object type (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+    
+    jmp StartFrame ; フレーム開始にジャンプ
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 対象のX座標の位置をセットする
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; A は対象のピクセル単位のX座標
+;; Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 SetObjectXPos subroutine
-    sta WSYNC                ; start a fresh new scanline
-    sec                      ; make sure carry-flag is set before subtracion
+    sta WSYNC ; 水平同期を待つ
+    sec ; キャリーフラグを1にセット(キャリーフラグは計算命令で繰り上がりや繰り下がりが起きたときに立つフラグ)
 .Div15Loop
-    sbc #15                  ; subtract 15 from accumulator
-    bcs .Div15Loop           ; loop until carry-flag is clear
-    eor #7                   ; handle offset range from -8 to 7
+    sbc #15 ; A から 15 を減算してその結果を A にセット
+    bcs .Div15Loop ; キャリーフラグが 0 になるまで繰り返す(このループを抜ける時は A を 15 で割った余りが A に入る)
+    eor #%0111 ; A と 7(%0111) でXORして A を -8~7 に調整する
+    asl ; A を左に4ビットシフト(このあとのHMP0には上位4ビットにセットする必要があるため)
     asl
     asl
     asl
-    asl                      ; four shift lefts to get only the top 4 bits
-    sta HMP0,Y               ; store the fine offset to the correct HMxx
-    sta RESP0,Y              ; fix object position in 15-step increment
+    sta HMP0,Y ; 指定のスプライト(Y の値によってどのスプライトかが変わる)の水平位置のオフセット値をセット(-7~8)
+    sta RESP0,Y ; 指定のスプライト(Y の値によってどのスプライトかが変わる)の描画を開始
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Subroutine to generate a Li``near-Feedback Shift Register random number
+;; ジョイスティックの操作によって機体の座標を動かすサブルーチン群
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Generate a LFSR random number for the X-position of the bomber.
-;; Divide the random value by 4 to limit the size of the result to match river.
-;; Add 30 to compensate for the left green playfield
-;; The routine also sets the Y-position of the bomber to the top of the screen.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 LeftJetXPos subroutine
     ldx JetXPos
     dex
@@ -197,8 +228,9 @@ DownJetYPos subroutine
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Declare ROM lookup tables
+;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 JetSprite:
     .byte #%00000000         ;
     .byte #%00010100         ;   # #
@@ -222,8 +254,9 @@ JetColor:
     .byte #$08
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Complete ROM size with exactly 4KB
+;; 末尾
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    org $FFFC                ; move to position $FFFC
-    word Reset               ; write 2 bytes with the program reset address
-    word Reset               ; write 2 bytes with the interruption vector
+
+    org $FFFC
+    word Reset
+    word Reset

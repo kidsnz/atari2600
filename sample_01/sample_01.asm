@@ -89,7 +89,44 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     ldx #192 ; 192を X に入れる
+    
 .GameLineLoop:
+    sta WSYNC ; 水平同期を待つ
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイフィールドの描画処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    cpx #176
+    bcs .DrawTopBottom16Line
+    cpx #16
+    bcc .DrawTopBottom16Line
+
+.DrawPlayField
+    lda #%00110000
+    sta PF0
+    lda #%00000000
+    sta PF1
+    lda #%00000000
+    sta PF2
+    lda #$80
+    sta COLUPF
+    lda #%00000001
+    sta CTRLPF
+    jmp .AreWeInsideJetSprite
+
+.DrawTopBottom16Line
+    lda #%11110000
+    sta PF0
+    lda #%11111111
+    sta PF1
+    lda #%11111111
+    sta PF2
+    lda #$80
+    sta COLUPF
+    lda #%00000000
+    sta CTRLPF
+    
 .AreWeInsideJetSprite: ; 機体を描画するかどうかを判定する処理
     txa ; X を A にコピー
     sec ; キャリーフラグを1にセット(キャリーフラグは計算命令で繰り上がりや繰り下がりが起きたときに立つフラグ)
@@ -119,7 +156,7 @@ StartFrame:
 .DrawSpriteP0:
     tay ; A を Y にコピー(もし描画範囲内なら9~0の値がAに入っている。JetSpriteは上下反転になっているので9のときに上端が描画される)
     lda JetSprite,Y ; JetSpriteのアドレスに Y を足してその値を A にロード
-    sta WSYNC ; 水平同期を待つ
+    ; sta WSYNC ; 水平同期を待つ
     sta GRP0 ; プレイヤー0に A の値をセット
     lda JetColor,Y ; JetColorのアドレスに Y を足してその値を A にロード
     sta COLUP0 ; プレイヤー0の色に A の値をセット
@@ -205,26 +242,38 @@ SetObjectXPos subroutine
 
 LeftJetXPos subroutine
     ldx JetXPos
+    cpx #0
+    beq .Return
     dex
-    stx JetXPos 
+    stx JetXPos
+.Return
     rts
 
 RightJetXPos subroutine
     ldx JetXPos
+    cpx #134
+    beq .Return
     inx
     stx JetXPos 
+.Return
     rts
     
 UpJetYPos subroutine
     ldx JetYPos
+    cpx #168
+    beq .Return
     inx
-    stx JetYPos 
+    stx JetYPos
+.Return
     rts
 
 DownJetYPos subroutine
     ldx JetYPos
+    cpx #16
+    beq .Return
     dex
     stx JetYPos 
+.Return
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

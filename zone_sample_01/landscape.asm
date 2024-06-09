@@ -63,10 +63,10 @@ NUM_ZONES = 7
 
     ORG $80
 
-frame          ds 1 
+frame          ds 1 ; フレーム数
 
 ; zones
-zone_pattern   ds NUM_ZONES
+zone_pattern   ds NUM_ZONES ; ゾーンのパターン番号を保存する領域
 
     SEG
 
@@ -79,17 +79,17 @@ zone_pattern   ds NUM_ZONES
 Reset
 
     ; do the clean start macro
-            CLEAN_START
+            CLEAN_START ; メモリとレジスタをクリアするマクロ
 
-            ldx #NUM_ZONES - 1
-_zone_setup_loop
-            txa
-            sta zone_pattern,x
-            dex
-            bpl _zone_setup_loop
+            ldx #NUM_ZONES - 1 ; ゾーン数 - 1 分ループするための値を X に入れる
+_zone_setup_loop ; ゾーン初期化ループ
+            txa ; X -> A
+            sta zone_pattern,x ; ゾーン番号を入れる
+            dex ; ループカウントを減算
+            bpl _zone_setup_loop ; プラスの値なら続ける
 
 newFrame
-
+    ; VSYNC処理
     ; 3 scanlines of vertical sync signal to follow
 
 `           lda #0
@@ -106,12 +106,12 @@ newFrame
 
 ;--------------------
 ; VBlank start
-
+; VBLANK処理
             lda #%10000010
             sta VBLANK
 
             lda #42    ; vblank timer will land us ~ on scanline 34
-            sta TIM64T
+            sta TIM64T ; 42x64クロック待つ(それが34ライン？) ※スキャンラインあたり228クロックらしい
 
             inc frame ; new frame
 

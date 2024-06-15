@@ -40,6 +40,8 @@ COLOR_SAND       = $fc ; 砂の背景色
 COLOR_ROAD       = $08 ; 道の背景色
 COLOR_GRASS      = $c0 ; 草の背景色
 
+PLAYER_HEIGHT    = 16
+
 NUM_ZONES        = #5  ; 描画するゾーン数(4+1つの道)
 ZONE_HEIGHT      = #33 ; ゾーンの高さ
 ROAD_ZONE_HEIGHT = #58 ; 道ゾーンの高さ
@@ -69,6 +71,8 @@ Zone3Addr           word ; 3つめのゾーンのアドレス
 Zone4Addr           word ; 4つめのゾーンのアドレス
 SelectedBiomeAddr   word ; 選択したバイオームのアドレス
 SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
+PlayerXPos          byte ; プレイヤーのX座標
+PlayerYPos          byte ; プレイヤーのY座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -88,12 +92,16 @@ Reset:
     sta FrameCounter
     sta RandomCounter
     sta RandomValue
+    lda #60
+    sta PlayerXPos
+    lda #2
+    sta PlayerYPos
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    jsr GenerateScene
+    jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
@@ -180,8 +188,22 @@ SkipMoveUp:
     lda #%00100000
     bit SWCHA
     bne SkipMoveDown
-    jsr GenerateScene
+    jsr ResetScene
 SkipMoveDown:
+    lda #%01000000
+    bit SWCHA
+    bne SkipMoveLeft
+    jsr LeftPlayerXPos
+SkipMoveLeft:
+    lda #%10000000
+    bit SWCHA
+    bne SkipMoveRight
+    jsr RightPlayerXPos
+SkipMoveRight:
+
+    lda PlayerXPos
+    ldy #0
+    jsr SetObjectXPos
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
@@ -268,6 +290,8 @@ GrasslandZone:
     
 ; 道ゾーン
 RoadZone:
+    lda #%00000101
+    sta NUSIZ0
     ;lda #%01010000
     ;sta PF0
     ;lda #%10101010
@@ -276,26 +300,51 @@ RoadZone:
     ;sta PF2
     ;lda #YELLOW
     ;sta COLUPF
+    ; 背景色のセット
     sta WSYNC
     lda #COLOR_ROAD
     sta COLUBK
     ldx #ROAD_ZONE_HEIGHT-1
 .RoadZoneLoop
     sta WSYNC
+    txa
+    sec
+    sbc PlayerYPos
+    cmp #PLAYER_HEIGHT
+    bcc .DrawPlayer
+    lda #0
+.DrawPlayer
+    tay
+    lda PlayerGfx,Y
+    sta GRP0
+    lda PlayerGfxColor,Y
+    sta COLUP0
     dex
     bpl .RoadZoneLoop
-    ;lda #0
-    ;sta PF0
-    ;sta PF1
-    ;sta PF2
+    lda #%00000000
+    sta NUSIZ0
     jmp .ZoneEnd
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; 左側にプレイヤーのX座標をリセット
+ResetPlayerXPosToLeft subroutine
+    lda #0
+    sta PlayerXPos
+    rts
+    
+; 右側にプレイヤーのX座標をリセット
+ResetPlayerXPosToRight subroutine
+    lda #134
+    sta PlayerXPos
+    rts
+
 ; シーンを生成する
-GenerateScene subroutine
+ResetScene subroutine
+
+
 #if DEBUG = 1
     ; バイオームを選択
     lda Biomes + DEBUG_BIOME_OFFSET
@@ -385,6 +434,52 @@ NextRandomValue subroutine
     sta RandomValue
     rts
 
+; プレイヤーを左に動かす
+LeftPlayerXPos subroutine
+    ldx PlayerXPos
+    cpx #0
+    beq .LeftEnd
+    dex
+    stx PlayerXPos
+    jmp .Return
+.LeftEnd
+    jsr ResetPlayerXPosToRight
+    jsr ResetScene
+.Return
+    rts
+
+; プレイヤーを右に動かす
+RightPlayerXPos subroutine
+    ldx PlayerXPos
+    cpx #134
+    beq .RightEnd
+    inx
+    stx PlayerXPos
+    jmp .Return
+.RightEnd
+    jsr ResetPlayerXPosToLeft
+    jsr ResetScene
+.Return
+    rts
+
+; 対象のX座標の位置をセットする
+;  A は対象のピクセル単位のX座標
+;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+SetObjectXPos subroutine
+    sta WSYNC
+    sec
+.Div15Loop
+    sbc #15
+    bcs .Div15Loop
+    eor #%0111
+    asl
+    asl
+    asl
+    asl
+    sta HMP0,Y
+    sta RESP0,Y
+    rts
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -416,6 +511,43 @@ SandBiome:
     .word SkyZone, SandZone, SeaZone, SandZone
     .word SkyZone, SandZone, SandZone, SeaZone
     .word SandZone, SandZone, SandZone, SandZone
+
+; プレイヤースプライト
+PlayerGfx:
+    .byte %00000000 ; |        |
+    .byte %10000001 ; |X      X|
+    .byte %01000001 ; | X     X|
+    .byte %00100010 ; |  X   X |
+    .byte %00010100 ; |   X X  |
+    .byte %00011000 ; |   XX   |
+    .byte %10011000 ; |X  XX   |
+    .byte %01011000 ; | X XX   |
+    .byte %00111000 ; |  XXX   |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011010 ; |   XX X |
+    .byte %00011001 ; |   XX  X|
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+
+PlayerGfxColor:
+    .byte $38
+    .byte $38
+    .byte $80
+    .byte $80
+    .byte $80
+    .byte $80
+    .byte $FF
+    .byte $FF
+    .byte $FF
+    .byte $FF
+    .byte $FF
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $00
 
 ; 乱数テーブル
 RandomTable:

@@ -17,6 +17,7 @@
 
 COLOR_BG         = $00 ; デフォルトの背景色
 COLOR_SKY        = $9e ; 空の背景色
+COLOR_DARK_SKY   = $04 ; 暗い空の背景色
 COLOR_SEA        = $80 ; 海の背景色
 COLOR_SAND       = $fc ; 砂の背景色
 COLOR_ROAD       = $08 ; 道の背景色
@@ -25,6 +26,12 @@ COLOR_GRASS      = $c0 ; 草の背景色
 NUM_ZONES        = #5  ; 描画するゾーン数(4+1つの道)
 ZONE_HEIGHT      = #33 ; ゾーンの高さ
 ROAD_ZONE_HEIGHT = #58 ; 道ゾーンの高さ
+
+NUMBER_OF_BIOMES = #4
+NUMBER_OF_BIOMES_MASK = #%00000011
+
+NUMBER_OF_ZONE_COMBS = #4
+NUMBER_OF_ZONE_COMBS_MASK = #%00000011
 
 BIOME_NUMBER = 0                ; 選択されたバイオーム番号 TODO: 乱数で決定する
 BIOME_OFFSET = BIOME_NUMBER * 2 ; バイオームを指すアドレスのオフセット(ゾーン番号 * word分ずらす)
@@ -43,6 +50,8 @@ FrameCounter        byte ; フレームカウンタ
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 ZoneCounter         byte ; ゾーンカウンタ
+BiomeNumber         byte ; バイオーム番号
+ZoneCombNumber      byte ; ゾーン組み合わせ番号
 Zone1Addr           word ; 1つめのゾーンのアドレス
 Zone2Addr           word ; 2つめのゾーンのアドレス
 Zone3Addr           word ; 3つめのゾーンのアドレス
@@ -70,18 +79,17 @@ Reset:
     sta RandomValue
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; シーンのリセット
+;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-ResetScene:
-    jsr ChangeScene
+    jsr GenerateScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 StartFrame:
-    inc FrameCounter
+    ;inc FrameCounter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  垂直同期前
@@ -106,7 +114,7 @@ StartFrame:
 ;; 垂直ブランクの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lda #%00000010
+    lda #%10000010
     sta VBLANK
     REPEAT 37
         sta WSYNC
@@ -151,23 +159,7 @@ StartFrame:
     lda #COLOR_BG
     sta COLUBK
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; オーバースキャン中の処理
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    sta WSYNC
-    lda #%00000010
-    sta VBLANK
-    REPEAT 30
-        sta WSYNC
-    REPEND
-    lda #%00000000
-    sta VBLANK
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ジョイスティックの処理
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;ジョイスティックの処理
 MoveJoystick:
     lda #%00010000
     bit SWCHA
@@ -177,8 +169,21 @@ SkipMoveUp:
     lda #%00100000
     bit SWCHA
     bne SkipMoveDown
-    jsr NextRandomValue
+    jsr GenerateScene
 SkipMoveDown:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; オーバースキャン
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
+    sta WSYNC
+    lda #%00000010
+    sta VBLANK
+    REPEAT 30
+      sta WSYNC
+    REPEND
+    lda #%00000000
+    sta VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの終了処理
@@ -197,6 +202,18 @@ SkyZone:
     sta COLUBK
     ldx #ZONE_HEIGHT-1
 .SkyZoneLoop
+    sta WSYNC
+    dex
+    bpl .SkyZoneLoop
+    jmp .ZoneEnd
+    
+; 暗い空ゾーン
+DarkSkyZone:
+    sta WSYNC
+    lda #COLOR_DARK_SKY
+    sta COLUBK
+    ldx #ZONE_HEIGHT-1
+.DarkSkyZoneLoop
     sta WSYNC
     dex
     bpl .SkyZoneLoop
@@ -262,28 +279,38 @@ RoadZone:
     ;sta PF2
     jmp .ZoneEnd
   
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ジョイスティックの操作によって機体の座標を動かすサブルーチン群
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; シーンを変更する
-ChangeScene subroutine
-    ; バイオームを選択 TODO: 乱数により決定する
-    lda Biomes + BIOME_OFFSET
+; シーンを生成する
+GenerateScene subroutine
+    ; バイオームをランダムに選択
+    jsr NextRandomValue
+    lda RandomValue
+    and #NUMBER_OF_BIOMES_MASK
+    sta BiomeNumber
+    REPEAT 1
+      clc
+      adc BiomeNumber
+    REPEND
+    tax
+    lda Biomes + BIOME_OFFSET,x
     sta SelectedBiomeAddr
-    lda Biomes + BIOME_OFFSET + 1
+    lda Biomes + BIOME_OFFSET + 1,x
     sta SelectedBiomeAddr+1
 
-    ; ゾーンの組み合わせを選択 TODO: 乱数により決定する
-    lda SelectedBiomeAddr
-    clc
-    adc 1+ZONE_COMB_OFFSET
-    sta SelectedCombAddr
+    ; ゾーンの組み合わせをランダムに選択
+    jsr NextRandomValue
+    lda RandomValue
+    and #NUMBER_OF_ZONE_COMBS_MASK
+    sta ZoneCombNumber
+    REPEAT ((NUM_ZONES - 1) * 2) - 1 ; ゾーン番号に応じたオフセット値を計算してAに入れる
+      clc
+      adc ZoneCombNumber
+    REPEND
+    adc SelectedBiomeAddr ; 選択されたバイオームのアドレスにオフセット値を加算
+    sta SelectedCombAddr ; バイオームのアドレス + オフセット値を組み合わせのアドレスとして保存
     lda SelectedBiomeAddr+1
     sta SelectedCombAddr+1
 
@@ -333,31 +360,33 @@ NextRandomValue subroutine
 ;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-NUMBER_OF_BIOMES = 2
-
 ; バイオーム一覧
 Biomes:
     .word SeaBiome
     .word GrasslandBiome
     .word SandBiome
+    .word SandBiome
 
 ; 海バイオーム
 SeaBiome:
-    .byte #2 ; 組み合わせ数
     .word SkyZone, SeaZone, SeaZone, SandZone
+    .word SkyZone, SeaZone, SeaZone, SeaZone
+    .word SkyZone, SeaZone, SeaZone, SeaZone
     .word SkyZone, SeaZone, SeaZone, SeaZone
 
 ; 草原バイオーム
 GrasslandBiome:
-    .byte #2 ; 組み合わせ数
     .word SkyZone, SkyZone, GrasslandZone, GrasslandZone
+    .word SkyZone, GrasslandZone, GrasslandZone, GrasslandZone
+    .word SkyZone, GrasslandZone, GrasslandZone, GrasslandZone
     .word SkyZone, GrasslandZone, GrasslandZone, GrasslandZone
 
 ; 砂バイオーム
 SandBiome:
-    .byte #2 ; 組み合わせ数
     .word SkyZone, SandZone, SandZone, SandZone
     .word SkyZone, SandZone, SeaZone, SandZone
+    .word SkyZone, SandZone, SandZone, SeaZone
+    .word SandZone, SandZone, SandZone, SandZone
 
 ; 乱数テーブル
 RandomTable:

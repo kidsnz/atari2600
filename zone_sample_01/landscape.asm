@@ -111,7 +111,7 @@ newFrame
             sta VBLANK
 
             lda #42    ; vblank timer will land us ~ on scanline 34
-            sta TIM64T ; 42x64クロック待つ(それが34ライン？) ※スキャンラインあたり228クロックらしい
+            sta TIM64T ; 42x64クロック待つ(それが34ライン？) ※スキャンラインあたり76クロックらしい
 
             inc frame ; new frame
 

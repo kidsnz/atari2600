@@ -12,6 +12,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; デバッグ用定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; デバッグ動作にする場合は1を指定する
+DEBUG = 0
+
+; バイオーム番号を指定する
+DEBUG_BIOME_NUMBER = 0
+
+; ゾーン組み合わせ番号を指定する
+DEBUG_ZONE_COMB_NUMBER = 0
+
+; その他計算用
+DEBUG_BIOME_OFFSET = DEBUG_BIOME_NUMBER * 2
+DEBUG_ZONE_COMB_OFFSET = DEBUG_ZONE_COMB_NUMBER * 8
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -32,12 +49,6 @@ NUMBER_OF_BIOMES_MASK = #%00000011
 
 NUMBER_OF_ZONE_COMBS = #4
 NUMBER_OF_ZONE_COMBS_MASK = #%00000011
-
-BIOME_NUMBER = 0                ; 選択されたバイオーム番号 TODO: 乱数で決定する
-BIOME_OFFSET = BIOME_NUMBER * 2 ; バイオームを指すアドレスのオフセット(ゾーン番号 * word分ずらす)
-
-ZONE_COMB_NUMBER = 0                    ; ゾーン組み合わせ番号 TODO: 乱数で決定する
-ZONE_COMB_OFFSET = ZONE_COMB_NUMBER * 8 ; ゾーン組み合わせを指すアドレスのオフセット(1つの組み合わせに含まれるゾーンが4つなので4 * word分ずらす)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -89,7 +100,7 @@ Reset:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 StartFrame:
-    ;inc FrameCounter
+    inc FrameCounter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  垂直同期前
@@ -285,6 +296,13 @@ RoadZone:
 
 ; シーンを生成する
 GenerateScene subroutine
+#if DEBUG = 1
+    ; バイオームを選択
+    lda Biomes + DEBUG_BIOME_OFFSET
+    sta SelectedBiomeAddr
+    lda Biomes + DEBUG_BIOME_OFFSET + 1
+    sta SelectedBiomeAddr+1
+#else
     ; バイオームをランダムに選択
     jsr NextRandomValue
     lda RandomValue
@@ -295,11 +313,21 @@ GenerateScene subroutine
       adc BiomeNumber
     REPEND
     tax
-    lda Biomes + BIOME_OFFSET,x
+    lda Biomes,x
     sta SelectedBiomeAddr
-    lda Biomes + BIOME_OFFSET + 1,x
+    lda Biomes+1,x
     sta SelectedBiomeAddr+1
+#endif
 
+#if DEBUG = 1
+    ; ゾーンの組み合わせを選択
+    lda SelectedBiomeAddr
+    clc
+    adc DEBUG_ZONE_COMB_OFFSET
+    sta SelectedCombAddr
+    lda SelectedBiomeAddr+1
+    sta SelectedCombAddr+1
+#else
     ; ゾーンの組み合わせをランダムに選択
     jsr NextRandomValue
     lda RandomValue
@@ -313,6 +341,7 @@ GenerateScene subroutine
     sta SelectedCombAddr ; バイオームのアドレス + オフセット値を組み合わせのアドレスとして保存
     lda SelectedBiomeAddr+1
     sta SelectedCombAddr+1
+#endif
 
     ; ゾーンの組み合わせからZone1Addrを設定
     ldy #0

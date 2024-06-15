@@ -14,29 +14,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-BLACK            = $00
-GRAY             = $08
-WHITE            = $0f
-YELLOW           = $10
-BROWN            = $20
-ORANGE           = $30
-RED              = $40
-MAUVE            = $50
-VIOLET           = $60
-PURPLE           = $70
-BLUE             = $80
-BLUE_CYAN        = $90
-CYAN             = $a0
-CYAN_GREEN       = $b0
-GREEN            = $c0
-GREEN_YELLOW     = $d0
-GREEN_BEIGE      = $e0
-BEIGE            = $f0
 
-NUM_ZONES        = #5
-ZONE_HEIGHT      = #33
-ROAD_ZONE_HEIGHT = #58
+COLOR_BG         = $00 ; デフォルトの背景色
+COLOR_SKY        = $9e ; 空の背景色
+COLOR_SEA        = $80 ; 海の背景色
+COLOR_SAND       = $fc ; 砂の背景色
+COLOR_ROAD       = $08 ; 道の背景色
+COLOR_GRASS      = $c0 ; 草の背景色
+
+NUM_ZONES        = #5  ; 描画するゾーン数(4+1つの道)
+ZONE_HEIGHT      = #33 ; ゾーンの高さ
+ROAD_ZONE_HEIGHT = #58 ; 道ゾーンの高さ
+
+BIOME_NUMBER = 0                ; 選択されたバイオーム番号 TODO: 乱数で決定する
+BIOME_OFFSET = BIOME_NUMBER * 2 ; バイオームを指すアドレスのオフセット(ゾーン番号 * word分ずらす)
+
+ZONE_COMB_NUMBER = 0                    ; ゾーン組み合わせ番号 TODO: 乱数で決定する
+ZONE_COMB_OFFSET = ZONE_COMB_NUMBER * 8 ; ゾーン組み合わせを指すアドレスのオフセット(1つの組み合わせに含まれるゾーンが4つなので4 * word分ずらす)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -45,18 +39,16 @@ ROAD_ZONE_HEIGHT = #58
     seg.u Variables
     org $80
 
-FrameCounter byte     ; フレームカウンタ
-RandomCounter byte    ; 乱数カウンタ
-RandomValue byte      ; 乱数
-CurrentZoneIndex byte ; ゾーン番号
-Zone1AddrLow byte     ; 1つめのゾーンの下位バイト
-Zone1AddrHigh byte    ; 1つめのゾーンの上位バイト
-Zone2AddrLow byte     ; 2つめのゾーンの下位バイト
-Zone2AddrHigh byte    ; 2つめのゾーンの上位バイト
-Zone3AddrLow byte     ; 3つめのゾーンの下位バイト
-Zone3AddrHigh byte    ; 3つめのゾーンの上位バイト
-Zone4AddrLow byte     ; 4つめのゾーンの下位バイト
-Zone4AddrHigh byte    ; 4つめのゾーンの上位バイト
+FrameCounter        byte ; フレームカウンタ
+RandomCounter       byte ; 乱数カウンタ
+RandomValue         byte ; 乱数値
+ZoneCounter         byte ; ゾーンカウンタ
+Zone1Addr           word ; 1つめのゾーンのアドレス
+Zone2Addr           word ; 2つめのゾーンのアドレス
+Zone3Addr           word ; 3つめのゾーンのアドレス
+Zone4Addr           word ; 4つめのゾーンのアドレス
+SelectedBiomeAddr   word ; 選択したバイオームのアドレス
+SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -70,32 +62,19 @@ Reset:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 初期化
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;s
-    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     lda #0
     sta FrameCounter
     sta RandomCounter
     sta RandomValue
 
-    lda #<SkyZone
-    sta Zone1AddrLow
-    lda #>SkyZone
-    sta Zone1AddrHigh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; シーンのリセット
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lda #<SeaZone
-    sta Zone2AddrLow
-    lda #>SeaZone
-    sta Zone2AddrHigh
-
-    lda #<SandZone
-    sta Zone3AddrLow
-    lda #>SandZone
-    sta Zone3AddrHigh
-    
-    lda #<GrasslandZone
-    sta Zone4AddrLow
-    lda #>GrasslandZone
-    sta Zone4AddrHigh
+ResetScene:
+    jsr ChangeScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
@@ -140,10 +119,10 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     lda #0
-    sta CurrentZoneIndex
+    sta ZoneCounter
     
 .ZoneLoop
-    lda CurrentZoneIndex
+    lda ZoneCounter
     cmp #0
     beq .JmpZone1
     cmp #1
@@ -155,21 +134,21 @@ StartFrame:
     cmp #4
     jmp RoadZone
 .JmpZone1
-    jmp (Zone1AddrLow)
+    jmp (Zone1Addr)
 .JmpZone2
-    jmp (Zone2AddrLow)
+    jmp (Zone2Addr)
 .JmpZone3
-    jmp (Zone3AddrLow)
+    jmp (Zone3Addr)
 .JmpZone4
-    jmp (Zone4AddrLow)
+    jmp (Zone4Addr)
 .ZoneEnd
     sta WSYNC
-    inc CurrentZoneIndex
-    lda CurrentZoneIndex
+    inc ZoneCounter
+    lda ZoneCounter
     cmp #NUM_ZONES
     bmi .ZoneLoop
 .ZoneLoopEnd
-    lda BLACK
+    lda #COLOR_BG
     sta COLUBK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -198,7 +177,7 @@ SkipMoveUp:
     lda #%00100000
     bit SWCHA
     bne SkipMoveDown
-    jsr PrevRandomValue
+    jsr NextRandomValue
 SkipMoveDown:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -208,13 +187,13 @@ SkipMoveDown:
     jmp StartFrame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ゾーンの描画命令郡
+;; ゾーンの実装
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 空ゾーン
 SkyZone:
     sta WSYNC
-    lda #BLUE_CYAN
+    lda #COLOR_SKY
     sta COLUBK
     ldx #ZONE_HEIGHT-1
 .SkyZoneLoop
@@ -226,7 +205,7 @@ SkyZone:
 ; 海ゾーン
 SeaZone:
     sta WSYNC
-    lda #BLUE
+    lda #COLOR_SEA
     sta COLUBK
     ldx #ZONE_HEIGHT-1
 .SeaZoneLoop
@@ -238,7 +217,7 @@ SeaZone:
 ; 砂ゾーン
 SandZone:
     sta WSYNC
-    lda #BEIGE
+    lda #COLOR_SAND
     sta COLUBK
     ldx #ZONE_HEIGHT-1
 .SandZoneLoop
@@ -250,7 +229,7 @@ SandZone:
 ; 草原ゾーン
 GrasslandZone:
     sta WSYNC
-    lda #GREEN
+    lda #COLOR_GRASS
     sta COLUBK
     ldx #ZONE_HEIGHT-1
 .GrasslandZoneLoop
@@ -270,7 +249,7 @@ RoadZone:
     ;lda #YELLOW
     ;sta COLUPF
     sta WSYNC
-    lda #GRAY
+    lda #COLOR_ROAD
     sta COLUBK
     ldx #ROAD_ZONE_HEIGHT-1
 .RoadZoneLoop
@@ -292,9 +271,57 @@ RoadZone:
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 次の乱数値をセットする
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; シーンを変更する
+ChangeScene subroutine
+    ; バイオームを選択 TODO: 乱数により決定する
+    lda Biomes + BIOME_OFFSET
+    sta SelectedBiomeAddr
+    lda Biomes + BIOME_OFFSET + 1
+    sta SelectedBiomeAddr+1
+
+    ; ゾーンの組み合わせを選択 TODO: 乱数により決定する
+    lda SelectedBiomeAddr
+    clc
+    adc 1+ZONE_COMB_OFFSET
+    sta SelectedCombAddr
+    lda SelectedBiomeAddr+1
+    sta SelectedCombAddr+1
+
+    ; ゾーンの組み合わせからZone1Addrを設定
+    ldy #0
+    lda (SelectedCombAddr),y
+    sta Zone1Addr
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone1Addr+1
+
+    ; ゾーンの組み合わせからZone2Addrを設定
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone2Addr
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone2Addr+1
+
+    ; ゾーンの組み合わせからZone3Addrを設定
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone3Addr
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone3Addr+1
+
+    ; ゾーンの組み合わせからZone4Addrを設定
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone4Addr
+    iny
+    lda (SelectedCombAddr),y
+    sta Zone4Addr+1
+
+    rts
+    
+; 次の乱数値をセットする
 NextRandomValue subroutine
     inc RandomCounter
     ldx RandomCounter
@@ -303,18 +330,34 @@ NextRandomValue subroutine
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 前の乱数値をセットする
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-PrevRandomValue subroutine
-    dec RandomCounter
-    ldx RandomCounter
-    lda RandomTable,X
-    sta RandomValue
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+NUMBER_OF_BIOMES = 2
+
+; バイオーム一覧
+Biomes:
+    .word SeaBiome
+    .word GrasslandBiome
+    .word SandBiome
+
+; 海バイオーム
+SeaBiome:
+    .byte #2 ; 組み合わせ数
+    .word SkyZone, SeaZone, SeaZone, SandZone
+    .word SkyZone, SeaZone, SeaZone, SeaZone
+
+; 草原バイオーム
+GrasslandBiome:
+    .byte #2 ; 組み合わせ数
+    .word SkyZone, SkyZone, GrasslandZone, GrasslandZone
+    .word SkyZone, GrasslandZone, GrasslandZone, GrasslandZone
+
+; 砂バイオーム
+SandBiome:
+    .byte #2 ; 組み合わせ数
+    .word SkyZone, SandZone, SandZone, SandZone
+    .word SkyZone, SandZone, SeaZone, SandZone
 
 ; 乱数テーブル
 RandomTable:

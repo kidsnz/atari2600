@@ -79,12 +79,12 @@ SelectedBiomeAddr   word ; 選択したバイオームのアドレス
 SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
-SkyZoneP0XPos       byte ; SkyZoneのP0のX座標
 ZoneP0XPosAddr      byte ; プレイヤー0のX座標のアドレス
 Zone1P0XPos         byte ; ゾーン1のプレイヤー0のX座標
 Zone2P0XPos         byte ; ゾーン2のプレイヤー0のX座標
 Zone3P0XPos         byte ; ゾーン3のプレイヤー0のX座標
 Zone4P0XPos         byte ; ゾーン4のプレイヤー0のX座標
+Tmp                 byte ; 一時領域
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -106,7 +106,6 @@ Reset:
     sta RandomValue
     lda #60
     sta PlayerXPos
-    sta SkyZoneP0XPos
     lda #120
     sta Zone1P0XPos
     lda #120
@@ -336,7 +335,7 @@ BuildingZone:
     ; sta COLUPF
 
     ldx ZoneP0XPosAddr
-    inc #0,X
+    inc $00,X
 
     ldx #ZONE_HEIGHT-1
 .BuildingZoneLoop
@@ -392,7 +391,7 @@ SeaZone:
     sta NUSIZ0
     ; 横位置の補正
     ldx ZoneP0XPosAddr
-    lda #0,X
+    lda $00,X
     ldy #0
     jsr SetObjectXPos
     sta WSYNC
@@ -406,6 +405,18 @@ SeaZone:
     sta WSYNC
     txa
     sbc #5
+    ; ヨットへのゆらぎを入れる
+;     sta Tmp
+;     ldy ZoneP0XPosAddr
+;     lda $00,Y
+;     and #%00000001
+;     beq .FluctuateYacht
+;     lda Tmp
+;     jmp .SkipFluctuateYacht
+; .FluctuateYacht
+;     lda Tmp
+;     sbc #1
+; .SkipFluctuateYacht
     cmp #YACHT_GFX_HEIGHT
     bcc .DrawYacht
     lda #0
@@ -429,7 +440,7 @@ SeaZone:
     cpy #128
     bcc .SkipMoveYacht
     lda #0
-    sta #0,X
+    sta $00,X
 .SkipMoveYacht
     jmp .ZoneEnd
 

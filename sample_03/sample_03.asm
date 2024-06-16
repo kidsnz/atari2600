@@ -16,7 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; デバッグ動作にする場合は1を指定する
-DEBUG = 1
+DEBUG = 0
 
 ; バイオーム番号を指定する
 DEBUG_BIOME_NUMBER = 0
@@ -314,7 +314,7 @@ SkyZone:
     ldx ZoneP0XPosAddr
     inc $00,X
     ldy $00,X
-    cpy #150
+    cpy #128
     bcc .SkipMoveCloud
     lda #0
     sta $00,X
@@ -426,7 +426,7 @@ SeaZone:
     ldx ZoneP0XPosAddr
     inc $00,X
     ldy $00,X
-    cpy #150
+    cpy #128
     bcc .SkipMoveYacht
     lda #0
     sta #0,X
@@ -616,7 +616,7 @@ LeftPlayerXPos subroutine
 ; プレイヤーを右に動かす
 RightPlayerXPos subroutine
     ldx PlayerXPos
-    cpx #134
+    cpx #128
     bpl .RightEnd
     inx
     stx PlayerXPos
@@ -631,9 +631,9 @@ RightPlayerXPos subroutine
 ;  A は対象のピクセル単位のX座標
 ;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
 SetObjectXPos subroutine
-    sta WSYNC
     tax
     sec
+    sta WSYNC
 .Div15Loop
     sbc #15
     bcs .Div15Loop

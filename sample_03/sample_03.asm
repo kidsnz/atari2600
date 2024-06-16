@@ -107,7 +107,9 @@ Reset:
     lda #60
     sta PlayerXPos
     sta SkyZoneP0XPos
-    lda #44
+    lda #120
+    sta Zone1P0XPos
+    lda #120
     sta Zone3P0XPos
     lda #2
     sta PlayerYPos
@@ -129,8 +131,7 @@ StartFrame:
 ;;  垂直同期前
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    sta WSYNC ; 水平同期を待つ
-    sta HMOVE ; 水平位置を反映する
+    ; sta WSYNC
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 垂直同期の開始
@@ -148,6 +149,17 @@ StartFrame:
 ;; 垂直ブランクの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ; タイマー版
+;     lda #%10000010
+;     sta VBLANK
+;     lda #35
+;     sta TIM64T
+; .WaitOnVBlank
+;     cpx INTIM
+;     bmi .WaitOnVBlank
+;     lda #%00000000
+;     sta VBLANK
+
     lda #%10000010
     sta VBLANK
     REPEAT 37
@@ -160,6 +172,10 @@ StartFrame:
 ;; ゾーンの描画処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ; タイマー版
+    ; lda #255
+    ; sta TIM64T
+    
     lda #0
     sta ZoneCounter
     
@@ -198,10 +214,10 @@ StartFrame:
     cmp #NUM_ZONES
     bmi .ZoneLoop
 .ZoneLoopEnd
-    lda #COLOR_BG
-    sta COLUBK
+    ; lda #COLOR_BG
+    ; sta COLUBK
 
-;ジョイスティックの処理
+; ジョイスティックの処理
 MoveJoystick:
     lda #%00010000
     bit SWCHA
@@ -224,18 +240,20 @@ SkipMoveLeft:
     jsr RightPlayerXPos
 SkipMoveRight:
 
-    lda PlayerXPos
-    ldy #0
-    jsr SetObjectXPos
-    lda SkyZoneP0XPos
-    ldy #1
-    jsr SetObjectXPos
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
+    ; タイマー版
+;     lda #%00000010
+;     sta VBLANK
+; .WaitOnOverScan
+;     cpx INTIM
+;     bmi .WaitOnOverScan
+;     lda #%00000000
+;     sta VBLANK
+
+    ; REPEAT版
     sta WSYNC
     lda #%00000010
     sta VBLANK
@@ -258,35 +276,20 @@ SkipMoveRight:
 ; 空ゾーン
 SkyZone:
     ; 初期化
-    lda #%00000100
+    lda #%00000000
     sta NUSIZ0
-    ; 背景色のセット
-    sta WSYNC
-    lda #COLOR_SKY
-    sta COLUBK
     ; 横位置の補正
     ldx ZoneP0XPosAddr
-    lda #0,X
+    lda $00,X
     ldy #0
     jsr SetObjectXPos
-    ; 雲の横移動
-    lda FrameCounter
-    and #%00111111
-    beq .MoveCloud
-    jmp .SkipMoveCloud
-.MoveCloud
-    ldx ZoneP0XPosAddr
-    inc #0,X
-    ldy #0,X
-    cpy #165
-    bcc .SkipMoveCloud
-    lda #0
-    sta #0,X
-.SkipMoveCloud 
-    sta WSYNC
-    sta HMOVE
+    ; sta WSYNC
+    ; sta HMOVE
+    ; 背景色のセット
+    lda #COLOR_SKY
+    sta COLUBK
     ; ラインループの開始
-    ldx #ZONE_HEIGHT-1
+    ldx #ZONE_HEIGHT+1
 .SkyZoneLoop
     sta WSYNC
     txa
@@ -302,6 +305,20 @@ SkyZone:
     sta COLUP0
     dex
     bpl .SkyZoneLoop
+    ; 雲の横移動
+    lda FrameCounter
+    and #%00000011
+    beq .MoveCloud
+    jmp .SkipMoveCloud
+.MoveCloud
+    ldx ZoneP0XPosAddr
+    inc $00,X
+    ldy $00,X
+    cpy #150
+    bcc .SkipMoveCloud
+    lda #0
+    sta $00,X
+.SkipMoveCloud
     jmp .ZoneEnd
     
 BuildingZone:
@@ -365,7 +382,7 @@ DarkSkyZone:
 .DarkSkyZoneLoop
     sta WSYNC
     dex
-    bpl .SkyZoneLoop
+    bpl .DarkSkyZoneLoop
     jmp .ZoneEnd
     
 ; 海ゾーン
@@ -378,23 +395,9 @@ SeaZone:
     lda #0,X
     ldy #0
     jsr SetObjectXPos
-    ; 雲の横移動
-    lda FrameCounter
-    and #%00001111
-    beq .MoveYacht
-    jmp .SkipMoveYacht
-.MoveYacht
-    ldx ZoneP0XPosAddr
-    inc #0,X
-    ldy #0,X
-    cpy #165
-    bcc .SkipMoveYacht
-    lda #0
-    sta #0,X
-.SkipMoveYacht 
+    ; sta WSYNC
+    ; sta HMOVE
     ; 背景色のセット
-    sta WSYNC
-    sta HMOVE
     lda #COLOR_SEA
     sta COLUBK
     ; ラインループの開始
@@ -414,6 +417,20 @@ SeaZone:
     sta COLUP0
     dex
     bpl .SeaZoneLoop
+    ; ヨットの横移動
+    lda FrameCounter
+    and #%00001111
+    beq .MoveYacht
+    jmp .SkipMoveYacht
+.MoveYacht
+    ldx ZoneP0XPosAddr
+    inc $00,X
+    ldy $00,X
+    cpy #150
+    bcc .SkipMoveYacht
+    lda #0
+    sta #0,X
+.SkipMoveYacht
     jmp .ZoneEnd
 
 ; 砂ゾーン
@@ -448,9 +465,9 @@ RoadZone:
     lda PlayerXPos
     ldy #0
     jsr SetObjectXPos
+    ; sta WSYNC
+    ; sta HMOVE
     ; 背景色のセット
-    sta WSYNC
-    sta HMOVE
     lda #COLOR_ROAD
     sta COLUBK
     ldx #ROAD_ZONE_HEIGHT-1
@@ -615,6 +632,7 @@ RightPlayerXPos subroutine
 ;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
 SetObjectXPos subroutine
     sta WSYNC
+    tax
     sec
 .Div15Loop
     sbc #15
@@ -626,6 +644,8 @@ SetObjectXPos subroutine
     asl
     sta HMP0,Y
     sta RESP0,Y
+    sta WSYNC
+    sta HMOVE
     rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -638,7 +658,7 @@ Biomes:
     .word SeaBiome
     .word GrasslandBiome
     .word SandBiome
-
+`
 ; 街バイオーム
 TownBiome:
     .word SkyZone, BuildingZone, SeaZone, GrasslandZone

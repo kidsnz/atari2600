@@ -16,7 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; デバッグ動作にする場合は1を指定する
-DEBUG = 0
+DEBUG = 1
 
 ; バイオーム番号を指定する
 DEBUG_BIOME_NUMBER = 0
@@ -152,7 +152,7 @@ StartFrame:
     ; タイマー版
 ;     lda #%10000010
 ;     sta VBLANK
-;     lda #35
+;     lda #43
 ;     sta TIM64T
 ; .WaitOnVBlank
 ;     cpx INTIM
@@ -218,17 +218,17 @@ StartFrame:
     ; sta COLUBK
 
 ; ジョイスティックの処理
-MoveJoystick:
-    lda #%00010000
-    bit SWCHA
-    bne SkipMoveUp
-    jsr NextRandomValue
-SkipMoveUp:
-    lda #%00100000
-    bit SWCHA
-    bne SkipMoveDown
-    jsr ResetScene
-SkipMoveDown:
+; MoveJoystick:
+;     lda #%00010000
+;     bit SWCHA
+;     bne SkipMoveUp
+;     jsr NextRandomValue
+; SkipMoveUp:
+;     lda #%00100000
+;     bit SWCHA
+;     bne SkipMoveDown
+;     jsr ResetScene
+; SkipMoveDown:
     lda #%01000000
     bit SWCHA
     bne SkipMoveLeft
@@ -283,8 +283,8 @@ SkyZone:
     lda $00,X
     ldy #0
     jsr SetObjectXPos
-    ; sta WSYNC
-    ; sta HMOVE
+    sta WSYNC
+    sta HMOVE
     ; 背景色のセット
     lda #COLOR_SKY
     sta COLUBK
@@ -395,8 +395,8 @@ SeaZone:
     lda #0,X
     ldy #0
     jsr SetObjectXPos
-    ; sta WSYNC
-    ; sta HMOVE
+    sta WSYNC
+    sta HMOVE
     ; 背景色のセット
     lda #COLOR_SEA
     sta COLUBK
@@ -465,8 +465,8 @@ RoadZone:
     lda PlayerXPos
     ldy #0
     jsr SetObjectXPos
-    ; sta WSYNC
-    ; sta HMOVE
+    sta WSYNC
+    sta HMOVE
     ; 背景色のセット
     lda #COLOR_ROAD
     sta COLUBK
@@ -644,8 +644,8 @@ SetObjectXPos subroutine
     asl
     sta HMP0,Y
     sta RESP0,Y
-    sta WSYNC
-    sta HMOVE
+    ; sta WSYNC
+    ; sta HMOVE
     rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

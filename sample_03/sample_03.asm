@@ -16,7 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; デバッグ動作にする場合は1を指定する
-DEBUG = 0
+DEBUG = 1
 
 ; バイオーム番号を指定する
 DEBUG_BIOME_NUMBER = 0
@@ -32,15 +32,21 @@ DEBUG_ZONE_COMB_OFFSET = DEBUG_ZONE_COMB_NUMBER * 8
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-COLOR_BG         = $00 ; デフォルトの背景色
-COLOR_SKY        = $9e ; 空の背景色
-COLOR_DARK_SKY   = $04 ; 暗い空の背景色
-COLOR_SEA        = $80 ; 海の背景色
-COLOR_SAND       = $fc ; 砂の背景色
-COLOR_ROAD       = $08 ; 道の背景色
-COLOR_GRASS      = $c0 ; 草の背景色
+COLOR_BG          = $00 ; デフォルトの背景色
+COLOR_SKY         = $9e ; 空の背景色
+COLOR_DARK_SKY    = $04 ; 暗い空の背景色
+COLOR_SEA         = $80 ; 海の背景色
+COLOR_SAND        = $fc ; 砂の背景色
+COLOR_ROAD        = $08 ; 道の背景色
+COLOR_GRASS       = $c0 ; 草の背景色
+COLOR_BUILDING_BG = $0c ; ビルの背景色
+COLOR_BUILDING    = $03 ; ビルの色
+COLOR_CLOUD       = $0e ; 雲の色
 
-PLAYER_HEIGHT    = 16
+PLAYER_GFX_HEIGHT   = 16 ; プレイヤーの高さ
+BUILDING_GFX_HEIGHT = 18 ; ビルの高さ
+CLOUD_GFX_HEIGHT    = 16 ; 雲の高さ
+YACHT_GFX_HEIGHT    = 16 ; ヨットの高さ
 
 NUM_ZONES        = #5  ; 描画するゾーン数(4+1つの道)
 ZONE_HEIGHT      = #33 ; ゾーンの高さ
@@ -73,6 +79,12 @@ SelectedBiomeAddr   word ; 選択したバイオームのアドレス
 SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
+SkyZoneP0XPos       byte ; SkyZoneのP0のX座標
+ZoneP0XPosAddr      byte ; プレイヤー0のX座標のアドレス
+Zone1P0XPos         byte ; ゾーン1のプレイヤー0のX座標
+Zone2P0XPos         byte ; ゾーン2のプレイヤー0のX座標
+Zone3P0XPos         byte ; ゾーン3のプレイヤー0のX座標
+Zone4P0XPos         byte ; ゾーン4のプレイヤー0のX座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -94,6 +106,9 @@ Reset:
     sta RandomValue
     lda #60
     sta PlayerXPos
+    sta SkyZoneP0XPos
+    lda #44
+    sta Zone3P0XPos
     lda #2
     sta PlayerYPos
 
@@ -161,12 +176,20 @@ StartFrame:
     cmp #4
     jmp RoadZone
 .JmpZone1
+    lda #<Zone1P0XPos
+    sta ZoneP0XPosAddr
     jmp (Zone1Addr)
 .JmpZone2
+    lda #<Zone2P0XPos
+    sta ZoneP0XPosAddr
     jmp (Zone2Addr)
 .JmpZone3
+    lda #<Zone3P0XPos
+    sta ZoneP0XPosAddr
     jmp (Zone3Addr)
 .JmpZone4
+    lda #<Zone4P0XPos
+    sta ZoneP0XPosAddr
     jmp (Zone4Addr)
 .ZoneEnd
     sta WSYNC
@@ -204,6 +227,10 @@ SkipMoveRight:
     lda PlayerXPos
     ldy #0
     jsr SetObjectXPos
+    lda SkyZoneP0XPos
+    ldy #1
+    jsr SetObjectXPos
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
@@ -230,14 +257,103 @@ SkipMoveRight:
 
 ; 空ゾーン
 SkyZone:
+    ; 初期化
+    lda #%00000100
+    sta NUSIZ0
+    ; 背景色のセット
     sta WSYNC
     lda #COLOR_SKY
     sta COLUBK
+    ; 横位置の補正
+    ldx ZoneP0XPosAddr
+    lda #0,X
+    ldy #0
+    jsr SetObjectXPos
+    ; 雲の横移動
+    lda FrameCounter
+    and #%00111111
+    beq .MoveCloud
+    jmp .SkipMoveCloud
+.MoveCloud
+    ldx ZoneP0XPosAddr
+    inc #0,X
+    ldy #0,X
+    cpy #165
+    bcc .SkipMoveCloud
+    lda #0
+    sta #0,X
+.SkipMoveCloud 
+    sta WSYNC
+    sta HMOVE
+    ; ラインループの開始
     ldx #ZONE_HEIGHT-1
 .SkyZoneLoop
     sta WSYNC
+    txa
+    sbc #5
+    cmp #CLOUD_GFX_HEIGHT
+    bcc .DrawCloud
+    lda #0
+.DrawCloud
+    tay
+    lda CloudGfx,Y
+    sta GRP0
+    lda #COLOR_CLOUD
+    sta COLUP0
     dex
     bpl .SkyZoneLoop
+    jmp .ZoneEnd
+    
+BuildingZone:
+    sta WSYNC
+    lda #COLOR_BUILDING_BG
+    sta COLUBK
+
+    ; lda #%00000000
+    ; sta PF0
+    ; lda #%10101010
+    ; sta PF1
+    ; lda #%01010101
+    ; sta PF2
+    ; lda #COLOR_BUILDING
+    ; sta COLUPF
+
+    ldx ZoneP0XPosAddr
+    inc #0,X
+
+    ldx #ZONE_HEIGHT-1
+.BuildingZoneLoop
+    sta WSYNC
+    txa
+    cmp #0
+    beq .LastDrawBuilding
+    txa
+    cmp #BUILDING_GFX_HEIGHT
+    bcc .DrawBuilding
+    lda #0
+    jmp .DrawBuilding
+.DrawBuilding
+    tay
+    lda BuildingGfx0,Y
+    sta PF0
+    lda BuildingGfx1,Y
+    sta PF1
+    lda BuildingGfx2,Y
+    sta PF2
+    lda #COLOR_BUILDING
+    sta COLUPF
+
+    dex
+    bpl .BuildingZoneLoop
+
+.LastDrawBuilding
+    lda #COLOR_BUILDING
+    sta COLUBK
+
+    lda #0
+    sta PF0
+    sta PF1
+    sta PF2
     jmp .ZoneEnd
     
 ; 暗い空ゾーン
@@ -254,12 +370,48 @@ DarkSkyZone:
     
 ; 海ゾーン
 SeaZone:
+    ; 初期化
+    lda #%00000000
+    sta NUSIZ0
+    ; 横位置の補正
+    ldx ZoneP0XPosAddr
+    lda #0,X
+    ldy #0
+    jsr SetObjectXPos
+    ; 雲の横移動
+    lda FrameCounter
+    and #%00001111
+    beq .MoveYacht
+    jmp .SkipMoveYacht
+.MoveYacht
+    ldx ZoneP0XPosAddr
+    inc #0,X
+    ldy #0,X
+    cpy #165
+    bcc .SkipMoveYacht
+    lda #0
+    sta #0,X
+.SkipMoveYacht 
+    ; 背景色のセット
     sta WSYNC
+    sta HMOVE
     lda #COLOR_SEA
     sta COLUBK
+    ; ラインループの開始
     ldx #ZONE_HEIGHT-1
 .SeaZoneLoop
     sta WSYNC
+    txa
+    sbc #5
+    cmp #YACHT_GFX_HEIGHT
+    bcc .DrawYacht
+    lda #0
+.DrawYacht
+    tay
+    lda YachtGfx,Y
+    sta GRP0
+    lda YachtGfxColor,Y
+    sta COLUP0
     dex
     bpl .SeaZoneLoop
     jmp .ZoneEnd
@@ -292,25 +444,21 @@ GrasslandZone:
 RoadZone:
     lda #%00000101
     sta NUSIZ0
-    ;lda #%01010000
-    ;sta PF0
-    ;lda #%10101010
-    ;sta PF1
-    ;lda #%01010101
-    ;sta PF2
-    ;lda #YELLOW
-    ;sta COLUPF
+    ; 横位置の補正
+    lda PlayerXPos
+    ldy #0
+    jsr SetObjectXPos
     ; 背景色のセット
     sta WSYNC
+    sta HMOVE
     lda #COLOR_ROAD
     sta COLUBK
     ldx #ROAD_ZONE_HEIGHT-1
 .RoadZoneLoop
     sta WSYNC
     txa
-    sec
     sbc PlayerYPos
-    cmp #PLAYER_HEIGHT
+    cmp #PLAYER_GFX_HEIGHT
     bcc .DrawPlayer
     lda #0
 .DrawPlayer
@@ -452,7 +600,7 @@ LeftPlayerXPos subroutine
 RightPlayerXPos subroutine
     ldx PlayerXPos
     cpx #134
-    beq .RightEnd
+    bpl .RightEnd
     inx
     stx PlayerXPos
     jmp .Return
@@ -486,10 +634,17 @@ SetObjectXPos subroutine
 
 ; バイオーム一覧
 Biomes:
+    .word TownBiome
     .word SeaBiome
     .word GrasslandBiome
     .word SandBiome
-    .word SandBiome
+
+; 街バイオーム
+TownBiome:
+    .word SkyZone, BuildingZone, SeaZone, GrasslandZone
+    .word SkyZone, BuildingZone, GrasslandZone, GrasslandZone
+    .word SkyZone, BuildingZone, GrasslandZone, GrasslandZone
+    .word SkyZone, BuildingZone, GrasslandZone, GrasslandZone
 
 ; 海バイオーム
 SeaBiome:
@@ -531,6 +686,7 @@ PlayerGfx:
     .byte %00111100 ; |  XXXX  |
     .byte %00111100 ; |  XXXX  |
 
+; プレイヤースプライトカラー
 PlayerGfxColor:
     .byte $38
     .byte $38
@@ -548,6 +704,127 @@ PlayerGfxColor:
     .byte $38
     .byte $38
     .byte $00
+
+; 雲スプライト
+CloudGfx:
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00111100 ; |  XXXX  |
+    .byte %01111110 ; | XXXXXX |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01111111 ; | XXXXXXX|
+    .byte %00111110 ; |  XXXXX |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011100 ; |   XXX  |
+    .byte %00001000 ; |    X   |
+    .byte %00000000 ; |        |
+
+
+; ヨットスプライト
+YachtGfx:
+    .byte %00000000 ; |        |
+    .byte %00111100 ; |  XXXX  |
+    .byte %01111110 ; | XXXXXX |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00011000 ; |   XX   |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011110 ; |   XXXX |
+    .byte %00011111 ; |   XXXXX|
+    .byte %00011110 ; |   XXXX |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011000 ; |   XX   |
+
+; ヨットスプライトカラー
+YachtGfxColor:
+    .byte $FF ; |        |
+    .byte $1C ; |  XXXX  |
+    .byte $1C ; | XXXXXX |
+    .byte $1C ; |XXXXXXXX|
+    .byte $1C ; |XXXXXXXX|
+    .byte $00 ; |   X    |
+    .byte $00 ; |   X    |
+    .byte $00 ; |   X    |
+    .byte $00 ; |   X    |
+    .byte $0E ; |   XX   |
+    .byte $0E ; |   XXX  |
+    .byte $0E ; |   XXXX |
+    .byte $0E ; |   XXXXX|
+    .byte $0E ; |   XXXX |
+    .byte $0E ; |   XXX  |
+    .byte $0E ; |   XX   |
+
+; ビル背景0
+BuildingGfx0:
+    .byte %00000000 ; |        |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01010000 ; | X X    |
+    .byte %01010000 ; | X X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+; ビル背景1
+BuildingGfx1:
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11110111 ; |XXXX XXX|
+    .byte %11110111 ; |XXXX XXX|
+    .byte %11010111 ; |XX X XXX|
+    .byte %11010011 ; |XX X  XX|
+    .byte %01010011 ; | X X  XX|
+    .byte %01010010 ; | X X  X |
+    .byte %00000010 ; |      X |
+    .byte %00000010 ; |      X |
+    .byte %00000010 ; |      X |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+; ビル背景2
+BuildingGfx2:
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11101111 ; |XXX XXXX|
+    .byte %11100111 ; |XXX  XXX|
+    .byte %11100111 ; |XXX  XXX|
+    .byte %11000101 ; |XX   X X|
+    .byte %10000001 ; |X      X|
+    .byte %10000001 ; |X      X|
+    .byte %10000001 ; |X      X|
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
 
 ; 乱数テーブル
 RandomTable:

@@ -19,7 +19,7 @@
 DEBUG = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 定数
+;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 COLOR_BG          = $00 ; デフォルトの背景色
@@ -33,7 +33,19 @@ COLOR_BUILDING_BG = $0c ; ビルの背景色
 COLOR_BUILDING    = $03 ; ビルの色
 COLOR_CLOUD       = $0e ; 雲の色
 
-PLAYER_GFX_HEIGHT   = 16 ; プレイヤーの高さ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+PLAYER_GFX_HEIGHT   = 16  ; プレイヤーの高さ
+CLOUD_GFX_HEIGHT    = 16  ; 雲の高さ
+MAX_NUMBER_OF_ZONES = 8   ; ゾーンの最大数
+MIN_NUMBER_OF_ZONES = 3   ; ゾーンの最小数
+MASK_NUMBER_OF_ZONES = %0011 ; ゾーン数のマスク
+MAX_LINES           = 192 ; スキャンライン数 
+MIN_ZONE_HEIGHT     = 10
+PLAYER_ZONE_HEIGHT  = 32  ; プレイヤーのゾーンの高さ
+LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -45,23 +57,31 @@ PLAYER_GFX_HEIGHT   = 16 ; プレイヤーの高さ
 FrameCounter        byte ; フレームカウンタ
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
-ZoneCounter         byte ; ゾーンカウンタ
-BiomeNumber         byte ; バイオーム番号
-ZoneCombNumber      byte ; ゾーン組み合わせ番号
-Zone1Addr           word ; 1つめのゾーンのアドレス
-Zone2Addr           word ; 2つめのゾーンのアドレス
-Zone3Addr           word ; 3つめのゾーンのアドレス
-Zone4Addr           word ; 4つめのゾーンのアドレス
-SelectedBiomeAddr   word ; 選択したバイオームのアドレス
-SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
+RandomCounter2      byte ; 乱数カウンタ2
+RandomValue2        byte ; 乱数値2
+NumberOfZones       byte ; ゾーン数
+ZoneIndex           byte ; ゾーンインデックス
+; ZoneCounter         byte ; ゾーンカウンタ
+; BiomeNumber         byte ; バイオーム番号
+; ZoneCombNumber      byte ; ゾーン組み合わせ番号
+; Zone1Addr           word ; 1つめのゾーンのアドレス
+; Zone2Addr           word ; 2つめのゾーンのアドレス
+; Zone3Addr           word ; 3つめのゾーンのアドレス
+; Zone4Addr           word ; 4つめのゾーンのアドレス
+; SelectedBiomeAddr   word ; 選択したバイオームのアドレス
+; SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
-ZoneP0XPosAddr      byte ; プレイヤー0のX座標のアドレス
-Zone1P0XPos         byte ; ゾーン1のプレイヤー0のX座標
-Zone2P0XPos         byte ; ゾーン2のプレイヤー0のX座標
-Zone3P0XPos         byte ; ゾーン3のプレイヤー0のX座標
-Zone4P0XPos         byte ; ゾーン4のプレイヤー0のX座標
-Tmp                 byte ; 一時領域
+; ZoneP0XPosAddr      byte ; プレイヤー0のX座標のアドレス
+; Zone1P0XPos         byte ; ゾーン1のプレイヤー0のX座標
+; Zone2P0XPos         byte ; ゾーン2のプレイヤー0のX座標
+; Zone3P0XPos         byte ; ゾーン3のプレイヤー0のX座標
+; Zone4P0XPos         byte ; ゾーン4のプレイヤー0のX座標
+; Tmp                 byte ; 一時領域
+ZoneBgColors          ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
+ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
+ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -81,12 +101,12 @@ Reset:
     sta FrameCounter
     sta RandomCounter
     sta RandomValue
+    sta RandomCounter2
+    sta RandomValue2
+
+    ; プレイヤー座標の初期化
     lda #60
     sta PlayerXPos
-    lda #120
-    sta Zone1P0XPos
-    lda #120
-    sta Zone3P0XPos
     lda #2
     sta PlayerYPos
 
@@ -94,9 +114,7 @@ Reset:
 ;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ; ゾーン数を計算
-    ; ゾーン毎の高さを計算
-    ; ゾーン毎の背景色を決定
+    jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
@@ -104,12 +122,6 @@ Reset:
 
 StartFrame:
     inc FrameCounter
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  垂直同期前
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    ; sta WSYNC
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 垂直同期の開始
@@ -139,11 +151,32 @@ StartFrame:
 ;; ゾーンの描画処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    REPEAT 192
-        sta WSYNC
-    REPEND
+    ; 風景ゾーン
+    ldx #0
+LandscapeZoneLoopStart:
+    stx ZoneIndex
+    jmp LandscapeZone
+LandscapeZoneReturn:
+    ldx ZoneIndex
+    inx
+    cpx NumberOfZones
+    bcc LandscapeZoneLoopStart
+
+    ; プレイヤーゾーン
+    jmp PlayerZone
+PlayerZoneReturn:
 
 ; ジョイスティックの処理
+    lda #%00010000
+    bit SWCHA
+    bne SkipMoveUp
+    jsr ResetScene
+SkipMoveUp:
+    lda #%00100000
+    bit SWCHA
+    bne SkipMoveDown
+    ; TODO
+SkipMoveDown:
     lda #%01000000
     bit SWCHA
     bne SkipMoveLeft
@@ -158,17 +191,7 @@ SkipMoveRight:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
-    ; タイマー版
-;     lda #%00000010
-;     sta VBLANK
-; .WaitOnOverScan
-;     cpx INTIM
-;     bmi .WaitOnOverScan
-;     lda #%00000000
-;     sta VBLANK
 
-    ; REPEAT版
     sta WSYNC
     lda #%00000010
     sta VBLANK
@@ -184,7 +207,78 @@ SkipMoveRight:
     
     jmp StartFrame
 
-  
+LandscapeZone:
+    ldx ZoneIndex
+    ; 背景色のセット
+    lda ZoneBgColors,x
+    sta WSYNC
+    sta COLUBK
+    ; スプライト色のセット
+    lda ZoneSpriteColors,x
+    sta COLUP0
+    ; 横位置の補正
+    ; ldx ZoneP0XPosAddr
+    lda $00,X
+    ldy #0
+    jsr SetObjectXPos
+    sta WSYNC
+    sta HMOVE
+    ; ゾーンの高さ分のループ
+    ldx ZoneIndex
+    ldy ZoneHeights,x
+.LandscapeZoneLoop
+    sta WSYNC
+    tya
+    sbc #0
+    cmp #CLOUD_GFX_HEIGHT
+    bcc .DrawCloud
+    lda #0
+.DrawCloud
+    tax
+    lda CloudGfx,x
+    sta GRP0
+    ; lda #COLOR_CLOUD
+    ; sta COLUP0
+    
+    dey
+    bne .LandscapeZoneLoop
+    jmp LandscapeZoneReturn
+
+PlayerZone:
+    lda #%00000101
+    sta NUSIZ0
+    ; 横位置の補正
+    lda PlayerXPos
+    ldy #0
+    jsr SetObjectXPos
+    sta WSYNC
+    sta HMOVE
+    ; 背景色のセット
+    lda #COLOR_ROAD
+    sta COLUBK
+    ldx #PLAYER_ZONE_HEIGHT-1
+.PlayerZoneLoop
+    sta WSYNC
+    txa
+    sbc PlayerYPos
+    cmp #PLAYER_GFX_HEIGHT
+    bcc .DrawPlayer
+    lda #0
+.DrawPlayer
+    tay
+    lda PlayerGfx,Y
+    sta GRP0
+    lda PlayerGfxColor,Y
+    sta COLUP0
+    dex
+    bpl .PlayerZoneLoop
+    lda #%00000000
+    sta NUSIZ0
+    lda #0
+    sta WSYNC
+    sta COLUBK
+    jmp PlayerZoneReturn
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -201,17 +295,67 @@ ResetPlayerXPosToRight subroutine
     sta PlayerXPos
     rts
 
-; シーンを生成する
-ResetScene subroutine
-    ; TODO
+; シーンを初期化する
+ResetScene subroutine    
+    ; ゾーン数は8で固定
+    lda #8
+    sta NumberOfZones
+
+    ; 各ゾーンの初期化処理
+    ldx #0
+.InitializeZoneLoop
+    ; 一定の確率でゾーンの色を変えないで結合したように見せる
+    jsr NextRandomValue2
+    lda RandomValue2
+    and #%00000001
+    bne .SkipCalculateZoneColor
+    jsr NextRandomValue
+.SkipCalculateZoneColor
+    ; ゾーンの色を決定
+    lda RandomValue
+    sta ZoneBgColors,x
+
+    ; スプライトの色を決定
+    jsr NextRandomValue2
+    lda RandomValue2
+    sta ZoneSpriteColors,x
+
+    ; ゾーンの高さは固定で18(20-バッファ2)
+    lda #18
+    sta ZoneHeights,x
+
+    inx
+    cpx NumberOfZones
+    bcc .InitializeZoneLoop
+.InitializeEnd
     rts
     
 ; 次の乱数値をセットする
 NextRandomValue subroutine
+    pha
+    txa
+    pha
     inc RandomCounter
     ldx RandomCounter
     lda RandomTable,X
     sta RandomValue
+    pla
+    tax
+    pla
+    rts
+
+; 次の乱数値2をセットする
+NextRandomValue2 subroutine
+    pha
+    txa
+    pha
+    inc RandomCounter2
+    ldx RandomCounter2
+    lda RandomTable,X
+    sta RandomValue2
+    pla
+    tax
+    pla
     rts
 
 ; プレイヤーを左に動かす
@@ -267,41 +411,55 @@ SetObjectXPos subroutine
 
 ; プレイヤースプライト
 PlayerGfx:
-    .byte %00000000 ; |        |
-    .byte %10000001 ; |X      X|
-    .byte %01000001 ; | X     X|
-    .byte %00100010 ; |  X   X |
-    .byte %00010100 ; |   X X  |
-    .byte %00011000 ; |   XX   |
-    .byte %10011000 ; |X  XX   |
-    .byte %01011000 ; | X XX   |
-    .byte %00111000 ; |  XXX   |
-    .byte %00011100 ; |   XXX  |
-    .byte %00011010 ; |   XX X |
-    .byte %00011001 ; |   XX  X|
-    .byte %00111100 ; |  XXXX  |
-    .byte %00111100 ; |  XXXX  |
-    .byte %00111100 ; |  XXXX  |
-    .byte %00111100 ; |  XXXX  |
+    .byte %00000000
+    .byte %10001010
+    .byte %01000100
+    .byte %10100100
+    .byte %01101110
+    .byte %11011110
+    .byte %00111110
+    .byte %11110100
+    .byte %00010100
+    .byte %11101111
+    .byte %00001010
+    .byte %00001100
+    .byte %00001000
+    .byte %00010100
 
 ; プレイヤースプライトカラー
 PlayerGfxColor:
-    .byte $38
-    .byte $38
-    .byte $80
-    .byte $80
-    .byte $80
-    .byte $80
-    .byte $FF
-    .byte $FF
-    .byte $FF
-    .byte $FF
-    .byte $FF
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
     .byte $00
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+    .byte $38
+
+CloudGfx:
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00111100 ; |  XXXX  |
+    .byte %01111110 ; | XXXXXX |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01111111 ; | XXXXXXX|
+    .byte %00111110 ; |  XXXXX |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011100 ; |   XXX  |
+    .byte %00001000 ; |    X   |
+    .byte %00000000 ; |        |
 
 ; 乱数テーブル
 RandomTable:

@@ -296,10 +296,19 @@ ResetPlayerXPosToRight subroutine
     rts
 
 ; シーンを初期化する
-ResetScene subroutine    
-    ; ゾーン数は8で固定
-    lda #8
+ResetScene subroutine
+
+    ; ゾーン数はランダム
+    jsr NextRandomValue
+    lda RandomValue
+    and #MASK_NUMBER_OF_ZONES
+    clc
+    adc #MIN_NUMBER_OF_ZONES
     sta NumberOfZones
+
+    ; ゾーン数は8で固定
+    ; lda #8
+    ; sta NumberOfZones
 
     ; 各ゾーンの初期化処理
     ldx #0
@@ -320,14 +329,43 @@ ResetScene subroutine
     lda RandomValue2
     sta ZoneSpriteColors,x
 
+
     ; ゾーンの高さは固定で18(20-バッファ2)
-    lda #18
+    ; lda #18
+    ; sta ZoneHeights,x
+
+    ; ゾーンの高さは20~32の間でランダム
+    ldy #LANDSCAPE_ZONE_HEIGHT
+    jsr NextRandomValue2
+    lda RandomValue2
+    and #%00001111
+    clc
+    adc #16
     sta ZoneHeights,x
+
+    ; 全体の高さから引いておいて、残りの高さを保持しておく
+    tya    
+    sbc ZoneHeights,x
+    bmi .ToZero
+    jmp .SkipToZero
+.ToZero
+    ldy #0
+.SkipToZero
+    tay
 
     inx
     cpx NumberOfZones
     bcc .InitializeZoneLoop
+    ; 残りの高さがあれば、最後のゾーンに追加する
+    cpy #0
+    bpl .AddLastZone
+    jmp .InitializeEnd
+.AddLastZone
+    tya
+    adc ZoneHeights,x
+    sta ZoneHeights,x
 .InitializeEnd
+
     rts
     
 ; 次の乱数値をセットする

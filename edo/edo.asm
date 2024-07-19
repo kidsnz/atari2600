@@ -37,15 +37,16 @@ COLOR_CLOUD       = $0e ; 雲の色
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT   = 16  ; プレイヤーの高さ
+PLAYER_GFX_HEIGHT   = 14  ; プレイヤーの高さ
 CLOUD_GFX_HEIGHT    = 16  ; 雲の高さ
 MAX_NUMBER_OF_ZONES = 8   ; ゾーンの最大数
 MIN_NUMBER_OF_ZONES = 3   ; ゾーンの最小数
 MASK_NUMBER_OF_ZONES = %0011 ; ゾーン数のマスク
 MAX_LINES           = 192 ; スキャンライン数 
-MIN_ZONE_HEIGHT     = 10
+MIN_ZONE_HEIGHT     = 16
+MAX_ZONE_HEIGHT     = 64
 PLAYER_ZONE_HEIGHT  = 32  ; プレイヤーのゾーンの高さ
-LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT - 16 ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -60,28 +61,14 @@ RandomValue         byte ; 乱数値
 RandomCounter2      byte ; 乱数カウンタ2
 RandomValue2        byte ; 乱数値2
 NumberOfZones       byte ; ゾーン数
-ZoneIndex           byte ; ゾーンインデックス
-; ZoneCounter         byte ; ゾーンカウンタ
-; BiomeNumber         byte ; バイオーム番号
-; ZoneCombNumber      byte ; ゾーン組み合わせ番号
-; Zone1Addr           word ; 1つめのゾーンのアドレス
-; Zone2Addr           word ; 2つめのゾーンのアドレス
-; Zone3Addr           word ; 3つめのゾーンのアドレス
-; Zone4Addr           word ; 4つめのゾーンのアドレス
-; SelectedBiomeAddr   word ; 選択したバイオームのアドレス
-; SelectedCombAddr    word ; 選択したゾーン組み合わせのアドレス
+ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
-; ZoneP0XPosAddr      byte ; プレイヤー0のX座標のアドレス
-; Zone1P0XPos         byte ; ゾーン1のプレイヤー0のX座標
-; Zone2P0XPos         byte ; ゾーン2のプレイヤー0のX座標
-; Zone3P0XPos         byte ; ゾーン3のプレイヤー0のX座標
-; Zone4P0XPos         byte ; ゾーン4のプレイヤー0のX座標
-; Tmp                 byte ; 一時領域
-ZoneBgColors          ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
+ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
-
+Tmp                 byte ; 一時変数
+UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -101,8 +88,6 @@ Reset:
     sta FrameCounter
     sta RandomCounter
     sta RandomValue
-    sta RandomCounter2
-    sta RandomValue2
 
     ; プレイヤー座標の初期化
     lda #60
@@ -151,7 +136,7 @@ StartFrame:
 ;; ゾーンの描画処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    ; 風景ゾーン
+    ; 風景ゾーンの描画
     ldx #0
 LandscapeZoneLoopStart:
     stx ZoneIndex
@@ -162,11 +147,14 @@ LandscapeZoneReturn:
     cpx NumberOfZones
     bcc LandscapeZoneLoopStart
 
-    ; プレイヤーゾーン
+    ; プレイヤーゾーンの描画
     jmp PlayerZone
 PlayerZoneReturn:
 
-; ジョイスティックの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ジョイスティックの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     lda #%00010000
     bit SWCHA
     bne SkipMoveUp
@@ -207,6 +195,11 @@ SkipMoveRight:
     
     jmp StartFrame
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ゾーンの実装
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; 風景ゾーンの実装
 LandscapeZone:
     ldx ZoneIndex
     ; 背景色のセット
@@ -244,6 +237,7 @@ LandscapeZone:
     bne .LandscapeZoneLoop
     jmp LandscapeZoneReturn
 
+; プレイヤーゾーンの実装
 PlayerZone:
     lda #%00000101
     sta NUSIZ0
@@ -283,91 +277,91 @@ PlayerZone:
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 左側にプレイヤーのX座標をリセット
 ResetPlayerXPosToLeft subroutine
     lda #0
     sta PlayerXPos
     rts
-    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 右側にプレイヤーのX座標をリセット
 ResetPlayerXPosToRight subroutine
     lda #134
     sta PlayerXPos
     rts
 
-; シーンを初期化する
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; シーンをリセットする(ゾーンを再生成するなど)
 ResetScene subroutine
-
-    ; ゾーン数はランダム
+    ldx #0
+    stx UsingHeight
+.InitializeZoneLoop
+    ; ゾーンの高さは32~64の間でランダム
     jsr NextRandomValue
     lda RandomValue
-    and #MASK_NUMBER_OF_ZONES
+    and #%00011111
     clc
-    adc #MIN_NUMBER_OF_ZONES
-    sta NumberOfZones
+    adc #32
+    sta ZoneHeights,x
 
-    ; ゾーン数は8で固定
-    ; lda #8
-    ; sta NumberOfZones
-
-    ; 各ゾーンの初期化処理
-    ldx #0
-.InitializeZoneLoop
-    ; 一定の確率でゾーンの色を変えないで結合したように見せる
-    jsr NextRandomValue2
-    lda RandomValue2
-    and #%00000001
-    bne .SkipCalculateZoneColor
-    jsr NextRandomValue
-.SkipCalculateZoneColor
     ; ゾーンの色を決定
     lda RandomValue
     sta ZoneBgColors,x
 
     ; スプライトの色を決定
-    jsr NextRandomValue2
-    lda RandomValue2
+    jsr NextRandomValue
+    lda RandomValue
     sta ZoneSpriteColors,x
 
-
-    ; ゾーンの高さは固定で18(20-バッファ2)
-    ; lda #18
-    ; sta ZoneHeights,x
-
-    ; ゾーンの高さは20~32の間でランダム
-    ldy #LANDSCAPE_ZONE_HEIGHT
-    jsr NextRandomValue2
-    lda RandomValue2
-    and #%00001111
-    clc
-    adc #16
-    sta ZoneHeights,x
-
-    ; 全体の高さから引いておいて、残りの高さを保持しておく
-    tya    
-    sbc ZoneHeights,x
-    bmi .ToZero
-    jmp .SkipToZero
-.ToZero
-    ldy #0
-.SkipToZero
-    tay
-
-    inx
-    cpx NumberOfZones
-    bcc .InitializeZoneLoop
-    ; 残りの高さがあれば、最後のゾーンに追加する
-    cpy #0
-    bpl .AddLastZone
-    jmp .InitializeEnd
-.AddLastZone
-    tya
+    ; 使用した高さを保持
+    lda UsingHeight
     adc ZoneHeights,x
-    sta ZoneHeights,x
+    sta UsingHeight
+
+    ; 使用した高さが風景に使える高さを超えていないかチェック
+    clc
+    sbc #LANDSCAPE_ZONE_HEIGHT
+
+    ; 超えていなければ次のゾーンを作成へ
+    bmi .InitializeNext
+
+    ; 超えていたら終わり
+    jmp .InitializeEnd
+.InitializeNext
+    inx
+    jmp .InitializeZoneLoop
 .InitializeEnd
+    ; はみ出した分を最後のゾーンから引いておく
+    lda UsingHeight
+    clc
+    sbc #LANDSCAPE_ZONE_HEIGHT
+    sta Tmp
+    lda ZoneHeights,x
+    sbc Tmp
+    sta ZoneHeights,x
+
+    ; もし最後のゾーンが小さすぎたら手前のゾーンに結合
+    lda ZoneHeights,x
+    cmp #MIN_ZONE_HEIGHT
+    bmi .CombineZone
+    jmp .SkipCombineZone
+.CombineZone
+    lda ZoneHeights,x
+    clc
+    dex
+    adc ZoneHeights,x
+.SkipCombineZone
+
+    ; ゾーン数を計算してセット
+    txa
+    clc
+    adc #1
+    sta NumberOfZones
 
     rts
-    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 次の乱数値をセットする
 NextRandomValue subroutine
     pha
@@ -382,20 +376,7 @@ NextRandomValue subroutine
     pla
     rts
 
-; 次の乱数値2をセットする
-NextRandomValue2 subroutine
-    pha
-    txa
-    pha
-    inc RandomCounter2
-    ldx RandomCounter2
-    lda RandomTable,X
-    sta RandomValue2
-    pla
-    tax
-    pla
-    rts
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを左に動かす
 LeftPlayerXPos subroutine
     ldx PlayerXPos
@@ -410,6 +391,7 @@ LeftPlayerXPos subroutine
 .Return
     rts
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを右に動かす
 RightPlayerXPos subroutine
     ldx PlayerXPos
@@ -424,6 +406,7 @@ RightPlayerXPos subroutine
 .Return
     rts
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 対象のX座標の位置をセットする
 ;  A は対象のピクセル単位のX座標
 ;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)

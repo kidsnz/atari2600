@@ -44,7 +44,7 @@ MIN_ZONE_HEIGHT       = 16  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT       = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT    = 32  ; プレイヤーのゾーンの高さ
 MAX_X                 = 160 ; X座標の最大値
-MIN_X                 = 10  ; X座標の最小値
+MIN_X                 = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,6 +60,7 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
+NeedMoreWsync       byte ; 追加のWSYNCが必要かどうか
 
 NumberOfZones       byte ; ゾーン数
 PlayerXPos          byte ; プレイヤーのX座標
@@ -204,10 +205,16 @@ ProcLandscapeZoneReturn:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderLandscapeZone:
+    ; X座標を取得
     ldx ZoneIndex
-    ; 横位置の補正
     lda ZoneSpriteXPos,x
-    ldy #0
+    ; 右端にいる場合にWSYNCを挟む
+	cmp #135
+	bcs .SkipLandscapeWsync	; will take >1 scanline if > 134
+	sta WSYNC
+.SkipLandscapeWsync
+    ; 横位置の補正
+    ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
     sta WSYNC
     sta HMOVE
@@ -224,13 +231,7 @@ RenderLandscapeZone:
     ; ゾーンの高さ分のループ
     ldx ZoneIndex
     ldy ZoneHeights,x
-    dey ; 最初のWSYNC2つ+最初の1つ分を飛ばす
-    dey
-    dey
-    ; X座標がしきい値以上なら1つ飛ばす
-    lda ZoneSpriteXPos,x
-    cmp #130
-    bcc .RenderLandscapeZoneLoop
+    dey ; 最初のWSYNC2つを飛ばす
     dey
 .RenderLandscapeZoneLoop
     sta WSYNC
@@ -253,11 +254,19 @@ RenderLandscapeZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderPlayerZone:
+    ; X座標を取得
+    lda PlayerXPos
+    ; 右端にいる場合にWSYNCを挟む
+	cmp #135
+	bcs .SkipPlayerWsync
+	sta WSYNC
+.SkipPlayerWsync
+    ; プレイヤーを伸ばす
     lda #%00000101
     sta NUSIZ0
     ; 横位置の補正
     lda PlayerXPos
-    ldy #0
+    ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
     sta WSYNC
     sta HMOVE
@@ -289,6 +298,7 @@ RenderPlayerZone:
     lda #0
     sta WSYNC
     sta COLUBK
+
     jmp RenderPlayerZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -308,7 +318,7 @@ ProcLandscapeZone
 .MoveRight
     inc ZoneSpriteXPos,x
     lda ZoneSpriteXPos,x
-    cmp #144
+    cmp #MAX_X
     bcc .EndMove
 .ResetSpriteXPosToLeft
     lda #MIN_X
@@ -332,43 +342,29 @@ ProcLandscapeZone
 ProcPlayer:
     lda #%00010000
     bit SWCHA
-    bne SkipMoveUp
+    bne .SkipMoveUp
     jsr ResetScene
-SkipMoveUp:
+.SkipMoveUp:
     lda #%00100000
     bit SWCHA
-    bne SkipMoveDown
+    bne .SkipMoveDown
     ; TODO
-SkipMoveDown:
+.SkipMoveDown:
     lda #%01000000
     bit SWCHA
-    bne SkipMoveLeft
+    bne .SkipMoveLeft
     jsr LeftPlayerXPos
-SkipMoveLeft:
+.SkipMoveLeft:
     lda #%10000000
     bit SWCHA
-    bne SkipMoveRight
+    bne .SkipMoveRight
     jsr RightPlayerXPos
-SkipMoveRight:
+.SkipMoveRight:
     jmp ProcPlayerReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 左側にプレイヤーのX座標をリセット
-ResetPlayerXPosToLeft subroutine
-    lda #0
-    sta PlayerXPos
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 右側にプレイヤーのX座標をリセット
-ResetPlayerXPosToRight subroutine
-    lda #134
-    sta PlayerXPos
-    rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; シーンをリセットする(ゾーンを再生成するなど)
@@ -481,35 +477,35 @@ NextRandomValue subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを左に動かす
 LeftPlayerXPos subroutine
-    ldx #%00001000
-    stx PlayerOrient
-    ldx PlayerXPos
-    cpx #0
-    beq .LeftEnd
-    dex
-    stx PlayerXPos
-    jmp .Return
-.LeftEnd
-    jsr ResetPlayerXPosToRight
+.StartMove
+    lda #%00001000
+    sta PlayerOrient
+    dec PlayerXPos
+    lda PlayerXPos
+    cmp #MAX_X
+    bcc .EndMove
+.ResetPlayerXPosToRight
+    lda #MAX_X
+    sta PlayerXPos
     jsr ResetScene
-.Return
+.EndMove
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを右に動かす
 RightPlayerXPos subroutine
-    ldx #%00000000
-    stx PlayerOrient
-    ldx PlayerXPos
-    cpx #128
-    bpl .RightEnd
-    inx
-    stx PlayerXPos
-    jmp .Return
-.RightEnd
-    jsr ResetPlayerXPosToLeft
+.StartMove
+    lda #%00000000
+    sta PlayerOrient
+    inc PlayerXPos
+    lda PlayerXPos
+    cmp #MAX_X
+    bcc .EndMove
+.ResetPlayerXPosToLeft
+    lda #MIN_X
+    sta PlayerXPos
     jsr ResetScene
-.Return
+.EndMove
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

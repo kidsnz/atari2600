@@ -37,15 +37,14 @@ COLOR_CLOUD       = $0e ; 雲の色
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT     = 14 ; プレイヤーの高さ
-CLOUD_GFX_HEIGHT      = 16 ; 雲の高さ
-8MASK_NUMBER_OF_ZONES  = %0011 ; ゾーン数のマスク
+PLAYER_GFX_HEIGHT     = 14  ; プレイヤーの高さ
+CLOUD_GFX_HEIGHT      = 16  ; 雲の高さ
 MAX_LINES             = 192 ; スキャンライン数 
-MIN_ZONE_HEIGHT       = 16 ; ゾーンの最小の高さ
-MIN_ZONE_HEIGHT_MASK  = MIN_ZONE_HEIGHT - 1
-MAX_ZONE_HEIGHT       = 64 ; ゾーンの最大の高さ
-MAX_ZONE_HEIGHT_MASK  = MAX_ZONE_HEIGHT - 1 
+MIN_ZONE_HEIGHT       = 16  ; ゾーンの最小の高さ
+MAX_ZONE_HEIGHT       = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT    = 32  ; プレイヤーのゾーンの高さ
+MAX_X                 = 160 ; X座標の最大値
+MIN_X                 = 10  ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -65,10 +64,13 @@ UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 NumberOfZones       byte ; ゾーン数
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
+PlayerOrient        byte ; プレイヤーの向き
 ZoneBgColors        ds 8 ; 各ゾーンの色
 ZoneSpriteColors    ds 8 ; 各ゾーンのスプライトの色
 ZoneHeights         ds 8 ; 各ゾーンの高さ
-ZoneSpriteOrients   ds 8 ; 
+ZoneSpriteXPos      ds 8 ; 各ゾーンのスプライトのX座標
+ZoneSpriteOrients   ds 8 ; 各ゾーンのスプライトの向き
+ZoneSpriteSpeeds    ds 8 ; 各ゾーンのスプライトの速さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -92,6 +94,8 @@ Reset:
     ; プレイヤー座標の初期化
     lda #60
     sta PlayerXPos
+    lda #1
+    sta PlayerOrient
     lda #2
     sta PlayerYPos
 
@@ -135,48 +139,46 @@ StartFrame:
     sta VBLANK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ゾーンの描画処理
+;; 風景ゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    ; 風景ゾーンの描画
     ldx #0
-LandscapeZoneLoopStart:
+RenderLandscapeZoneLoopStart:
     stx ZoneIndex
-    jmp LandscapeZone
-LandscapeZoneReturn:
+    jmp RenderLandscapeZone
+RenderLandscapeZoneReturn:
     ldx ZoneIndex
     inx
     cpx NumberOfZones
-    bcc LandscapeZoneLoopStart
-
-    ; プレイヤーゾーンの描画
-    jmp PlayerZone
-PlayerZoneReturn:
+    bcc RenderLandscapeZoneLoopStart
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ジョイスティックの処理
+;; プレイヤーゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lda #%00010000
-    bit SWCHA
-    bne SkipMoveUp
-    jsr ResetScene
-SkipMoveUp:
-    lda #%00100000
-    bit SWCHA
-    bne SkipMoveDown
-    ; TODO
-SkipMoveDown:
-    lda #%01000000
-    bit SWCHA
-    bne SkipMoveLeft
-    jsr LeftPlayerXPos
-SkipMoveLeft:
-    lda #%10000000
-    bit SWCHA
-    bne SkipMoveRight
-    jsr RightPlayerXPos
-SkipMoveRight:
+    jmp RenderPlayerZone
+RenderPlayerZoneReturn:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイヤーの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    jmp ProcPlayer
+ProcPlayerReturn:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 風景ゾーンの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ldx #0
+ProcLandscapeZoneLoopStart:
+    stx ZoneIndex
+    jmp ProcLandscapeZone
+ProcLandscapeZoneReturn:
+    ldx ZoneIndex
+    inx
+    cpx NumberOfZones
+    bcc ProcLandscapeZoneLoopStart
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
@@ -198,33 +200,39 @@ SkipMoveRight:
     jmp StartFrame
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ゾーンの実装
+;; 風景ゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; 風景ゾーンの実装
-LandscapeZone:
+RenderLandscapeZone:
     ldx ZoneIndex
-    ; 背景色のセット
-    lda ZoneBgColors,x
-    sta WSYNC
-    sta COLUBK
-    ; スプライト色のセット
-    lda ZoneSpriteColors,x
-    sta COLUP0
     ; 横位置の補正
-    ; ldx ZoneP0XPosAddr
-    lda $00,X
+    lda ZoneSpriteXPos,x
     ldy #0
     jsr SetObjectXPos
     sta WSYNC
     sta HMOVE
+    ; 向きのセット
+    lda #0
+    sta REFP0
+    ; 背景色のセット
+    ldx ZoneIndex
+    lda ZoneBgColors,x
+    sta COLUBK
+    ; スプライト色のセット
+    lda ZoneSpriteColors,x
+    sta COLUP0
     ; ゾーンの高さ分のループ
     ldx ZoneIndex
     ldy ZoneHeights,x
     dey ; 最初のWSYNC2つ+最初の1つ分を飛ばす
     dey
     dey
-.LandscapeZoneLoop
+    ; X座標がしきい値以上なら1つ飛ばす
+    lda ZoneSpriteXPos,x
+    cmp #130
+    bcc .RenderLandscapeZoneLoop
+    dey
+.RenderLandscapeZoneLoop
     sta WSYNC
     tya
     cmp #CLOUD_GFX_HEIGHT
@@ -234,15 +242,17 @@ LandscapeZone:
     tax
     lda CloudGfx,x
     sta GRP0
-    ; lda #COLOR_CLOUD
-    ; sta COLUP0
     
     dey
-    bne .LandscapeZoneLoop
-    jmp LandscapeZoneReturn
+    bne .RenderLandscapeZoneLoop
+    jmp RenderLandscapeZoneReturn
 
-; プレイヤーゾーンの実装
-PlayerZone:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイヤーゾーンの描画
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+RenderPlayerZone:
     lda #%00000101
     sta NUSIZ0
     ; 横位置の補正
@@ -251,11 +261,14 @@ PlayerZone:
     jsr SetObjectXPos
     sta WSYNC
     sta HMOVE
+    ; 向きのセット
+    lda PlayerOrient
+    sta REFP0
     ; 背景色のセット
     lda #COLOR_ROAD
     sta COLUBK
     ldx #PLAYER_ZONE_HEIGHT-2
-.PlayerZoneLoop
+.RenderPlayerZoneLoop
     sta WSYNC
     txa
     sec
@@ -270,13 +283,74 @@ PlayerZone:
     lda PlayerGfxColor,Y
     sta COLUP0
     dex
-    bpl .PlayerZoneLoop
+    bpl .RenderPlayerZoneLoop
     lda #%00000000
     sta NUSIZ0
     lda #0
     sta WSYNC
     sta COLUBK
-    jmp PlayerZoneReturn
+    jmp RenderPlayerZoneReturn
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 風景ゾーンの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+ProcLandscapeZone
+    ldx ZoneIndex
+.StartMove
+    lda FrameCounter
+    and ZoneSpriteSpeeds,x
+    bne .EndMove
+    lda ZoneSpriteOrients,x
+    cmp #1
+    beq .MoveRight
+    jmp .MoveLeft
+.MoveRight
+    inc ZoneSpriteXPos,x
+    lda ZoneSpriteXPos,x
+    cmp #144
+    bcc .EndMove
+.ResetSpriteXPosToLeft
+    lda #MIN_X
+    sta ZoneSpriteXPos,x
+    jmp .EndMove
+.MoveLeft
+    dec ZoneSpriteXPos,x
+    lda ZoneSpriteXPos,x
+    cmp #MAX_X
+    bcc .EndMove
+.ResetSpriteXPosToRight
+    lda #MAX_X
+    sta ZoneSpriteXPos,x
+.EndMove
+    jmp ProcLandscapeZoneReturn
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイヤーの処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+ProcPlayer:
+    lda #%00010000
+    bit SWCHA
+    bne SkipMoveUp
+    jsr ResetScene
+SkipMoveUp:
+    lda #%00100000
+    bit SWCHA
+    bne SkipMoveDown
+    ; TODO
+SkipMoveDown:
+    lda #%01000000
+    bit SWCHA
+    bne SkipMoveLeft
+    jsr LeftPlayerXPos
+SkipMoveLeft:
+    lda #%10000000
+    bit SWCHA
+    bne SkipMoveRight
+    jsr RightPlayerXPos
+SkipMoveRight:
+    jmp ProcPlayerReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
@@ -318,6 +392,26 @@ ResetScene subroutine
     jsr NextRandomValue
     lda RandomValue
     sta ZoneSpriteColors,x
+
+    ; スプライトのX座標を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%01111111
+    sta ZoneSpriteXPos,x
+
+    ; スプライトの向きを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000001
+    sta ZoneSpriteOrients,x
+
+    ; スプライトの速さを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000011
+    tay
+    lda SpeedTable,y
+    sta ZoneSpriteSpeeds,x
 
     ; 使用した高さを保持
     lda UsingHeight
@@ -387,6 +481,8 @@ NextRandomValue subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを左に動かす
 LeftPlayerXPos subroutine
+    ldx #%00001000
+    stx PlayerOrient
     ldx PlayerXPos
     cpx #0
     beq .LeftEnd
@@ -402,6 +498,8 @@ LeftPlayerXPos subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; プレイヤーを右に動かす
 RightPlayerXPos subroutine
+    ldx #%00000000
+    stx PlayerOrient
     ldx PlayerXPos
     cpx #128
     bpl .RightEnd
@@ -489,6 +587,12 @@ CloudGfx:
     .byte %00011100 ; |   XXX  |
     .byte %00001000 ; |    X   |
     .byte %00000000 ; |        |
+
+SpeedTable:
+    .byte %00000011
+    .byte %00000111
+    .byte %00001111
+    .byte %00011111
 
 ; 乱数テーブル
 RandomTable:

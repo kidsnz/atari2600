@@ -46,7 +46,7 @@ MAX_LINES           = 192 ; スキャンライン数
 MIN_ZONE_HEIGHT     = 16
 MAX_ZONE_HEIGHT     = 64
 PLAYER_ZONE_HEIGHT  = 32  ; プレイヤーのゾーンの高さ
-LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT - 16 ; 風景ゾーンの高さ
+LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -58,8 +58,6 @@ LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT - 16 ; 風景ゾーンの
 FrameCounter        byte ; フレームカウンタ
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
-RandomCounter2      byte ; 乱数カウンタ2
-RandomValue2        byte ; 乱数値2
 NumberOfZones       byte ; ゾーン数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 PlayerXPos          byte ; プレイヤーのX座標
@@ -69,6 +67,7 @@ ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの�
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
 Tmp                 byte ; 一時変数
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
+Log1         byte ; 使用した高さ(ゾーンの生成時に使用)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -219,6 +218,9 @@ LandscapeZone:
     ; ゾーンの高さ分のループ
     ldx ZoneIndex
     ldy ZoneHeights,x
+    dey ; 最初のWSYNC2つ+最初の1つ分を飛ばす
+    dey
+    dey
 .LandscapeZoneLoop
     sta WSYNC
     tya
@@ -250,7 +252,7 @@ PlayerZone:
     ; 背景色のセット
     lda #COLOR_ROAD
     sta COLUBK
-    ldx #PLAYER_ZONE_HEIGHT-1
+    ldx #PLAYER_ZONE_HEIGHT-2
 .PlayerZoneLoop
     sta WSYNC
     txa
@@ -334,10 +336,11 @@ ResetScene subroutine
 .InitializeEnd
     ; はみ出した分を最後のゾーンから引いておく
     lda UsingHeight
-    clc
+    sec
     sbc #LANDSCAPE_ZONE_HEIGHT
     sta Tmp
     lda ZoneHeights,x
+    sec
     sbc Tmp
     sta ZoneHeights,x
 
@@ -348,9 +351,10 @@ ResetScene subroutine
     jmp .SkipCombineZone
 .CombineZone
     lda ZoneHeights,x
-    clc
     dex
+    clc
     adc ZoneHeights,x
+    sta ZoneHeights,x
 .SkipCombineZone
 
     ; ゾーン数を計算してセット

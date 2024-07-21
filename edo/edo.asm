@@ -39,9 +39,7 @@ COLOR_CLOUD       = $0e ; 雲の色
 
 PLAYER_GFX_HEIGHT     = 14 ; プレイヤーの高さ
 CLOUD_GFX_HEIGHT      = 16 ; 雲の高さ
-MAX_NUMBER_OF_ZONES   = 8  ; ゾーンの最大数
-MIN_NUMBER_OF_ZONES   = 3  ; ゾーンの最小数
-MASK_NUMBER_OF_ZONES  = %0011 ; ゾーン数のマスク
+8MASK_NUMBER_OF_ZONES  = %0011 ; ゾーン数のマスク
 MAX_LINES             = 192 ; スキャンライン数 
 MIN_ZONE_HEIGHT       = 16 ; ゾーンの最小の高さ
 MIN_ZONE_HEIGHT_MASK  = MIN_ZONE_HEIGHT - 1
@@ -60,16 +58,17 @@ LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高�
 FrameCounter        byte ; フレームカウンタ
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
-NumberOfZones       byte ; ゾーン数
+Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
+UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
+
+NumberOfZones       byte ; ゾーン数
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
-ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
-ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
-ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
-Tmp                 byte ; 一時変数
-UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-Log1         byte ; 使用した高さ(ゾーンの生成時に使用)
+ZoneBgColors        ds 8 ; 各ゾーンの色
+ZoneSpriteColors    ds 8 ; 各ゾーンのスプライトの色
+ZoneHeights         ds 8 ; 各ゾーンの高さ
+ZoneSpriteOrients   ds 8 ; 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -100,8 +99,8 @@ Reset:
 ;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ; lda #$10
-    ; sta RandomCounter
+    lda #$10
+    sta RandomCounter
     jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -228,7 +227,6 @@ LandscapeZone:
 .LandscapeZoneLoop
     sta WSYNC
     tya
-    sbc #0
     cmp #CLOUD_GFX_HEIGHT
     bcc .DrawCloud
     lda #0
@@ -260,6 +258,7 @@ PlayerZone:
 .PlayerZoneLoop
     sta WSYNC
     txa
+    sec
     sbc PlayerYPos
     cmp #PLAYER_GFX_HEIGHT
     bcc .DrawPlayer
@@ -327,7 +326,7 @@ ResetScene subroutine
 
     ; 使用した高さが風景に使える高さを超えていないかチェック
     lda #LANDSCAPE_ZONE_HEIGHT
-    clc
+    sec
     sbc UsingHeight
 
     ; 超えていなければ次のゾーンを作成へ

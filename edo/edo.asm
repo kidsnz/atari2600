@@ -37,15 +37,17 @@ COLOR_CLOUD       = $0e ; 雲の色
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT   = 14  ; プレイヤーの高さ
-CLOUD_GFX_HEIGHT    = 16  ; 雲の高さ
-MAX_NUMBER_OF_ZONES = 8   ; ゾーンの最大数
-MIN_NUMBER_OF_ZONES = 3   ; ゾーンの最小数
-MASK_NUMBER_OF_ZONES = %0011 ; ゾーン数のマスク
-MAX_LINES           = 192 ; スキャンライン数 
-MIN_ZONE_HEIGHT     = 16
-MAX_ZONE_HEIGHT     = 64
-PLAYER_ZONE_HEIGHT  = 32  ; プレイヤーのゾーンの高さ
+PLAYER_GFX_HEIGHT     = 14 ; プレイヤーの高さ
+CLOUD_GFX_HEIGHT      = 16 ; 雲の高さ
+MAX_NUMBER_OF_ZONES   = 8  ; ゾーンの最大数
+MIN_NUMBER_OF_ZONES   = 3  ; ゾーンの最小数
+MASK_NUMBER_OF_ZONES  = %0011 ; ゾーン数のマスク
+MAX_LINES             = 192 ; スキャンライン数 
+MIN_ZONE_HEIGHT       = 16 ; ゾーンの最小の高さ
+MIN_ZONE_HEIGHT_MASK  = MIN_ZONE_HEIGHT - 1
+MAX_ZONE_HEIGHT       = 64 ; ゾーンの最大の高さ
+MAX_ZONE_HEIGHT_MASK  = MAX_ZONE_HEIGHT - 1 
+PLAYER_ZONE_HEIGHT    = 32  ; プレイヤーのゾーンの高さ
 LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -98,6 +100,8 @@ Reset:
 ;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ; lda #$10
+    ; sta RandomCounter
     jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -299,12 +303,12 @@ ResetScene subroutine
     ldx #0
     stx UsingHeight
 .InitializeZoneLoop
-    ; ゾーンの高さは32~64の間でランダム
+    ; ゾーンの高さはランダム
     jsr NextRandomValue
     lda RandomValue
-    and #%00011111
+    and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
     clc
-    adc #32
+    adc #MIN_ZONE_HEIGHT
     sta ZoneHeights,x
 
     ; ゾーンの色を決定
@@ -322,11 +326,12 @@ ResetScene subroutine
     sta UsingHeight
 
     ; 使用した高さが風景に使える高さを超えていないかチェック
+    lda #LANDSCAPE_ZONE_HEIGHT
     clc
-    sbc #LANDSCAPE_ZONE_HEIGHT
+    sbc UsingHeight
 
     ; 超えていなければ次のゾーンを作成へ
-    bmi .InitializeNext
+    bcs .InitializeNext
 
     ; 超えていたら終わり
     jmp .InitializeEnd

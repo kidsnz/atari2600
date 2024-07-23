@@ -72,6 +72,7 @@ ZoneHeights         ds 8 ; 各ゾーンの高さ
 ZoneSpriteXPos      ds 8 ; 各ゾーンのスプライトのX座標
 ZoneSpriteOrients   ds 8 ; 各ゾーンのスプライトの向き
 ZoneSpriteSpeeds    ds 8 ; 各ゾーンのスプライトの速さ
+ZoneSpriteNusiz     ds 8 ; 各ゾーンのスプライトのNUSIZ
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -228,6 +229,9 @@ RenderLandscapeZone:
     ; スプライト色のセット
     lda ZoneSpriteColors,x
     sta COLUP0
+    ; スプライトのNUSIZのセット
+    lda ZoneSpriteNusiz,x
+    sta NUSIZ0
     ; ゾーンの高さ分のループ
     ldx ZoneIndex
     ldy ZoneHeights,x
@@ -409,6 +413,13 @@ ResetScene subroutine
     lda SpeedTable,y
     sta ZoneSpriteSpeeds,x
 
+    ; スプライトのNUSIZを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000111
+    tay
+    sta ZoneSpriteNusiz,x
+
     ; 使用した高さを保持
     lda UsingHeight
     adc ZoneHeights,x
@@ -485,7 +496,7 @@ LeftPlayerXPos subroutine
     cmp #MAX_X
     bcc .EndMove
 .ResetPlayerXPosToRight
-    lda #MAX_X-#16
+    lda #MAX_X-#20
     sta PlayerXPos
     jsr ResetScene
 .EndMove
@@ -499,7 +510,7 @@ RightPlayerXPos subroutine
     sta PlayerOrient
     inc PlayerXPos
     lda PlayerXPos
-    cmp #MAX_X-#16
+    cmp #MAX_X-#20
     bcc .EndMove
 .ResetPlayerXPosToLeft
     lda #MIN_X

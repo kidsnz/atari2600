@@ -485,7 +485,7 @@ LeftPlayerXPos subroutine
     cmp #MAX_X
     bcc .EndMove
 .ResetPlayerXPosToRight
-    lda #MAX_X
+    lda #MAX_X-#16
     sta PlayerXPos
     jsr ResetScene
 .EndMove
@@ -499,7 +499,7 @@ RightPlayerXPos subroutine
     sta PlayerOrient
     inc PlayerXPos
     lda PlayerXPos
-    cmp #MAX_X
+    cmp #MAX_X-#16
     bcc .EndMove
 .ResetPlayerXPosToLeft
     lda #MIN_X

@@ -38,7 +38,6 @@ COLOR_CLOUD       = $0e ; 雲の色
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 PLAYER_GFX_HEIGHT     = 14  ; プレイヤーの高さ
-CLOUD_GFX_HEIGHT      = 16  ; 雲の高さ
 MAX_LINES             = 192 ; スキャンライン数 
 MIN_ZONE_HEIGHT       = 16  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT       = 64  ; ゾーンの最大の高さ
@@ -46,6 +45,16 @@ PLAYER_ZONE_HEIGHT    = 32  ; プレイヤーのゾーンの高さ
 MAX_X                 = 160 ; X座標の最大値
 MIN_X                 = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; スプライト設定用定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+SPRITE_HEIGHT_MASK    = %00011111 ; スプライトの高さを取得するマスク
+SPRITE_MOVE_TYPE_MOVE = %10000000 ; スプライトを動かす
+SPRITE_MOVE_TYPE_STAY = %00000000 ; スプライトを静止
+SPRITE_ANIMATION      = %01000000 ; スプライトアニメーションあり
+SPRITE_NO_ANIMATION   = %00000000 ; スプライトアニメーションなし
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -58,21 +67,26 @@ FrameCounter        byte ; フレームカウンタ
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
+Tmp2                byte ; 一時変数2
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 NeedMoreWsync       byte ; 追加のWSYNCが必要かどうか
+SpriteHeight        byte ; スプライトの高さを保持
+SpriteGfx           word ; スプライトのアドレス
+TmpX                byte ; Xの一時変数
 
-NumberOfZones       byte ; ゾーン数
-PlayerXPos          byte ; プレイヤーのX座標
-PlayerYPos          byte ; プレイヤーのY座標
-PlayerOrient        byte ; プレイヤーの向き
-ZoneBgColors        ds 8 ; 各ゾーンの色
-ZoneSpriteColors    ds 8 ; 各ゾーンのスプライトの色
-ZoneHeights         ds 8 ; 各ゾーンの高さ
-ZoneSpriteXPos      ds 8 ; 各ゾーンのスプライトのX座標
-ZoneSpriteOrients   ds 8 ; 各ゾーンのスプライトの向き
-ZoneSpriteSpeeds    ds 8 ; 各ゾーンのスプライトの速さ
-ZoneSpriteNusiz     ds 8 ; 各ゾーンのスプライトのNUSIZ
+NumberOfZones       byte  ; ゾーン数
+PlayerXPos          byte  ; プレイヤーのX座標
+PlayerYPos          byte  ; プレイヤーのY座標
+PlayerOrient        byte  ; プレイヤーの向き
+ZoneBgColors        ds 8  ; 各ゾーンの色
+ZoneSpriteColors    ds 8  ; 各ゾーンのスプライトの色
+ZoneHeights         ds 8  ; 各ゾーンの高さ
+ZoneSpriteXPos      ds 8  ; 各ゾーンのスプライトのX座標
+ZoneSpriteOrients   ds 8  ; 各ゾーンのスプライトの向き
+ZoneSpriteSpeeds    ds 8  ; 各ゾーンのスプライトの速さ
+ZoneSpriteNusiz     ds 8  ; 各ゾーンのスプライトのNUSIZ
+ZoneSpriteGfx       ds 16 ; 各ゾーンのスプライトのアドレス
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -210,9 +224,9 @@ RenderLandscapeZone:
     ldx ZoneIndex
     lda ZoneSpriteXPos,x
     ; 右端にいる場合にWSYNCを挟む
-	cmp #135
-	bcs .SkipLandscapeWsync	; will take >1 scanline if > 134
-	sta WSYNC
+    cmp #135
+    bcs .SkipLandscapeWsync	; will take >1 scanline if > 134
+    sta WSYNC
 .SkipLandscapeWsync
     ; 横位置の補正
     ldy #0 ; プレイヤー0スプライト
@@ -226,12 +240,38 @@ RenderLandscapeZone:
     ldx ZoneIndex
     lda ZoneBgColors,x
     sta COLUBK
+    ; スプライトのアドレスをセット
+    stx TmpX
+    txa
+    asl
+    tax
+    lda ZoneSpriteGfx,x
+    sta SpriteGfx
+    lda ZoneSpriteGfx,x+1
+    ldy #1
+    sta SpriteGfx,y
+    ldx TmpX
+    ; 試しに
+    stx TmpX
+    ldx $1
+    lda #<CloudGfx
+    sta SpriteGfx
+    lda #>CloudGfx
+    sta SpriteGfx,x
+    ldx TmpX
+    ; /試しに
     ; スプライト色のセット
     lda ZoneSpriteColors,x
     sta COLUP0
     ; スプライトのNUSIZのセット
     lda ZoneSpriteNusiz,x
     sta NUSIZ0
+    ; スプライトの高さ
+    ldy #0
+    lda (SpriteGfx),y
+    ; lda CloudGfx,y
+    and #SPRITE_HEIGHT_MASK
+    sta SpriteHeight
     ; ゾーンの高さ分のループ
     ldx ZoneIndex
     ldy ZoneHeights,x
@@ -240,12 +280,17 @@ RenderLandscapeZone:
 .RenderLandscapeZoneLoop
     sta WSYNC
     tya
-    cmp #CLOUD_GFX_HEIGHT
+    sec
+    sbc #1 ; Y座標は一旦固定で1
+    cmp SpriteHeight
     bcc .DrawCloud
     lda #0
 .DrawCloud
+    ;ldx $0
     tax
-    lda CloudGfx,x
+    ;lda (SpriteGfx,x+1)
+    ;lda (SpriteGfx,x)
+    lda CloudGfx,x+1
     sta GRP0
     
     dey
@@ -387,6 +432,25 @@ ResetScene subroutine
     ; ゾーンの色を決定
     lda RandomValue
     sta ZoneBgColors,x
+
+    ; スプライトを決定
+    jsr NextRandomValue
+    lda RandomValue
+    ; yはランダムなスプライトの先頭アドレスを指すようにする
+    and %00000001
+    asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
+    tay
+    ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
+    stx Tmp2
+    txa
+    asl
+    tax
+    ; スプライトのアドレスを取得してセット
+    lda SpriteGfxs,y
+    sta ZoneSpriteGfx,x
+    lda SpriteGfxs,y+1
+    sta ZoneSpriteGfx,x+1
+    ldx Tmp2
 
     ; スプライトの色を決定
     jsr NextRandomValue
@@ -577,10 +641,14 @@ PlayerGfxColor:
     .byte $38
     .byte $38
 
+SpriteGfxs:
+    .word CloudGfx
+    .word CloudGfx
+    ;.word TreeGfx
+
 CloudGfx:
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+    .byte $8d
+    ;.byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #13
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00111100 ; |  XXXX  |
@@ -594,6 +662,23 @@ CloudGfx:
     .byte %00011100 ; |   XXX  |
     .byte %00001000 ; |    X   |
     .byte %00000000 ; |        |
+
+TreeGfx:
+    .byte #SPRITE_MOVE_TYPE_STAY | #SPRITE_NO_ANIMATION | #14
+    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
 
 SpeedTable:
     .byte %00000011

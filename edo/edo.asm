@@ -631,6 +631,8 @@ PlayerGfxColor:
     .byte $38
     .byte $38
 
+NUMBER_OF_SPRITES = 2
+
 SpriteGfxs:
     .word CloudGfx
     .word TreeGfx
@@ -673,27 +675,27 @@ TreeGfx:
 BirdGfx:
     .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #8
     .byte %00000000 ; |        |
-	.byte %11000000 ; |XX      |
-	.byte %01100000 ; | XX     |
-	.byte %00110000 ; |  XX    |
-	.byte %01111000 ; | XXXX   |
-	.byte %11111100 ; |XXXXXX  |
-	.byte %00000111 ; |     XXX|
-	.byte %00000010 ; |      X |
+    .byte %11000000 ; |XX      |
+    .byte %01100000 ; | XX     |
+    .byte %00110000 ; |  XX    |
+    .byte %01111000 ; | XXXX   |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %00000111 ; |     XXX|
+    .byte %00000010 ; |      X |
 
 FishGfx:
     .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #11
     .byte %00000000 ; |        |
-	.byte %10000000 ; |X       |
-	.byte %11000000 ; |XX      |
-	.byte %01001100 ; | X  XX  |
-	.byte %01011110 ; | X XXXX |
-	.byte %00111111 ; |  XXXXXX|
-	.byte %00111101 ; |  XXXX X|
-	.byte %01011110 ; | X XXXX |
-	.byte %01001100 ; | X  XX  |
-	.byte %11000000 ; |XX      |
-	.byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
+    .byte %11000000 ; |XX      |
+    .byte %01001100 ; | X  XX  |
+    .byte %01011110 ; | X XXXX |
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00111101 ; |  XXXX X|
+    .byte %01011110 ; | X XXXX |
+    .byte %01001100 ; | X  XX  |
+    .byte %11000000 ; |XX      |
+    .byte %10000000 ; |X       |
 
 SpeedTable:
     .byte %00000011

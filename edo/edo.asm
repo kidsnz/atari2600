@@ -37,14 +37,15 @@ COLOR_CLOUD       = $0e ; 雲の色
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT     = 14  ; プレイヤーの高さ
-MAX_LINES             = 192 ; スキャンライン数 
-MIN_ZONE_HEIGHT       = 16  ; ゾーンの最小の高さ
-MAX_ZONE_HEIGHT       = 64  ; ゾーンの最大の高さ
-PLAYER_ZONE_HEIGHT    = 32  ; プレイヤーのゾーンの高さ
-MAX_X                 = 160 ; X座標の最大値
-MIN_X                 = 0   ; X座標の最小値
-LANDSCAPE_ZONE_HEIGHT = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+PLAYER_GFX_HEIGHT      = 14  ; プレイヤーの高さ
+MAX_LINES              = 192 ; スキャンライン数 
+MIN_ZONE_HEIGHT        = 16  ; ゾーンの最小の高さ
+MAX_ZONE_HEIGHT        = 64  ; ゾーンの最大の高さ
+PLAYER_ZONE_HEIGHT     = 32  ; プレイヤーのゾーンの高さ
+MAX_X                  = 160 ; X座標の最大値
+MIN_X                  = 0   ; X座標の最小値
+LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+NUMBER_OF_SPRITES_MASK = %00000011 ; スプライトの数のマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定用定数
@@ -251,15 +252,6 @@ RenderLandscapeZone:
     ldy #1
     sta SpriteGfx,y
     ldx TmpX
-    ; 試しに
-    stx TmpX
-    ldx $1
-    lda #<CloudGfx
-    sta SpriteGfx
-    lda #>CloudGfx
-    sta SpriteGfx,x
-    ldx TmpX
-    ; /試しに
     ; スプライト色のセット
     lda ZoneSpriteColors,x
     sta COLUP0
@@ -273,27 +265,25 @@ RenderLandscapeZone:
     and #SPRITE_HEIGHT_MASK
     sta SpriteHeight
     ; ゾーンの高さ分のループ
-    ldx ZoneIndex
-    ldy ZoneHeights,x
-    dey ; 最初のWSYNC2つを飛ばす
-    dey
+    ldy ZoneIndex
+    ldx ZoneHeights,y
+    dex ; 最初のWSYNC2つを飛ばす
+    dex
 .RenderLandscapeZoneLoop
     sta WSYNC
-    tya
+    txa
     sec
     sbc #1 ; Y座標は一旦固定で1
     cmp SpriteHeight
     bcc .DrawCloud
     lda #0
 .DrawCloud
-    ;ldx $0
-    tax
-    ;lda (SpriteGfx,x+1)
-    ;lda (SpriteGfx,x)
-    lda CloudGfx,x+1
+    tay
+    iny
+    lda (SpriteGfx),y
     sta GRP0
     
-    dey
+    dex
     bne .RenderLandscapeZoneLoop
     jmp RenderLandscapeZoneReturn
 
@@ -437,7 +427,7 @@ ResetScene subroutine
     jsr NextRandomValue
     lda RandomValue
     ; yはランダムなスプライトの先頭アドレスを指すようにする
-    and %00000001
+    and #NUMBER_OF_SPRITES_MASK
     asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
     tay
     ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
@@ -643,12 +633,12 @@ PlayerGfxColor:
 
 SpriteGfxs:
     .word CloudGfx
-    .word CloudGfx
-    ;.word TreeGfx
+    .word TreeGfx
+    .word BirdGfx
+    .word FishGfx
 
 CloudGfx:
-    .byte $8d
-    ;.byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #13
+    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #13
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00111100 ; |  XXXX  |
@@ -679,6 +669,31 @@ TreeGfx:
     .byte %00111000 ; |  XXX   |
     .byte %00111000 ; |  XXX   |
     .byte %00010000 ; |   X    |
+
+BirdGfx:
+    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #8
+    .byte %00000000 ; |        |
+	.byte %11000000 ; |XX      |
+	.byte %01100000 ; | XX     |
+	.byte %00110000 ; |  XX    |
+	.byte %01111000 ; | XXXX   |
+	.byte %11111100 ; |XXXXXX  |
+	.byte %00000111 ; |     XXX|
+	.byte %00000010 ; |      X |
+
+FishGfx:
+    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #11
+    .byte %00000000 ; |        |
+	.byte %10000000 ; |X       |
+	.byte %11000000 ; |XX      |
+	.byte %01001100 ; | X  XX  |
+	.byte %01011110 ; | X XXXX |
+	.byte %00111111 ; |  XXXXXX|
+	.byte %00111101 ; |  XXXX X|
+	.byte %01011110 ; | X XXXX |
+	.byte %01001100 ; | X  XX  |
+	.byte %11000000 ; |XX      |
+	.byte %10000000 ; |X       |
 
 SpeedTable:
     .byte %00000011

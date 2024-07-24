@@ -93,11 +93,18 @@ PlayerOrient        byte  ; プレイヤーの向き
 ZoneBgColors        ds 7  ; 各ゾーンの色
 ZoneSpriteColors    ds 7  ; 各ゾーンのスプライトの色
 ZoneHeights         ds 7  ; 各ゾーンの高さ
-ZoneSpriteXPos      ds 7  ; 各ゾーンのスプライトのX座標
-ZoneSpriteOrients   ds 7  ; 各ゾーンのスプライトの向き
-ZoneSpriteSpeeds    ds 7  ; 各ゾーンのスプライトの速さ
-ZoneSpriteNusiz     ds 7  ; 各ゾーンのスプライトのNUSIZ
-ZoneSpriteGfx       ds 14 ; 各ゾーンのスプライトのアドレス
+
+ZoneSpriteXPos      ds 6  ; 各ゾーンのスプライトのX座標
+ZoneSpriteOrients   ds 6  ; 各ゾーンのスプライトの向き
+ZoneSpriteSpeeds    ds 6  ; 各ゾーンのスプライトの速さ
+ZoneSpriteNusiz     ds 6  ; 各ゾーンのスプライトのNUSIZ
+ZoneSpriteGfx       ds 12 ; 各ゾーンのスプライトのアドレス
+
+ZoneSprite2XPos     ds 6  ; 各ゾーンのスプライトのX座標
+ZoneSprite2Orients  ds 6  ; 各ゾーンのスプライトの向き
+ZoneSprite2Speeds   ds 6  ; 各ゾーンのスプライトの速さ
+ZoneSprite2Nusiz    ds 6  ; 各ゾーンのスプライトのNUSIZ
+ZoneSprite2Gfx      ds 12 ; 各ゾーンのスプライトのアドレス
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -300,10 +307,12 @@ RenderLandscapeZone:
     ; スプライトの向きのセット
     lda SpriteInfo
     and #SPRITE_ORIENTABLE
-    bne .SetOrient
+    bne .LoadOrient
     lda #0
-.SetOrient
+    jmp .SetOrient
+.LoadOrient
     lda ZoneSpriteOrients,x
+.SetOrient
     sta REFP0
     ; プレイフィールドの色をセット
     ; lda #COLOR_BUILDING

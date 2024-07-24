@@ -704,10 +704,10 @@ SpriteGfxs:
     .word Building2Gfx
     ; 8~15
     .word BoxGfx
+    .word TreeGfx
+    .word Tree2Gfx
     .word BoxGfx
-    .word BoxGfx
-    .word BoxGfx
-    .word FishGfx
+    .word BirdGfx
     .word HouseGfx
     .word BuildingGfx
     .word Building2Gfx

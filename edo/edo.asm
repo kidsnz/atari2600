@@ -45,7 +45,7 @@ PLAYER_ZONE_HEIGHT     = 32  ; プレイヤーのゾーンの高さ
 MAX_X                  = 160 ; X座標の最大値
 MIN_X                  = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
-NUMBER_OF_SPRITES_MASK = %00000111 ; スプライトの数のマスク
+NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
 ORIENT_LEFT            = %00001000 ; 左向き
 ORIENT_RIGHT           = %00000000 ; 右向き
 
@@ -665,6 +665,34 @@ PlayerGfxColor:
     .byte $38
 
 SpriteGfxs:
+    ; 0 ~ 7
+    .word CloudGfx
+    .word TreeGfx
+    .word Tree2Gfx
+    .word BirdGfx
+    .word FishGfx
+    .word HouseGfx
+    .word BuildingGfx
+    .word Building2Gfx
+    ; 8~15
+    .word CloudGfx
+    .word TreeGfx
+    .word Tree2Gfx
+    .word BirdGfx
+    .word FishGfx
+    .word HouseGfx
+    .word BuildingGfx
+    .word Building2Gfx
+    ; 16~23
+    .word CloudGfx
+    .word TreeGfx
+    .word Tree2Gfx
+    .word BirdGfx
+    .word FishGfx
+    .word HouseGfx
+    .word BuildingGfx
+    .word Building2Gfx
+    ; 24~31
     .word CloudGfx
     .word TreeGfx
     .word Tree2Gfx

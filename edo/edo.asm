@@ -675,10 +675,10 @@ SpriteGfxs:
     .word BuildingGfx
     .word Building2Gfx
     ; 8~15
-    .word CloudGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BirdGfx
+    .word BoxGfx
+    .word BoxGfx
+    .word BoxGfx
+    .word BoxGfx
     .word FishGfx
     .word HouseGfx
     .word BuildingGfx
@@ -824,6 +824,19 @@ Building2Gfx:
     .byte %01101100 ; | XX XX  |
     .byte %00111000 ; |  XXX   |
     .byte %00010000 ; |   X    |
+
+BoxGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #10
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %11111111 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %11111111 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %11111111 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %11111110 ; |XXXXXXX |
 
 SpeedTable:
     .byte %00000011

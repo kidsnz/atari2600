@@ -74,6 +74,7 @@ SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
     org $80
 
 FrameCounter        byte ; フレームカウンタ
+AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
@@ -81,6 +82,7 @@ Tmp2                byte ; 一時変数2
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 NeedMoreWsync       byte ; 追加のWSYNCが必要かどうか
+SpriteInfo          byte ; スプライト情報
 SpriteHeight        byte ; スプライトの高さを保持
 SpriteGfx           word ; スプライトのアドレス
 TmpX                byte ; Xの一時変数
@@ -139,6 +141,16 @@ Reset:
 
 StartFrame:
     inc FrameCounter
+
+    ; 32フレームに1回AnimFrameCounterをトグルする
+    lda FrameCounter
+    and #%00011111
+    cmp #%00011111
+    bne .SkipToggleAnimFrameCounter
+    lda AnimFrameCounter
+    eor #%00000001
+    sta AnimFrameCounter
+.SkipToggleAnimFrameCounter
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 垂直同期の開始
@@ -247,8 +259,8 @@ RenderLandscapeZone:
     ldx ZoneIndex
     lda ZoneBgColors,x
     sta COLUBK
-    ; スプライトのアドレスをセット
-    stx TmpX
+    ; スプライト情報を取得してSpriteInfoにセット
+    ldx ZoneIndex
     txa
     asl
     tax
@@ -257,27 +269,43 @@ RenderLandscapeZone:
     lda ZoneSpriteGfx,x+1
     ldy #1
     sta SpriteGfx,y
-    ldx TmpX
+    ldy #0
+    lda (SpriteGfx),y
+    sta SpriteInfo
+    ; スプライトの高さを取得してSpriteHeightにセット
+    lda SpriteInfo
+    and #SPRITE_HEIGHT_MASK
+    sta SpriteHeight
+    ; SpriteGfxがスプライトのアドレスを指すようにする
+    inc SpriteGfx
+    ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
+    lda SpriteInfo
+    and #SPRITE_ANIMATABLE
+    beq .SkipSpriteAnimation
+    lda AnimFrameCounter
+    and #%00000001
+    ; アニメーションカウンタが1の場合はアドレスをずらす
+    beq .SkipSpriteAnimation
+    lda SpriteGfx
+    clc
+    adc SpriteHeight
+    sta SpriteGfx
+.SkipSpriteAnimation
     ; スプライト色のセット
+    ldx ZoneIndex
     lda ZoneSpriteColors,x
     sta COLUP0
     ; スプライトのNUSIZのセット
     lda ZoneSpriteNusiz,x
     sta NUSIZ0
     ; スプライトの向きのセット
-    ldy #0
-    lda (SpriteGfx),y
+    lda SpriteInfo
     and #SPRITE_ORIENTABLE
     bne .SetOrient
     lda #0
 .SetOrient
     lda ZoneSpriteOrients,x
     sta REFP0
-    ; スプライトの高さ
-    ldy #0
-    lda (SpriteGfx),y
-    and #SPRITE_HEIGHT_MASK
-    sta SpriteHeight
     ; ゾーンの高さ分のループ
     ldy ZoneIndex
     ldx ZoneHeights,y
@@ -293,7 +321,6 @@ RenderLandscapeZone:
     lda #0
 .DrawCloud
     tay
-    iny
     lda (SpriteGfx),y
     sta GRP0
     
@@ -758,7 +785,7 @@ Tree2Gfx:
     .byte %00010000 ; |   X    |
 
 BirdGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #8
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #8
     .byte %00000000 ; |        |
     .byte %11000000 ; |XX      |
     .byte %01100000 ; | XX     |
@@ -768,8 +795,17 @@ BirdGfx:
     .byte %00000111 ; |     XXX|
     .byte %00000010 ; |      X |
 
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %11100000 ; |XXX     |
+    .byte %00110000 ; |  XX    |
+    .byte %01111000 ; | XXXX   |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %00000111 ; |     XXX|
+    .byte %00000000 ; |      X |
+
 FishGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #11
     .byte %00000000 ; |        |
     .byte %10000000 ; |X       |
     .byte %11000000 ; |XX      |
@@ -781,6 +817,18 @@ FishGfx:
     .byte %01001100 ; | X  XX  |
     .byte %11000000 ; |XX      |
     .byte %10000000 ; |X       |
+
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %11001100 ; |XX  XX  |
+    .byte %01011110 ; | X XXXX |
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00111101 ; |  XXXX X|
+    .byte %01011110 ; | X XXXX |
+    .byte %11001100 ; |XX  XX  |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
 
 HouseGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9

@@ -268,10 +268,11 @@ RenderLandscapeZone:
     ldy #0
     lda (SpriteGfx),y
     and #SPRITE_ORIENTABLE
-    beq .SkipOrient
+    bne .SetOrient
+    lda #0
+.SetOrient
     lda ZoneSpriteOrients,x
     sta REFP0
-.SkipOrient
     ; スプライトの高さ
     ldy #0
     lda (SpriteGfx),y

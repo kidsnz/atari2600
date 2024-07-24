@@ -48,6 +48,8 @@ LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高�
 NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
 ORIENT_LEFT            = %00001000 ; 左向き
 ORIENT_RIGHT           = %00000000 ; 右向き
+BUILDING_GFX_HEIGHT = 18 ; ビルの高さ
+COLOR_BUILDING    = $03 ; ビルの色
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定用定数
@@ -78,27 +80,24 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
-Tmp2                byte ; 一時変数2
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-NeedMoreWsync       byte ; 追加のWSYNCが必要かどうか
 SpriteInfo          byte ; スプライト情報
 SpriteHeight        byte ; スプライトの高さを保持
 SpriteGfx           word ; スプライトのアドレス
-TmpX                byte ; Xの一時変数
 
 NumberOfZones       byte  ; ゾーン数
 PlayerXPos          byte  ; プレイヤーのX座標
 PlayerYPos          byte  ; プレイヤーのY座標
 PlayerOrient        byte  ; プレイヤーの向き
-ZoneBgColors        ds 8  ; 各ゾーンの色
-ZoneSpriteColors    ds 8  ; 各ゾーンのスプライトの色
-ZoneHeights         ds 8  ; 各ゾーンの高さ
-ZoneSpriteXPos      ds 8  ; 各ゾーンのスプライトのX座標
-ZoneSpriteOrients   ds 8  ; 各ゾーンのスプライトの向き
-ZoneSpriteSpeeds    ds 8  ; 各ゾーンのスプライトの速さ
-ZoneSpriteNusiz     ds 8  ; 各ゾーンのスプライトのNUSIZ
-ZoneSpriteGfx       ds 16 ; 各ゾーンのスプライトのアドレス
+ZoneBgColors        ds 7  ; 各ゾーンの色
+ZoneSpriteColors    ds 7  ; 各ゾーンのスプライトの色
+ZoneHeights         ds 7  ; 各ゾーンの高さ
+ZoneSpriteXPos      ds 7  ; 各ゾーンのスプライトのX座標
+ZoneSpriteOrients   ds 7  ; 各ゾーンのスプライトの向き
+ZoneSpriteSpeeds    ds 7  ; 各ゾーンのスプライトの速さ
+ZoneSpriteNusiz     ds 7  ; 各ゾーンのスプライトのNUSIZ
+ZoneSpriteGfx       ds 14 ; 各ゾーンのスプライトのアドレス
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -306,26 +305,55 @@ RenderLandscapeZone:
 .SetOrient
     lda ZoneSpriteOrients,x
     sta REFP0
+    ; プレイフィールドの色をセット
+    ; lda #COLOR_BUILDING
+    ; sta COLUPF
+
     ; ゾーンの高さ分のループ
     ldy ZoneIndex
     ldx ZoneHeights,y
     dex ; 最初のWSYNC2つを飛ばす
     dex
+    dex ; プレイフィールドを増やしたら処理時間が足りなくなったのでもう一個高さ減らす
 .RenderLandscapeZoneLoop
     sta WSYNC
+
+    ; スプライトの描画
     txa
     sec
     sbc #1 ; Y座標は一旦固定で1
     cmp SpriteHeight
-    bcc .DrawCloud
+    bcc .DrawSprite
     lda #0
-.DrawCloud
+.DrawSprite
     tay
     lda (SpriteGfx),y
     sta GRP0
+
+;     ; プレイフィールドの描画
+;     txa
+;     cmp #BUILDING_GFX_HEIGHT
+;     bcc .DrawPlayField
+;     lda #0
+; .DrawPlayField
+;     tay
+;     lda PlayFieldBuildingGfx0,y
+;     sta PF0
+;     lda PlayFieldBuildingGfx1,y
+;     sta PF1
+;     lda PlayFieldBuildingGfx2,y
+;     sta PF2
     
     dex
     bne .RenderLandscapeZoneLoop
+
+    ; プレイフィールドをクリア
+    ; lda #COLOR_BUILDING
+    ; sta COLUBK
+    ; lda #0
+    ; sta PF0
+    ; sta PF1
+    ; sta PF2
 
     jmp RenderLandscapeZoneReturn
 
@@ -486,7 +514,7 @@ ResetScene subroutine
     asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
     tay
     ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
-    stx Tmp2
+    stx Tmp
     txa
     asl
     tax
@@ -495,7 +523,7 @@ ResetScene subroutine
     sta ZoneSpriteGfx,x
     lda SpriteGfxs,y+1
     sta ZoneSpriteGfx,x+1
-    ldx Tmp2
+    ldx Tmp
 
     ; スプライトの色を決定
     jsr NextRandomValue
@@ -661,36 +689,93 @@ SetObjectXPos subroutine
 ; プレイヤースプライト
 PlayerGfx:
     .byte %00000000
-    .byte %10001010
-    .byte %01000100
-    .byte %10100100
-    .byte %01101110
-    .byte %11011110
-    .byte %00111110
-    .byte %11110100
-    .byte %00010100
-    .byte %11101111
-    .byte %00001010
-    .byte %00001100
-    .byte %00001000
-    .byte %00010100
+	.byte %10001010
+	.byte %01000100
+	.byte %10100100
+	.byte %01101110
+	.byte %11011110
+	.byte %00111110
+	.byte %11110100
+	.byte %00010100
+	.byte %11101111
+	.byte %00001010
+	.byte %00001100
+	.byte %00001000
+	.byte %00010100
 
 ; プレイヤースプライトカラー
 PlayerGfxColor:
-    .byte $00
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
-    .byte $38
+	.byte $16
+	.byte $26
+	.byte $36
+	.byte $46
+	.byte $56
+	.byte $66
+	.byte $76
+	.byte $86
+
+; プレイフィールドビル背景0
+PlayFieldBuildingGfx0:
+    .byte %00000000 ; |        |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01010000 ; | X X    |
+    .byte %01010000 ; | X X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+; プレイフィールドビル背景1
+PlayFieldBuildingGfx1:
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11110111 ; |XXXX XXX|
+    .byte %11110111 ; |XXXX XXX|
+    .byte %11010111 ; |XX X XXX|
+    .byte %11010011 ; |XX X  XX|
+    .byte %01010011 ; | X X  XX|
+    .byte %01010010 ; | X X  X |
+    .byte %00000010 ; |      X |
+    .byte %00000010 ; |      X |
+    .byte %00000010 ; |      X |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+; プレイフィールドビル背景2
+PlayFieldBuildingGfx2:
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11101111 ; |XXX XXXX|
+    .byte %11100111 ; |XXX  XXX|
+    .byte %11100111 ; |XXX  XXX|
+    .byte %11000101 ; |XX   X X|
+    .byte %10000001 ; |X      X|
+    .byte %10000001 ; |X      X|
+    .byte %10000001 ; |X      X|
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
+    .byte %10000000 ; |X       |
 
 SpriteGfxs:
     ; 0 ~ 7
@@ -787,48 +872,48 @@ Tree2Gfx:
 BirdGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #8
     .byte %00000000 ; |        |
-    .byte %11000000 ; |XX      |
-    .byte %01100000 ; | XX     |
-    .byte %00110000 ; |  XX    |
-    .byte %01111000 ; | XXXX   |
-    .byte %11111100 ; |XXXXXX  |
-    .byte %00000111 ; |     XXX|
-    .byte %00000010 ; |      X |
+	.byte %11000000 ; |XX      |
+	.byte %01100000 ; | XX     |
+	.byte %00110000 ; |  XX    |
+	.byte %01111000 ; | XXXX   |
+	.byte %11111100 ; |XXXXXX  |
+	.byte %00000111 ; |     XXX|
+	.byte %00000010 ; |      X |
 
     .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %11100000 ; |XXX     |
-    .byte %00110000 ; |  XX    |
-    .byte %01111000 ; | XXXX   |
-    .byte %11111100 ; |XXXXXX  |
-    .byte %00000111 ; |     XXX|
-    .byte %00000000 ; |      X |
+	.byte %01000000 ; | X      |
+	.byte %00110000 ; |  XX    |
+	.byte %01111000 ; | XXXX   |
+	.byte %11111100 ; |XXXXXX  |
+	.byte %00110110 ; |  XX XX |
+	.byte %11100100 ; |XXX  X  |
+	.byte %00000000 ; |        |
 
 FishGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #11
     .byte %00000000 ; |        |
-    .byte %10000000 ; |X       |
-    .byte %11000000 ; |XX      |
-    .byte %01001100 ; | X  XX  |
-    .byte %01011110 ; | X XXXX |
-    .byte %00111111 ; |  XXXXXX|
-    .byte %00111101 ; |  XXXX X|
-    .byte %01011110 ; | X XXXX |
-    .byte %01001100 ; | X  XX  |
-    .byte %11000000 ; |XX      |
-    .byte %10000000 ; |X       |
+	.byte %00000000 ; |        |
+	.byte %00000000 ; |        |
+	.byte %11001100 ; |XX  XX  |
+	.byte %11011110 ; |XX XXXX |
+	.byte %00111111 ; |  XXXXXX|
+	.byte %00111101 ; |  XXXX X|
+	.byte %11011110 ; |XX XXXX |
+	.byte %11001100 ; |XX  XX  |
+	.byte %00000000 ; |        |
+	.byte %00000000 ; |        |
 
     .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %11001100 ; |XX  XX  |
-    .byte %01011110 ; | X XXXX |
-    .byte %00111111 ; |  XXXXXX|
-    .byte %00111101 ; |  XXXX X|
-    .byte %01011110 ; | X XXXX |
-    .byte %11001100 ; |XX  XX  |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+	.byte %10000000 ; |X       |
+	.byte %11000000 ; |XX      |
+	.byte %01001100 ; | X  XX  |
+	.byte %01011110 ; | X XXXX |
+	.byte %00111111 ; |  XXXXXX|
+	.byte %00111101 ; |  XXXX X|
+	.byte %01011110 ; | X XXXX |
+	.byte %01001100 ; | X  XX  |
+	.byte %11000000 ; |XX      |
+	.byte %10000000 ; |X       |
 
 HouseGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9

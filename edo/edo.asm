@@ -299,10 +299,6 @@ RenderLandscapeZone:
     dex
     bne .RenderLandscapeZoneLoop
 
-    ; 後処理
-    lda #0
-    sta REFP0
-
     jmp RenderLandscapeZoneReturn
 
 
@@ -356,10 +352,6 @@ RenderPlayerZone:
     sta WSYNC
     sta COLUBK
 
-    ; 後処理
-    lda #0
-    sta REFP0
-
     jmp RenderPlayerZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -367,7 +359,7 @@ RenderPlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcLandscapeZone
-    ; SPRITE_MOVABLEでなければ移動処理はスキップ
+    ; SPRITE_MOVABLE       でなければ移動処理はスキップ
     lda ZoneIndex
     asl
     tax

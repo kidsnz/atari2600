@@ -792,7 +792,7 @@ SpriteGfxs:
     .word TreeGfx
     .word Tree2Gfx
     .word BoxGfx
-    .word BirdGfx
+    .word BearGfx
     .word HouseGfx
     .word BuildingGfx
     .word Building2Gfx
@@ -803,7 +803,7 @@ SpriteGfxs:
     .word BirdGfx
     .word FishGfx
     .word HouseGfx
-    .word BuildingGfx
+    .word BearGfx
     .word Building2Gfx
     ; 24~31
     .word CloudGfx
@@ -811,9 +811,53 @@ SpriteGfxs:
     .word Tree2Gfx
     .word BirdGfx
     .word FishGfx
-    .word HouseGfx
+    .word BearGfx
     .word BuildingGfx
     .word Building2Gfx
+
+BearGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20
+    .byte %00000000 ; |        |
+	.byte %00000111 ; |     XXX|
+	.byte %00000111 ; |     XXX|
+	.byte %11100110 ; |XXX  XX |
+	.byte %11100110 ; |XXX  XX |
+	.byte %01111110 ; | XXXXXX |
+	.byte %01111110 ; | XXXXXX |
+	.byte %01111100 ; | XXXXX  |
+	.byte %01111010 ; | XXXX X |
+	.byte %00111011 ; |  XXX XX|
+	.byte %00111101 ; |  XXXX X|
+	.byte %01111111 ; | XXXXXXX|
+	.byte %11111111 ; |XXXXXXXX|
+	.byte %11111110 ; |XXXXXXX |
+	.byte %10011100 ; |X  XXX  |
+	.byte %10100010 ; |X X   X |
+	.byte %10110110 ; |X XX XX |
+	.byte %10101010 ; |X X X X |
+	.byte %00011100 ; |   XXX  |
+	.byte %00010100 ; |   X X  |
+
+    .byte %00000000 ; |        |
+	.byte %11100000 ; |XXX     |
+	.byte %11100000 ; |XXX     |
+	.byte %11100110 ; |XXX  XX |
+	.byte %11100110 ; |XXX  XX |
+	.byte %01111110 ; | XXXXXX |
+	.byte %00111110 ; |  XXXXX |
+	.byte %00111110 ; |  XXXXX |
+	.byte %01011110 ; | X XXXX |
+	.byte %11111000 ; |XXXXX   |
+	.byte %10111100 ; |X XXXX  |
+	.byte %01111111 ; | XXXXXXX|
+	.byte %11111111 ; |XXXXXXXX|
+	.byte %01111111 ; | XXXXXXX|
+	.byte %00011101 ; |   XXX X|
+	.byte %00100011 ; |  X   XX|
+	.byte %00110111 ; |  XX XXX|
+	.byte %00101011 ; |  X X XX|
+	.byte %00011100 ; |   XXX  |
+	.byte %00010100 ; |   X X  |
 
 CloudGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #13

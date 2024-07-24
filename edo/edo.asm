@@ -719,7 +719,7 @@ CloudGfx:
     .byte %00000000 ; |        |
 
 TreeGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #14
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #14
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -736,7 +736,7 @@ TreeGfx:
     .byte %00010000 ; |   X    |
 
 Tree2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #18
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #18
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -782,7 +782,7 @@ FishGfx:
     .byte %10000000 ; |X       |
 
 HouseGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9
     .byte %00000000 ; |        |
     .byte %01011100 ; | X XXX  |
     .byte %01011100 ; | X XXX  |
@@ -794,7 +794,7 @@ HouseGfx:
     .byte %00010000 ; |   X    |
 
 BuildingGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #11
     .byte %00000000 ; |        |
     .byte %01001100 ; | X  XX  |
     .byte %01001100 ; | X  XX  |
@@ -808,7 +808,7 @@ BuildingGfx:
     .byte %10101010 ; |X X X X |
 
 Building2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #15
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #15
     .byte %00000000 ; |        |
     .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
@@ -826,7 +826,7 @@ Building2Gfx:
     .byte %00010000 ; |   X    |
 
 BoxGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #10
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #10
     .byte %00000000 ; |        |
     .byte %11111111 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |

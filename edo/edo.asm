@@ -828,13 +828,13 @@ Building2Gfx:
 BoxGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #10
     .byte %00000000 ; |        |
-    .byte %11111111 ; |XXXXXXX |
+    .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
-    .byte %11111111 ; |XXXXXXX |
+    .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
-    .byte %11111111 ; |XXXXXXX |
+    .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
-    .byte %11111111 ; |XXXXXXX |
+    .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
     .byte %11111110 ; |XXXXXXX |
 

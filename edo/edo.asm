@@ -45,17 +45,26 @@ PLAYER_ZONE_HEIGHT     = 32  ; プレイヤーのゾーンの高さ
 MAX_X                  = 160 ; X座標の最大値
 MIN_X                  = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
-NUMBER_OF_SPRITES_MASK = %00000011 ; スプライトの数のマスク
+NUMBER_OF_SPRITES_MASK = %00000111 ; スプライトの数のマスク
+ORIENT_LEFT            = %00001000 ; 左向き
+ORIENT_RIGHT           = %00000000 ; 右向き
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-SPRITE_HEIGHT_MASK    = %00011111 ; スプライトの高さを取得するマスク
-SPRITE_MOVE_TYPE_MOVE = %10000000 ; スプライトを動かす
-SPRITE_MOVE_TYPE_STAY = %00000000 ; スプライトを静止
-SPRITE_ANIMATION      = %01000000 ; スプライトアニメーションあり
-SPRITE_NO_ANIMATION   = %00000000 ; スプライトアニメーションなし
+; 各スプライトの先頭バイトは以下を示す
+;  7bit: 移動可能かどうか
+;  6bit: アニメーション可能かどうか
+;  5bit: 方向づけ可能かどうか
+;  4~0bit: 高さ
+SPRITE_HEIGHT_MASK  = %00011111 ; スプライトの高さを取得するマスク
+SPRITE_MOVABLE      = %10000000 ; スプライトを動かすことが可能
+SPRITE_UNMOVABLE    = %00000000 ; スプライトを動かすことがなし
+SPRITE_ANIMATABLE   = %01000000 ; スプライトアニメーション可能
+SPRITE_UNANIMATABLE = %00000000 ; スプライトアニメーションなし
+SPRITE_ORIENTABLE   = %00100000 ; スプライト方向可能
+SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -226,7 +235,7 @@ RenderLandscapeZone:
     lda ZoneSpriteXPos,x
     ; 右端にいる場合にWSYNCを挟む
     cmp #135
-    bcs .SkipLandscapeWsync	; will take >1 scanline if > 134
+    bcs .SkipLandscapeWsync    ; will take >1 scanline if > 134
     sta WSYNC
 .SkipLandscapeWsync
     ; 横位置の補正
@@ -234,9 +243,6 @@ RenderLandscapeZone:
     jsr SetObjectXPos
     sta WSYNC
     sta HMOVE
-    ; 向きのセット
-    lda #0
-    sta REFP0
     ; 背景色のセット
     ldx ZoneIndex
     lda ZoneBgColors,x
@@ -258,10 +264,17 @@ RenderLandscapeZone:
     ; スプライトのNUSIZのセット
     lda ZoneSpriteNusiz,x
     sta NUSIZ0
+    ; スプライトの向きのセット
+    ldy #0
+    lda (SpriteGfx),y
+    and #SPRITE_ORIENTABLE
+    beq .SkipOrient
+    lda ZoneSpriteOrients,x
+    sta REFP0
+.SkipOrient
     ; スプライトの高さ
     ldy #0
     lda (SpriteGfx),y
-    ; lda CloudGfx,y
     and #SPRITE_HEIGHT_MASK
     sta SpriteHeight
     ; ゾーンの高さ分のループ
@@ -285,6 +298,11 @@ RenderLandscapeZone:
     
     dex
     bne .RenderLandscapeZoneLoop
+
+    ; 後処理
+    lda #0
+    sta REFP0
+
     jmp RenderLandscapeZoneReturn
 
 
@@ -296,9 +314,9 @@ RenderPlayerZone:
     ; X座標を取得
     lda PlayerXPos
     ; 右端にいる場合にWSYNCを挟む
-	cmp #135
-	bcs .SkipPlayerWsync
-	sta WSYNC
+    cmp #135
+    bcs .SkipPlayerWsync
+    sta WSYNC
 .SkipPlayerWsync
     ; プレイヤーを伸ばす
     lda #%00000101
@@ -338,6 +356,10 @@ RenderPlayerZone:
     sta WSYNC
     sta COLUBK
 
+    ; 後処理
+    lda #0
+    sta REFP0
+
     jmp RenderPlayerZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -345,13 +367,26 @@ RenderPlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcLandscapeZone
-    ldx ZoneIndex
+    ; SPRITE_MOVABLEでなければ移動処理はスキップ
+    lda ZoneIndex
+    asl
+    tax
+    lda ZoneSpriteGfx,x
+    sta SpriteGfx
+    lda ZoneSpriteGfx,x+1
+    ldy #1
+    sta SpriteGfx,y
+    ldy #0
+    lda (SpriteGfx),y
+    and #SPRITE_MOVABLE       
+    beq .EndMove
 .StartMove
+    ldx ZoneIndex
     lda FrameCounter
     and ZoneSpriteSpeeds,x
     bne .EndMove
     lda ZoneSpriteOrients,x
-    cmp #1
+    cmp #ORIENT_RIGHT
     beq .MoveRight
     jmp .MoveLeft
 .MoveRight
@@ -457,6 +492,12 @@ ResetScene subroutine
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
+    bne .SetZoneSpriteOrientRight
+    lda #ORIENT_LEFT
+    jmp .SetZoneSpriteOrientEnd
+.SetZoneSpriteOrientRight
+    lda #ORIENT_RIGHT
+.SetZoneSpriteOrientEnd
     sta ZoneSpriteOrients,x
 
     ; スプライトの速さを決定
@@ -631,16 +672,18 @@ PlayerGfxColor:
     .byte $38
     .byte $38
 
-NUMBER_OF_SPRITES = 2
-
 SpriteGfxs:
     .word CloudGfx
     .word TreeGfx
+    .word Tree2Gfx
     .word BirdGfx
     .word FishGfx
+    .word HouseGfx
+    .word BuildingGfx
+    .word Building2Gfx
 
 CloudGfx:
-    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #13
+    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #13
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00111100 ; |  XXXX  |
@@ -656,7 +699,7 @@ CloudGfx:
     .byte %00000000 ; |        |
 
 TreeGfx:
-    .byte #SPRITE_MOVE_TYPE_STAY | #SPRITE_NO_ANIMATION | #14
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #14
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -672,8 +715,29 @@ TreeGfx:
     .byte %00111000 ; |  XXX   |
     .byte %00010000 ; |   X    |
 
+Tree2Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #18
+    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00111000 ; |  XXX   |
+    .byte %01011100 ; | X XXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01110100 ; | XXX X  |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %10111010 ; |X XXX X |
+    .byte %11101110 ; |XXX XXX |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01110100 ; | XXX X  |
+    .byte %01011100 ; | X XXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00010000 ; |   X    |
+
 BirdGfx:
-    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #8
+    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #8
     .byte %00000000 ; |        |
     .byte %11000000 ; |XX      |
     .byte %01100000 ; | XX     |
@@ -684,7 +748,7 @@ BirdGfx:
     .byte %00000010 ; |      X |
 
 FishGfx:
-    .byte #SPRITE_MOVE_TYPE_MOVE | #SPRITE_NO_ANIMATION | #11
+    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
     .byte %00000000 ; |        |
     .byte %10000000 ; |X       |
     .byte %11000000 ; |XX      |
@@ -696,6 +760,50 @@ FishGfx:
     .byte %01001100 ; | X  XX  |
     .byte %11000000 ; |XX      |
     .byte %10000000 ; |X       |
+
+HouseGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte %00000000 ; |        |
+    .byte %01011100 ; | X XXX  |
+    .byte %01011100 ; | X XXX  |
+    .byte %01010100 ; | X X X  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
+
+BuildingGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
+    .byte %00000000 ; |        |
+    .byte %01001100 ; | X  XX  |
+    .byte %01001100 ; | X  XX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01110100 ; | XXX X  |
+    .byte %01011100 ; | X XXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %11110110 ; |XXXX XX |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+
+Building2Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #15
+    .byte %00000000 ; |        |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %10101010 ; |X X X X |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %10111010 ; |X XXX X |
+    .byte %11010110 ; |XX X XX |
+    .byte %01101100 ; | XX XX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
 
 SpeedTable:
     .byte %00000011

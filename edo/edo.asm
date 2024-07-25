@@ -369,7 +369,7 @@ RenderLandscapeZone:
     sta REFP0
 #if USE_SPRITE_2 = 1
     ; スプライト2の向きのセット
-    lda SpriteInfo
+    lda Sprite2Info
     and #SPRITE_ORIENTABLE
     bne .LoadOrient2
     lda #0

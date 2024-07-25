@@ -18,6 +18,9 @@
 ; デバッグ動作にする場合は1を指定する
 DEBUG = 1
 
+; スプライト2を使う
+USE_SPRITE_2 = 0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,15 +88,19 @@ UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 SpriteInfo          byte ; スプライト情報
 SpriteHeight        byte ; スプライトの高さを保持
 SpriteGfx           word ; スプライトのアドレス
+Sprite2Info         byte ; スプライト2情報
+Sprite2Height       byte ; スプライト2の高さを保持
+Sprite2Gfx          word ; スプライト2のアドレス
 
-NumberOfZones       byte ; ゾーン数
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
 PlayerOrient        byte ; プレイヤーの向き
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
-ZoneBgColors        ds 7 ; 各ゾーンの色
-ZoneSpriteColors    ds 7 ; 各ゾーンのスプライトの色
-ZoneHeights         ds 7 ; 各ゾーンの高さ
+
+NumberOfZones       byte ; ゾーン数
+ZoneBgColors        ds 6 ; 各ゾーンの色
+ZoneSpriteColors    ds 6 ; 各ゾーンのスプライトの色
+ZoneHeights         ds 6 ; 各ゾーンの高さ
 
 ZoneSpriteXPos      ds 6  ; 各ゾーンのスプライトのX座標
 ZoneSpriteOrients   ds 6  ; 各ゾーンのスプライトの向き
@@ -101,6 +108,7 @@ ZoneSpriteSpeeds    ds 6  ; 各ゾーンのスプライトの速さ
 ZoneSpriteNusiz     ds 6  ; 各ゾーンのスプライトのNUSIZ
 ZoneSpriteGfx       ds 12 ; 各ゾーンのスプライトのアドレス
 
+ZoneSprite2Colors   ds 6  ; 各ゾーンのスプライト2の色
 ZoneSprite2XPos     ds 6  ; 各ゾーンのスプライトのX座標
 ZoneSprite2Orients  ds 6  ; 各ゾーンのスプライトの向き
 ZoneSprite2Speeds   ds 6  ; 各ゾーンのスプライトの速さ
@@ -257,9 +265,19 @@ RenderLandscapeZone:
     bcs .SkipLandscapeWsync    ; will take >1 scanline if > 134
     sta WSYNC
 .SkipLandscapeWsync
-    ; 横位置の補正
+    ; スプライトの横位置の補正
+    ldx ZoneIndex
+    lda ZoneSpriteXPos,x
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
+#if USE_SPRITE_2 = 1
+    ; スプライト2の横位置の補正
+    ldx ZoneIndex
+    lda ZoneSprite2XPos,x
+    ldy #1 ; プレイヤー1スプライト
+    jsr SetObjectXPos
+#endif
+    ; 横位置の補正を適用
     sta WSYNC
     sta HMOVE
     ; 背景色のセット
@@ -298,13 +316,59 @@ RenderLandscapeZone:
     adc SpriteHeight
     sta SpriteGfx
 .SkipSpriteAnimation
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2情報を取得してSpriteInfoにセット
+    ldx ZoneIndex
+    txa
+    asl
+    tax
+    lda ZoneSprite2Gfx,x
+    sta Sprite2Gfx
+    lda ZoneSprite2Gfx,x+1
+    ldy #1
+    sta Sprite2Gfx,y
+    ldy #0
+    lda (Sprite2Gfx),y
+    sta Sprite2Info
+    ; スプライト2の高さを取得してSpriteHeightにセット
+    lda Sprite2Info
+    and #SPRITE_HEIGHT_MASK
+    sta Sprite2Height
+    ; Sprite2Gfxがスプライトのアドレスを指すようにする
+    inc Sprite2Gfx
+    ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
+    lda Sprite2Info
+    and #SPRITE_ANIMATABLE
+    beq .SkipSprite2Animation
+    lda AnimFrameCounter
+    and #%00000001
+    ; アニメーションカウンタが1の場合はアドレスをずらす
+    beq .SkipSprite2Animation
+    lda Sprite2Gfx
+    clc
+    adc Sprite2Height
+    sta Sprite2Gfx
+.SkipSprite2Animation
+#endif
+
     ; スプライト色のセット
     ldx ZoneIndex
     lda ZoneSpriteColors,x
     sta COLUP0
+#if USE_SPRITE_2 = 1
+    ; スプライト2色のセット
+    lda ZoneSpriteColors,x
+    sta COLUP1
+#endif
     ; スプライトのNUSIZのセット
     lda ZoneSpriteNusiz,x
     sta NUSIZ0
+#if USE_SPRITE_2 = 1
+    ; スプライト2のNUSIZのセット
+    lda ZoneSprite2Nusiz,x
+    sta NUSIZ1
+#endif
     ; スプライトの向きのセット
     lda SpriteInfo
     and #SPRITE_ORIENTABLE
@@ -315,30 +379,61 @@ RenderLandscapeZone:
     lda ZoneSpriteOrients,x
 .SetOrient
     sta REFP0
+#if USE_SPRITE_2 = 1
+    ; スプライト2の向きのセット
+    lda SpriteInfo
+    and #SPRITE_ORIENTABLE
+    bne .LoadOrient2
+    lda #0
+    jmp .SetOrient2
+.LoadOrient2
+    lda ZoneSprite2Orients,x
+.SetOrient2
+    sta REFP1
+#endif
+
     ; プレイフィールドの色をセット
     ; lda #COLOR_BUILDING
     ; sta COLUPF
 
     ; ゾーンの高さ分のループ
     ldy ZoneIndex
-    ldx ZoneHeights,y
-    dex ; 最初のWSYNC2つを飛ばす
-    dex
-    dex ; プレイフィールドを増やしたら処理時間が足りなくなったのでもう一個高さ減らす
+    lda ZoneHeights,y
+    clc
+    sbc #2 + #1 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
+#if USE_SPRITE_2 = 1
+    clc
+    sbc #4 ; スプライト2の処理多いので更に猶予を作る
+#endif
+    tax
 .RenderLandscapeZoneLoop
     sta WSYNC
 
-    ; スプライトの描画
+    ; スプライト1の描画
     txa
     sec
     sbc #1 ; Y座標は一旦固定で1
     cmp SpriteHeight
-    bcc .DrawSprite
+    bcc .DrawSprite1
     lda #0
-.DrawSprite
+.DrawSprite1
     tay
     lda (SpriteGfx),y
     sta GRP0
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2の描画
+    txa
+    sec
+    sbc #20 ; Y座標は一旦固定で20
+    cmp Sprite2Height
+    bcc .DrawSprite2
+    lda #0
+.DrawSprite2
+    tay
+    lda (Sprite2Gfx),y
+    sta GRP1
+#endif
 
 ;     ; プレイフィールドの描画
 ;     txa
@@ -440,7 +535,7 @@ RenderPlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcLandscapeZone
-    ; SPRITE_MOVABLE       でなければ移動処理はスキップ
+    ; SPRITE_MOVABLEでなければ移動処理はスキップ
     lda ZoneIndex
     asl
     tax
@@ -451,34 +546,83 @@ ProcLandscapeZone
     sta SpriteGfx,y
     ldy #0
     lda (SpriteGfx),y
-    and #SPRITE_MOVABLE       
-    beq .EndMove
-.StartMove
+    and #SPRITE_MOVABLE
+    beq .EndMove1
+
+    ; スプライト1の移動処理
+.StartMove1
     ldx ZoneIndex
     lda FrameCounter
     and ZoneSpriteSpeeds,x
-    bne .EndMove
+    bne .EndMove1
     lda ZoneSpriteOrients,x
     cmp #ORIENT_RIGHT
-    beq .MoveRight
-    jmp .MoveLeft
-.MoveRight
+    beq .MoveRight1
+    jmp .MoveLeft1
+.MoveRight1
     inc ZoneSpriteXPos,x
     lda ZoneSpriteXPos,x
     cmp #MAX_X
-    bcc .EndMove
-.ResetSpriteXPosToLeft
+    bcc .EndMove1
+.ResetSpriteXPosToLeft1
     lda #MIN_X
     sta ZoneSpriteXPos,x
-    jmp .EndMove
-.MoveLeft
+    jmp .EndMove1
+.MoveLeft1
     dec ZoneSpriteXPos,x
     lda ZoneSpriteXPos,x
     cmp #MAX_X
-    bcc .EndMove
-.ResetSpriteXPosToRight
+    bcc .EndMove1
+.ResetSpriteXPosToRight1
     lda #MAX_X
     sta ZoneSpriteXPos,x
+.EndMove1
+
+#if USE_SPRITE_2 = 1
+    ; SPRITE_MOVABLEでなければ移動処理はスキップ
+    lda ZoneIndex
+    asl
+    tax
+    lda ZoneSprite2Gfx,x
+    sta Sprite2Gfx
+    lda ZoneSprite2Gfx,x+1
+    ldy #1
+    sta Sprite2Gfx,y
+    ldy #0
+    lda (Sprite2Gfx),y
+    and #SPRITE_MOVABLE
+    beq .EndMove2
+
+    ; スプライト2の移動処理
+.StartMove2
+    ldx ZoneIndex
+    lda FrameCounter
+    and ZoneSprite2Speeds,x
+    bne .EndMove2
+    lda ZoneSprite2Orients,x
+    cmp #ORIENT_RIGHT
+    beq .MoveRight2
+    jmp .MoveLeft2
+.MoveRight2
+    inc ZoneSprite2XPos,x
+    lda ZoneSprite2XPos,x
+    cmp #MAX_X
+    bcc .EndMove2
+.ResetSpriteXPosToLeft2
+    lda #MIN_X
+    sta ZoneSprite2XPos,x
+    jmp .EndMove2
+.MoveLeft2
+    dec ZoneSprite2XPos,x
+    lda ZoneSprite2XPos,x
+    cmp #MAX_X
+    bcc .EndMove2
+.ResetSpriteXPosToRight2
+    lda #MAX_X
+    sta ZoneSprite2XPos,x
+.EndMove2
+#endif
+
 .EndMove
     jmp ProcLandscapeZoneReturn
 
@@ -550,16 +694,52 @@ ResetScene subroutine
     sta ZoneSpriteGfx,x+1
     ldx Tmp
 
+#if USE_SPRITE_2 = 1
+    ; スプライト2を決定
+    jsr NextRandomValue
+    lda RandomValue
+    ; yはランダムなスプライトの先頭アドレスを指すようにする
+    and #NUMBER_OF_SPRITES_MASK
+    asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
+    tay
+    ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
+    stx Tmp
+    txa
+    asl
+    tax
+    ; スプライト2のアドレスを取得してセット
+    lda SpriteGfxs,y
+    sta ZoneSprite2Gfx,x
+    lda SpriteGfxs,y+1
+    sta ZoneSprite2Gfx,x+1
+    ldx Tmp
+#endif
+
     ; スプライトの色を決定
     jsr NextRandomValue
     lda RandomValue
     sta ZoneSpriteColors,x
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2の色を決定
+    jsr NextRandomValue
+    lda RandomValue
+    sta ZoneSprite2Colors,x
+#endif
 
     ; スプライトのX座標を決定
     jsr NextRandomValue
     lda RandomValue
     and #%01111111
     sta ZoneSpriteXPos,x
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2のX座標を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%01111111
+    sta ZoneSprite2XPos,x
+#endif
 
     ; スプライトの向きを決定
     jsr NextRandomValue
@@ -573,6 +753,20 @@ ResetScene subroutine
 .SetZoneSpriteOrientEnd
     sta ZoneSpriteOrients,x
 
+#if USE_SPRITE_2 = 1
+    ; スプライト2の向きを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000001
+    bne .SetZoneSprite2OrientRight
+    lda #ORIENT_LEFT
+    jmp .SetZoneSprite2OrientEnd
+.SetZoneSprite2OrientRight
+    lda #ORIENT_RIGHT
+.SetZoneSprite2OrientEnd
+    sta ZoneSprite2Orients,x
+#endif
+
     ; スプライトの速さを決定
     jsr NextRandomValue
     lda RandomValue
@@ -581,12 +775,31 @@ ResetScene subroutine
     lda SpeedTable,y
     sta ZoneSpriteSpeeds,x
 
+#if USE_SPRITE_2 = 1
+    ; スプライト2の速さを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000011
+    tay
+    lda SpeedTable,y
+    sta ZoneSprite2Speeds,x
+#endif
+
     ; スプライトのNUSIZを決定
     jsr NextRandomValue
     lda RandomValue
     and #%00000111
     tay
     sta ZoneSpriteNusiz,x
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2のNUSIZを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000111
+    tay
+    sta ZoneSprite2Nusiz,x
+#endif
 
     ; 使用した高さを保持
     lda UsingHeight
@@ -706,10 +919,28 @@ SetObjectXPos subroutine
     sta HMP0,Y
     sta RESP0,Y
     rts
+
+SetObject2XPos subroutine
+    tax
+    sec
+    sta WSYNC
+.Div15Loop
+    sbc #15
+    bcs .Div15Loop
+    eor #%0111
+    asl
+    asl
+    asl
+    asl
+    sta HMP1,Y
+    sta RESP1,Y
+    rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    org $FA00
 
 ; プレイヤースプライト
 PlayerGfx:
@@ -854,6 +1085,8 @@ SpriteGfxs:
     .word BearGfx
     .word BuildingGfx
     .word Building2Gfx
+
+    org $FB00
 
 BearGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20

@@ -25,16 +25,8 @@ USE_SPRITE_2 = 0
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-COLOR_BG          = $00 ; デフォルトの背景色
-COLOR_SKY         = $9e ; 空の背景色
-COLOR_DARK_SKY    = $04 ; 暗い空の背景色
-COLOR_SEA         = $80 ; 海の背景色
-COLOR_SAND        = $fc ; 砂の背景色
 COLOR_ROAD        = $08 ; 道の背景色
-COLOR_GRASS       = $c0 ; 草の背景色
-COLOR_BUILDING_BG = $0c ; ビルの背景色
 COLOR_BUILDING    = $03 ; ビルの色
-COLOR_CLOUD       = $0e ; 雲の色
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
@@ -52,7 +44,6 @@ NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
 ORIENT_LEFT            = %00001000 ; 左向き
 ORIENT_RIGHT           = %00000000 ; 右向き
 BUILDING_GFX_HEIGHT    = 18 ; ビルの高さ
-COLOR_BUILDING         = $03 ; ビルの色
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定用定数
@@ -262,11 +253,10 @@ RenderLandscapeZone:
     lda ZoneSpriteXPos,x
     ; 右端にいる場合にWSYNCを挟む
     cmp #135
-    bcs .SkipLandscapeWsync    ; will take >1 scanline if > 134
+    bcs .SkipLandscapeWsync ; will take >1 scanline if > 134
     sta WSYNC
 .SkipLandscapeWsync
     ; スプライトの横位置の補正
-    ldx ZoneIndex
     lda ZoneSpriteXPos,x
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
@@ -285,8 +275,7 @@ RenderLandscapeZone:
     lda ZoneBgColors,x
     sta COLUBK
     ; スプライト情報を取得してSpriteInfoにセット
-    ldx ZoneIndex
-    txa
+    lda ZoneIndex
     asl
     tax
     lda ZoneSpriteGfx,x
@@ -319,8 +308,7 @@ RenderLandscapeZone:
 
 #if USE_SPRITE_2 = 1
     ; スプライト2情報を取得してSpriteInfoにセット
-    ldx ZoneIndex
-    txa
+    lda ZoneIndex
     asl
     tax
     lda ZoneSprite2Gfx,x

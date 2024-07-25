@@ -358,7 +358,7 @@ RenderLandscapeZone:
     sta COLUP0
 #if USE_SPRITE_2 = 1
     ; スプライト2色のセット
-    lda ZoneSpriteColors,x
+    lda ZoneSprite2Colors,x
     sta COLUP1
 #endif
     ; スプライトのNUSIZのセット

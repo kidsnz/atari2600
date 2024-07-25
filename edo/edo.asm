@@ -19,7 +19,7 @@
 DEBUG = 1
 
 ; スプライト2を使う
-USE_SPRITE_2 = 0
+USE_SPRITE_2 = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
@@ -34,6 +34,7 @@ COLOR_BUILDING    = $03 ; ビルの色
 
 PLAYER_GFX_HEIGHT      = 14  ; プレイヤーの高さ
 MAX_LINES              = 192 ; スキャンライン数 
+MAX_NUMBER_OF_ZONES    = 6   ; ゾーンの最大数
 MIN_ZONE_HEIGHT        = 16  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT        = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT     = 32  ; プレイヤーのゾーンの高さ
@@ -89,22 +90,22 @@ PlayerOrient        byte ; プレイヤーの向き
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
 NumberOfZones       byte ; ゾーン数
-ZoneBgColors        ds 6 ; 各ゾーンの色
-ZoneSpriteColors    ds 6 ; 各ゾーンのスプライトの色
-ZoneHeights         ds 6 ; 各ゾーンの高さ
+ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
+ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
+ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
 
-ZoneSpriteXPos      ds 6  ; 各ゾーンのスプライトのX座標
-ZoneSpriteOrients   ds 6  ; 各ゾーンのスプライトの向き
-ZoneSpriteSpeeds    ds 6  ; 各ゾーンのスプライトの速さ
-ZoneSpriteNusiz     ds 6  ; 各ゾーンのスプライトのNUSIZ
-ZoneSpriteGfx       ds 12 ; 各ゾーンのスプライトのアドレス
+ZoneSpriteXPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
+ZoneSpriteOrients   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
+ZoneSpriteSpeeds    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
+ZoneSpriteNusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
+ZoneSpriteGfx       ds MAX_NUMBER_OF_ZONES * 2 ; 各ゾーンのスプライトのアドレス
 
-ZoneSprite2Colors   ds 6  ; 各ゾーンのスプライト2の色
-ZoneSprite2XPos     ds 6  ; 各ゾーンのスプライトのX座標
-ZoneSprite2Orients  ds 6  ; 各ゾーンのスプライトの向き
-ZoneSprite2Speeds   ds 6  ; 各ゾーンのスプライトの速さ
-ZoneSprite2Nusiz    ds 6  ; 各ゾーンのスプライトのNUSIZ
-ZoneSprite2Gfx      ds 12 ; 各ゾーンのスプライトのアドレス
+ZoneSprite2Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
+ZoneSprite2XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
+ZoneSprite2Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
+ZoneSprite2Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
+ZoneSprite2Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
+ZoneSprite2Gfx      ds MAX_NUMBER_OF_ZONES * 2 ; 各ゾーンのスプライトのアドレス
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -837,6 +838,12 @@ ResetScene subroutine
     adc #1
     sta NumberOfZones
 
+    ; ゾーンの最大数を超えていたらもう一度シーンを生成する
+    cmp #MAX_NUMBER_OF_ZONES
+    bcc .DoneResetScene
+    jsr ResetScene
+
+.DoneResetScene
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

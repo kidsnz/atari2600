@@ -965,8 +965,8 @@ PlayerGfx:
     .byte %01101111 ; | XX XXXX|
     .byte %10001010 ; |X   X X |
     .byte %00001100 ; |    XX  |
-    .byte %00011000 ; |   XX   |
-    .byte %00000100 ; |     X  |
+    .byte %00001000 ; |    X   |
+    .byte %00010100 ; |   X X  |
     .byte %00000000 ; |        |
 
 ; プレイヤースプライトカラー
@@ -1055,36 +1055,57 @@ SpriteGfxs:
     .word Building2Gfx
     ; 8~15
     .word BoxGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BoxGfx
-    .word BearGfx
-    .word HouseGfx
-    .word BuildingGfx
-    .word Building2Gfx
+    .word DonkeyKongGfx
+    .word ETGfx
+    .word Walker1Gfx
+    .word Walker2Gfx
+    .word Walker3Gfx
+    .word Walker4Gfx
+    .word Walker5Gfx
     ; 16~23
-    .word CloudGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BirdGfx
-    .word FishGfx
-    .word HouseGfx
-    .word BearGfx
-    .word Building2Gfx
+    .word Walker6Gfx
+    .word Walker7Gfx
+    .word Walker8Gfx
+    .word Dragonstomper1Gfx
+    .word Dragonstomper2Gfx
+    .word Dragonstomper3Gfx
+    .word Dragonstomper4Gfx
+    .word SpringerGfx
     ; 24~31
-    .word CloudGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BirdGfx
-    .word FishGfx
-    .word BearGfx
-    .word BuildingGfx
-    .word Building2Gfx
+    .word SkyPatrolGfx
+    .word BobbyGfx
+    .word RaftRiderGfx
+    .word DungeonMasterGfx
+    .word LynxGfx
+    .word RabbitTransitGfx
+    .word PitfallGfx
+    .word MontezumaGfx
 
     org $FB00
 
 BearGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20
+    .byte %00000000 ; |        |
+    .byte %11100000 ; |###     |
+    .byte %11100000 ; |###     |
+    .byte %01100111 ; | ##  ###|
+    .byte %01100111 ; | ##  ###|
+    .byte %01111110 ; | ###### |
+    .byte %01111110 ; | ###### |
+    .byte %00111110 ; |  ##### |
+    .byte %01011110 ; | # #### |
+    .byte %11011100 ; |## ###  |
+    .byte %10111100 ; |# ####  |
+    .byte %11111110 ; |####### |
+    .byte %11111111 ; |########|
+    .byte %01111111 ; | #######|
+    .byte %00111001 ; |  ###  #|
+    .byte %01000101 ; | #   # #|
+    .byte %01101101 ; | ## ## #|
+    .byte %01010101 ; | # # # #|
+    .byte %01111100 ; | #####  |
+    .byte %00101000 ; |  # #   |
+
     .byte %00000000 ; |        |
     .byte %00000111 ; |     XXX|
     .byte %00000111 ; |     XXX|
@@ -1103,28 +1124,7 @@ BearGfx:
     .byte %10100010 ; |X X   X |
     .byte %10110110 ; |X XX XX |
     .byte %10101010 ; |X X X X |
-    .byte %00011100 ; |   XXX  |
-    .byte %00010100 ; |   X X  |
-
-    .byte %00000000 ; |        |
-    .byte %11100000 ; |XXX     |
-    .byte %11100000 ; |XXX     |
-    .byte %11100110 ; |XXX  XX |
-    .byte %11100110 ; |XXX  XX |
-    .byte %01111110 ; | XXXXXX |
     .byte %00111110 ; |  XXXXX |
-    .byte %00111110 ; |  XXXXX |
-    .byte %01011110 ; | X XXXX |
-    .byte %11111000 ; |XXXXX   |
-    .byte %10111100 ; |X XXXX  |
-    .byte %01111111 ; | XXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %01111111 ; | XXXXXXX|
-    .byte %00011101 ; |   XXX X|
-    .byte %00100011 ; |  X   XX|
-    .byte %00110111 ; |  XX XXX|
-    .byte %00101011 ; |  X X XX|
-    .byte %00011100 ; |   XXX  |
     .byte %00010100 ; |   X X  |
 
 CloudGfx:
@@ -1161,7 +1161,7 @@ TreeGfx:
     .byte %00010000 ; |   X    |
 
 Tree2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #18
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #18
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -1193,13 +1193,13 @@ BirdGfx:
     .byte %00000010 ; |      X |
 
     .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
     .byte %01000000 ; | X      |
     .byte %00110000 ; |  XX    |
     .byte %01111000 ; | XXXX   |
     .byte %11111100 ; |XXXXXX  |
     .byte %00110110 ; |  XX XX |
     .byte %11100100 ; |XXX  X  |
-    .byte %00000000 ; |        |
 
 FishGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #11
@@ -1228,7 +1228,7 @@ FishGfx:
     .byte %10000000 ; |X       |
 
 HouseGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #9
     .byte %00000000 ; |        |
     .byte %01011100 ; | X XXX  |
     .byte %01011100 ; | X XXX  |
@@ -1240,7 +1240,7 @@ HouseGfx:
     .byte %00010000 ; |   X    |
 
 BuildingGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #11
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
     .byte %00000000 ; |        |
     .byte %01001100 ; | X  XX  |
     .byte %01001100 ; | X  XX  |
@@ -1283,7 +1283,485 @@ BoxGfx:
     .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
     .byte %11111110 ; |XXXXXXX |
+    
+DonkeyKongGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20
+    .byte %00000000 ; |        |
+    .byte %11100000 ; |###     |
+    .byte %11100000 ; |###     |
+    .byte %01100111 ; | ##  ###|
+    .byte %01100111 ; | ##  ###|
+    .byte %01111110 ; | ###### |
+    .byte %01111110 ; | ###### |
+    .byte %00111110 ; |  ##### |
+    .byte %01011110 ; | # #### |
+    .byte %11011100 ; |## ###  |
+    .byte %10111100 ; |# ####  |
+    .byte %11111110 ; |####### |
+    .byte %11111111 ; |########|
+    .byte %01111111 ; | #######|
+    .byte %00111001 ; |  ###  #|
+    .byte %01000101 ; | #   # #|
+    .byte %01111101 ; | ##### #|
+    .byte %01010101 ; | # # # #|
+    .byte %01111100 ; | #####  |
+    .byte %00111000 ; |  ###   |
 
+    .byte %00000000 ; |        |
+    .byte %00000111 ; |     XXX|
+    .byte %00000111 ; |     XXX|
+    .byte %11100110 ; |XXX  XX |
+    .byte %11100110 ; |XXX  XX |
+    .byte %01111110 ; | XXXXXX |
+    .byte %01111110 ; | XXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01111010 ; | XXXX X |
+    .byte %00111011 ; |  XXX XX|
+    .byte %00111101 ; |  XXXX X|
+    .byte %01111111 ; | XXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111110 ; |XXXXXXX |
+    .byte %10011100 ; |X  XXX  |
+    .byte %10100010 ; |X X   X |
+    .byte %10111110 ; |X XXXXX |
+    .byte %10101010 ; |X X X X |
+    .byte %00111110 ; |  XXXXX |
+    .byte %00011100 ; |   XXX  |
+
+ETGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #16
+    .byte %00000000 ; |        |
+    .byte %11100111 ; |XXX  XXX|
+    .byte %01100011 ; | XX   XX|
+    .byte %00101011 ; |  X X XX|
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00111111 ; |  XXXXXX|
+    .byte %10111111 ; |X XXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %00011111 ; |   XXXXX|
+    .byte %00001111 ; |    XXXX|
+    .byte %00000011 ; |      XX|
+    .byte %11000011 ; |XX    XX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %10111111 ; |X XXXXXX|
+    .byte %11111110 ; |XXXXXXX |
+
+Walker1Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #19
+    .byte %00000000 ; |        |
+    .byte %00011100 ; |   ###  |
+    .byte %00111110 ; |  ##### |
+    .byte %01111100 ; | #####  |
+    .byte %00111111 ; |  ######|
+    .byte %11111100 ; |######  |
+    .byte %00111111 ; |  ######|
+    .byte %01111100 ; | #####  |
+    .byte %00111111 ; |  ######|
+    .byte %01111110 ; | ###### |
+    .byte %00111100 ; |  ####  |
+    .byte %01111110 ; | ###### |
+    .byte %00011100 ; |   ###  |
+    .byte %00111000 ; |  ###   |
+    .byte %00011100 ; |   ###  |
+    .byte %00011000 ; |   ##   |
+    .byte %00001100 ; |    ##  |
+    .byte %00001000 ; |    #   |
+    .byte %00001000 ; |    #   |
+    
+Walker2Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #19
+    .byte %00000000 ; |        |
+    .byte %00011000 ; |   XX   |
+    .byte %00011000 ; |   XX   |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00111100 ; |  XXXX  |
+    .byte %01111111 ; | XXXXXXX|
+    .byte %00111100 ; |  XXXX  |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00111111 ; |  XXXXXX|
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00011110 ; |   XXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111110 ; |  XXXXX |
+    .byte %00011100 ; |   XXX  |
+    .byte %00000001 ; |       X|
+        
+Walker3Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9
+    .byte %00000000 ; |        |
+    .byte %00011000 ; |   ##   |
+    .byte %00011000 ; |   ##   |
+    .byte %00011000 ; |   ##   |
+    .byte %01111110 ; | ###### |
+    .byte %11111111 ; |########|
+    .byte %11111111 ; |########|
+    .byte %01111110 ; | ###### |
+    .byte %00111100 ; |  ####  |
+
+Walker4Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #8
+    .byte   %00000000 ; |        |
+    .byte   %11111111 ; |########|
+    .byte   %10011001 ; |#  ##  #|
+    .byte   %10011001 ; |#  ##  #|
+    .byte   %11111111 ; |########|
+    .byte   %11111111 ; |########|
+    .byte   %01111110 ; | ###### |
+
+Walker5Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #12
+    .byte   %00000000 ; |        |
+    .byte   %11111111 ; |########|
+    .byte   %11111111 ; |########|
+    .byte   %11111111 ; |########|
+    .byte   %10011001 ; |#  ##  #|
+    .byte   %10011001 ; |#  ##  #|
+    .byte   %11111111 ; |########|
+    .byte   %11111111 ; |########|
+    .byte   %01111110 ; | ###### |
+    .byte   %01111110 ; | ###### |
+    .byte   %01100000 ; | ##     |
+    .byte   %01100000 ; | ##     |
+
+Walker6Gfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte %00000000 ; |        |
+    .byte %10100010 ; |X X   X |
+    .byte %01010101 ; | X X X X|
+    .byte %00111010 ; |  XXX X |
+    .byte %01111100 ; | XXXXX  |
+    .byte %10110100 ; |X XX X  |
+    .byte %00000111 ; |     XXX|
+    .byte %00000110 ; |     XX |
+    .byte %00001010 ; |    X X |
+
+    .byte %00000000 ; |        |
+    .byte %00101000 ; |  X X   |
+    .byte %01010100 ; | X X X  |
+    .byte %10111010 ; |X XXX X |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00000111 ; |     XXX|
+    .byte %00000110 ; |     XX |
+    .byte %00001010 ; |    X X |
+
+Walker7Gfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte %00000000 ; |        |
+    .byte %01001001 ; | X  X  X|
+    .byte %00110011 ; |  XX  XX|
+    .byte %00111100 ; |  XXXX  |
+    .byte %01111010 ; | XXXX X |
+    .byte %11000100 ; |XX   X  |
+    .byte %10010010 ; |X  X  X |
+    .byte %11011000 ; |XX XX   |
+    .byte %01110000 ; | XXX    |
+
+    .byte %00000000 ; |        |
+    .byte %10000101 ; |X    X X|
+    .byte %00110010 ; |  XX  X |
+    .byte %00111101 ; |  XXXX X|
+    .byte %01111000 ; | XXXX   |
+    .byte %11000110 ; |XX   XX |
+    .byte %10010010 ; |X  X  X |
+    .byte %11011000 ; |XX XX   |
+    .byte %01110000 ; | XXX    |
+
+Walker8Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #7
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01111110 ; | XXXXXX |
+    .byte %01111110 ; | XXXXXX |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00011000 ; |   XX   |
+
+Dragonstomper1Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #20
+    .byte %00000000 ; |        |
+    .byte %00011000 ; |   XX   |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00011000 ; |   XX   |
+    .byte %11000011 ; |XX    XX|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00011000 ; |   XX   |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %00011000 ; |   XX   |
+    .byte %01111110 ; | XXXXXX |
+    .byte %11000011 ; |XX    XX|
+    .byte %00011000 ; |   XX   |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00011000 ; |   XX   |
+    .byte %00100100 ; |  X  X  |
+    .byte %00100100 ; |  X  X  |
+    .byte %01000010 ; | X    X |
+    .byte %10000001 ; |X      X|
+    
+Dragonstomper2Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #16
+    .byte %00000000 ; |        |
+    .byte %10011001 ; |X  XX  X|
+    .byte %10111101 ; |X XXXX X|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00111100 ; |  XXXX  |
+    .byte %10111101 ; |X XXXX X|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00111100 ; |  XXXX  |
+    .byte %10111101 ; |X XXXX X|
+    .byte %01111110 ; | XXXXXX |
+    .byte %00011000 ; |   XX   |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00011000 ; |   XX   |
+    .byte %00100100 ; |  X  X  |
+    .byte %11000011 ; |XX    XX|
+    
+Dragonstomper3Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #12
+    .byte %00000000 ; |        |
+    .byte %11001100 ; |XX  XX  |
+    .byte %01001000 ; | X  X   |
+    .byte %01111000 ; | XXXX   |
+    .byte %00110000 ; |  XX    |
+    .byte %00110000 ; |  XX    |
+    .byte %01111000 ; | XXXX   |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %10110100 ; |X XX X  |
+    .byte %10110100 ; |X XX X  |
+    .byte %10000100 ; |X    X  |
+    .byte %01001000 ; | X  X   |
+
+Dragonstomper4Gfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_ANIMATABLE | #SPRITE_UNORIENTABLE | #15
+	.byte %00000000 ; |        |
+	.byte %01111100 ; | XXXXX  |
+	.byte %00111000 ; |  XXX   |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %10010000 ; |X  X    |
+	.byte %01010100 ; | X X X  |
+	.byte %10111000 ; |X XXX   |
+	.byte %11100000 ; |XXX     |
+	.byte %01011000 ; | X XX   |
+	.byte %00001110 ; |    XXX |
+
+	.byte %00000000 ; |        |
+	.byte %01111100 ; | XXXXX  |
+	.byte %00111000 ; |  XXX   |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010000 ; |   X    |
+	.byte %00010100 ; |   X X  |
+	.byte %01010100 ; | X X X  |
+	.byte %00111000 ; |  XXX   |
+	.byte %11010011 ; |XX X  XX|
+	.byte %01101110 ; | XX XXX |
+	.byte %00000000 ; |        |
+
+SpringerGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #14
+    .byte %00000000 ; |        | 
+    .byte %01001100 ; | X  XX  |
+    .byte %01111000 ; | XXXX   |
+    .byte %00011000 ; |   XX   |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00010000 ; |   X    |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00101000 ; |  X X   |
+    .byte %01000100 ; | X   X  |
+    .byte %11000110 ; |XX   XX |
+
+    .byte %00000000 ; |        |
+    .byte %00011000 ; |   XX   |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %11111100 ; |XXXXXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00010000 ; |   X    |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00101000 ; |  X X   |
+    .byte %01000100 ; | X   X  |
+    .byte %11000110 ; |XX   XX |
+
+SkyPatrolGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #14
+    .byte %00000000 ; |        |
+    .byte %01011000 ; | X XX   |
+    .byte %00111000 ; |  XXX   |
+    .byte %00011001 ; |   XX  X|
+    .byte %11011110 ; |XX XXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111001 ; |  XXX  X|
+    .byte %01011010 ; | X XX X |
+    .byte %00111100 ; |  XXXX  |
+    .byte %00011000 ; |   XX   |
+    .byte %01011000 ; | X XX   |
+    .byte %00111010 ; |  XXX X |
+    .byte %00011100 ; |   XXX  |
+    .byte %00001000 ; |    X   |
+
+BobbyGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00101000 ; |  X X   |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01010100 ; | X X X  |
+    .byte %10010010 ; |X  X  X |
+    .byte %10101010 ; |X X X X |
+    .byte %10000010 ; |X     X |
+    .byte %01000100 ; | X   X  |
+
+    .byte %00000000 ; |        |
+    .byte %01000100 ; | X   X  |
+    .byte %10000010 ; |X     X |
+    .byte %01010100 ; | X X X  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
+    .byte %00101000 ; |  X X   |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+RaftRiderGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #21
+    .byte %00000000 ; |        |
+	.byte %00001000 ; |    X   |
+	.byte %00001000 ; |    X   |
+	.byte %00001000 ; |    X   |
+	.byte %00011100 ; |   XXX  |
+	.byte %01111110 ; | XXXXXX |
+	.byte %01111110 ; | XXXXXX |
+	.byte %10001001 ; |X   X  X|
+	.byte %00001000 ; |    X   |
+	.byte %00111110 ; |  XXXXX |
+	.byte %01111110 ; | XXXXXX |
+	.byte %01001001 ; | X  X  X|
+	.byte %00001100 ; |    XX  |
+	.byte %00011100 ; |   XXX  |
+	.byte %00011110 ; |   XXXX |
+	.byte %00101010 ; |  X X X |
+	.byte %00001001 ; |    X  X|
+	.byte %00011100 ; |   XXX  |
+	.byte %00101010 ; |  X X X |
+	.byte %00001000 ; |    X   |
+	.byte %00001000 ; |    X   |
+
+DungeonMasterGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #8
+    .byte %00000000 ; |        |
+	.byte %00111000 ; |  XXX   |
+	.byte %01111100 ; | XXXXX  |
+	.byte %11111110 ; |XXXXXXX |
+	.byte %11111110 ; |XXXXXXX |
+	.byte %01111100 ; | XXXXX  |
+	.byte %00010000 ; |   X    |
+	.byte %00001000 ; |    X   |
+
+LynxGfx:
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #12
+    .byte %00000000 ; |        |
+	.byte %10010101 ; |X  X X X|
+	.byte %10010101 ; |X  X X X|
+	.byte %11010010 ; |XX X  X |
+	.byte %11100110 ; |XXX  XX |
+	.byte %01111100 ; | XXXXX  |
+	.byte %01111010 ; | XXXX X |
+	.byte %01111111 ; | XXXXXXX|
+	.byte %00111010 ; |  XXX X |
+	.byte %01000101 ; | X   X X|
+	.byte %10000111 ; |X    XXX|
+	.byte %00000101 ; |     X X|
+
+RabbitTransitGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #6
+	.byte %00000000 ; |        |
+	.byte %00001000 ; |    X   |
+	.byte %11011101 ; |XX XXX X|
+	.byte %01110110 ; | XXX XX |
+	.byte %00100011 ; |  X   XX|
+	.byte %00000010 ; |      X |
+
+	.byte %00000000 ; |        |
+	.byte %00010000 ; |   X    |
+	.byte %00111000 ; |  XXX   |
+	.byte %11101111 ; |XXX XXXX|
+	.byte %01000111 ; | X   XXX|
+	.byte %00000010 ; |      X |
+
+PitfallGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #10
+	.byte %00000000 ; |        |
+	.byte %11111111 ; |XXXXXXXX|
+	.byte %11010101 ; |XX X X X|
+	.byte %10101010 ; |X X X X |
+	.byte %11111111 ; |XXXXXXXX|
+	.byte %01100000 ; | XX     |
+	.byte %00100000 ; |  X     |
+	.byte %00000000 ; |        |
+	.byte %00000000 ; |        |
+	.byte %00000000 ; |        |
+
+	.byte %00000000 ; |        |
+	.byte %11111111 ; |XXXXXXXX|
+	.byte %11010101 ; |XX X X X|
+	.byte %11000000 ; |XX      |
+	.byte %11000000 ; |XX      |
+	.byte %11010000 ; |XX X    |
+	.byte %01110100 ; | XXX X  |
+	.byte %01011101 ; | X XXX X|
+	.byte %00000111 ; |     XXX|
+	.byte %00000001 ; |       X|
+
+MontezumaGfx:
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #12
+	.byte %00000000 ; |        |
+	.byte %00011001 ; |   XX  X|
+	.byte %10111101 ; |X XXXX X|
+	.byte %10111111 ; |X XXXXXX|
+	.byte %11111110 ; |XXXXXXX |
+	.byte %01011101 ; | X XXX X|
+	.byte %10111111 ; |X XXXXXX|
+	.byte %11111010 ; |XXXXX X |
+	.byte %01011101 ; | X XXX X|
+	.byte %10110111 ; |X XX XXX|
+	.byte %11100010 ; |XXX   X |
+	.byte %01000000 ; | X      |
+
+	.byte %00000000 ; |        |
+	.byte %10011000 ; |X  XX   |
+	.byte %10111101 ; |X XXXX X|
+	.byte %11111101 ; |XXXXXX X|
+	.byte %01111111 ; | XXXXXXX|
+	.byte %10111110 ; |X XXXXX |
+	.byte %11111101 ; |XXXXXX X|
+	.byte %01011111 ; | X XXXXX|
+	.byte %10111010 ; |X XXX X |
+	.byte %11101101 ; |XXX XX X|
+	.byte %01000111 ; | X   XXX|
+	.byte %00000010 ; |      X |
+        
 SpeedTable:
     .byte %00000011
     .byte %00000111

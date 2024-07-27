@@ -18,8 +18,11 @@
 ; デバッグ動作にする場合は1を指定する
 DEBUG = 1
 
-; スプライト2を使う
-USE_SPRITE_2 = 1
+; 乱数カウンターの初期値
+INITIAL_RANDOM_COUNTER = 0
+
+; スプライト1を使う
+USE_SPRITE_1 = 1
 
 ; プレイフィールドを使う
 USE_PLAYFIELD = 1
@@ -27,8 +30,6 @@ USE_PLAYFIELD = 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-COLOR_BUILDING    = $03 ; ビルの色
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
@@ -84,12 +85,12 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-Sprite1Info         byte ; スプライト情報
-Sprite1Height       byte ; スプライトの高さを保持
-Sprite1Gfx          word ; スプライトのアドレス
-Sprite2Info         byte ; スプライト2情報
-Sprite2Height       byte ; スプライト2の高さを保持
-Sprite2Gfx          word ; スプライト2のアドレス
+Sprite0Info         byte ; スプライト情報
+Sprite0Height       byte ; スプライトの高さを保持
+Sprite0Gfx          word ; スプライトのアドレス
+Sprite1Info         byte ; スプライト2情報
+Sprite1Height       byte ; スプライト2の高さを保持
+Sprite1Gfx          word ; スプライト2のアドレス
 
 ; 6 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
@@ -104,17 +105,17 @@ ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
 ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
-ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
-ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
-ZoneSprite1Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
-ZoneSprite1Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
-ZoneSprite1Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの番号
-ZoneSprite2Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
-ZoneSprite2XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のX座標
-ZoneSprite2Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の向き
-ZoneSprite2Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の速さ
-ZoneSprite2Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のNUSIZ
-ZoneSprite2Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の番号
+ZoneSprite0XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
+ZoneSprite0Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
+ZoneSprite0Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
+ZoneSprite0Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
+ZoneSprite0Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの番号
+ZoneSprite1Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
+ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のX座標
+ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の向き
+ZoneSprite1Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の速さ
+ZoneSprite1Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のNUSIZ
+ZoneSprite1Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の番号
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラム
@@ -147,7 +148,7 @@ Reset:
 ;; シーンの生成
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lda #$10
+    lda #INITIAL_RANDOM_COUNTER
     sta RandomCounter
     jsr ResetScene
 
@@ -261,30 +262,30 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトの描画マクロ
     ;  x: ゾーンのY座標
-    MAC RenderSprites
+    MAC RENDER_SPRITES
         ; スプライト1の描画
         txa
         sec
         sbc #1 ; Y座標は一旦固定で1
+        cmp Sprite0Height
+        bcc .DrawSprite0
+        lda #0
+.DrawSprite0
+        tay
+        lda (Sprite0Gfx),y
+        sta GRP0
+
+#if USE_SPRITE_1 = 1
+        ; スプライト2の描画
+        txa
+        sec
+        sbc #20 ; Y座標は一旦固定で20
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0
 .DrawSprite1
         tay
         lda (Sprite1Gfx),y
-        sta GRP0
-
-#if USE_SPRITE_2 = 1
-        ; スプライト2の描画
-        txa
-        sec
-        sbc #20 ; Y座標は一旦固定で20
-        cmp Sprite2Height
-        bcc .DrawSprite2
-        lda #0
-.DrawSprite2
-        tay
-        lda (Sprite2Gfx),y
         sta GRP1
 #endif
     ENDM
@@ -292,7 +293,7 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; プレイフィールドの描画マクロ
     ;  x: ゾーンのY座標
-    MAC RenderPlayfield
+    MAC RENDER_PLAYFIELD
 #if USE_PLAYFIELD = 1
         ; プレイフィールドの描画
         txa
@@ -309,16 +310,16 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトをロードする
     ;  {0}: スプライト番号 なしか1
-    MAC LoadSprite
-        LoadSpriteInfo {0}
-        _LoadSpriteHeight {0}
-        _CalculateSpriteGfx {0}
+    MAC LOAD_SPRITE
+        LOAD_SPRITE_INFO {0}
+        _LOAD_SPRITE_HEIGHT {0}
+        _CALCULATE_SPRITE_GFX {0}
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライト情報を読み取ってSpriteInfoにセットする
     ;  {0}: スプライト番号 なしか1
-    MAC LoadSpriteInfo
+    MAC LOAD_SPRITE_INFO
         ldx ZoneIndex
         lda ZoneSprite{0}Numbers,x
         asl
@@ -336,7 +337,7 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトの高さをSpriteInfoから読み取ってSpriteHeightにセットする
     ;  {0}: スプライト番号 なしか1
-    MAC _LoadSpriteHeight
+    MAC _LOAD_SPRITE_HEIGHT
         ; スプライトの高さを取得してSpriteHeightにセット
         lda Sprite{0}Info
         and #SPRITE_HEIGHT_MASK
@@ -346,7 +347,7 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; SpriteGfxが先頭を指している状態でアニメーションカウンターも考慮してSpriteGfxのアドレスを計算する
     ;  {0}: スプライト番号 なしか1
-    MAC _CalculateSpriteGfx
+    MAC _CALCULATE_SPRITE_GFX
         ; SpriteGfxがスプライトのアドレスを指すようにする
         inc Sprite{0}Gfx
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
@@ -372,15 +373,15 @@ ProcZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; SpriteInfoが移動不可の場合はジャンプする
     MAC UnlessSpriteMovableThen
-        lda Sprite1Info
+        lda Sprite0Info
         and #SPRITE_MOVABLE
         beq {0}
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; Sprite2Infoが移動不可の場合はジャンプする
-    MAC UnlessSprite2MovableThen
-        lda Sprite2Info
+    ; Sprite1Infoが移動不可の場合はジャンプする
+    MAC UnlessSprite1MovableThen
+        lda Sprite1Info
         and #SPRITE_MOVABLE
         beq {0}
     ENDM
@@ -392,7 +393,7 @@ ProcZoneReturn:
 RenderZone:
     ; X座標を取得
     ldx ZoneIndex
-    lda ZoneSprite1XPos,x
+    lda ZoneSprite0XPos,x
 
     ; 右端にいる場合にWSYNCを挟む
     cmp #135
@@ -401,14 +402,14 @@ RenderZone:
 .SkipLandscapeWsync
 
     ; スプライトの横位置の補正
-    lda ZoneSprite1XPos,x
+    lda ZoneSprite0XPos,x
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
 
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     ; スプライト2の横位置の補正
     ldx ZoneIndex
-    lda ZoneSprite2XPos,x
+    lda ZoneSprite1XPos,x
     ldy #1 ; プレイヤー1スプライト
     jsr SetObjectXPos
 #endif
@@ -423,11 +424,11 @@ RenderZone:
     sta COLUBK
 
     ; スプライト情報をロード
-    LoadSprite 1
+    LOAD_SPRITE 0
 
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     ; スプライト2情報をロード
-    LoadSprite 2
+    LOAD_SPRITE 1
 #endif
 
     ; スプライト色のセット
@@ -435,42 +436,42 @@ RenderZone:
     lda ZoneSpriteColors,x
     sta COLUP0
     
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     ; スプライト2色のセット
-    lda ZoneSprite2Colors,x
+    lda ZoneSprite1Colors,x
     sta COLUP1
 #endif
 
     ; スプライトのNUSIZのセット
-    lda ZoneSprite1Nusiz,x
+    lda ZoneSprite0Nusiz,x
     sta NUSIZ0
 
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     ; スプライト2のNUSIZのセット
-    lda ZoneSprite2Nusiz,x
+    lda ZoneSprite1Nusiz,x
     sta NUSIZ1
 #endif
 
     ; スプライトの向きのセット
-    lda Sprite1Info
+    lda Sprite0Info
     and #SPRITE_ORIENTABLE
     bne .LoadOrient
     lda #0
     jmp .SetOrient
 .LoadOrient
-    lda ZoneSprite1Orients,x
+    lda ZoneSprite0Orients,x
 .SetOrient
     sta REFP0
 
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     ; スプライト2の向きのセット
-    lda Sprite2Info
+    lda Sprite1Info
     and #SPRITE_ORIENTABLE
     bne .LoadOrient2
     lda #0
     jmp .SetOrient2
 .LoadOrient2
-    lda ZoneSprite2Orients,x
+    lda ZoneSprite1Orients,x
 .SetOrient2
     sta REFP1
 #endif
@@ -487,7 +488,7 @@ RenderZone:
     lda ZoneHeights,y
     sec
     sbc #4 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
-#if USE_SPRITE_2 = 1
+#if USE_SPRITE_1 = 1
     sec
     sbc #4 ; スプライト2の処理多いので更に猶予を作る
 #endif
@@ -498,14 +499,14 @@ RenderZone:
 
 ; 1ライン目の処理
     sta WSYNC
-    RenderSprites
+    RENDER_SPRITES
 
     dex
 
 ; 2ライン目の処理
     sta WSYNC
-    RenderSprites
-    RenderPlayfield 0
+    RENDER_SPRITES
+    RENDER_PLAYFIELD 0
     
     dex
 
@@ -517,15 +518,15 @@ RenderZone:
 
 ; 3ライン目の処理
     sta WSYNC
-    RenderSprites
-    RenderPlayfield 1
+    RENDER_SPRITES
+    RENDER_PLAYFIELD 1
 
     dex
 
 ; 4ライン目の処理
     sta WSYNC
-    RenderSprites
-    RenderPlayfield 2
+    RENDER_SPRITES
+    RENDER_PLAYFIELD 2
     
     dex
     
@@ -635,11 +636,45 @@ RenderPlayerZone:
 
 ProcZone
     ; SPRITE_MOVABLEでなければ移動処理はスキップ
-    LoadSpriteInfo 1
-    UnlessSpriteMovableThen EndMove1
+    LOAD_SPRITE_INFO 0
+    UnlessSpriteMovableThen EndMove0
+
+    ; スプライト0の移動処理
+.StartMove0
+    ldx ZoneIndex
+    lda FrameCounter
+    and ZoneSprite0Speeds,x
+    bne EndMove0
+    lda ZoneSprite0Orients,x
+    cmp #ORIENT_RIGHT
+    beq .MoveRight0
+    jmp .MoveLeft0
+.MoveRight0
+    inc ZoneSprite0XPos,x
+    lda ZoneSprite0XPos,x
+    cmp #MAX_X
+    bcc EndMove0
+.ResetSpriteXPosToLeft0
+    lda #MIN_X
+    sta ZoneSprite0XPos,x
+    jmp EndMove0
+.MoveLeft0
+    dec ZoneSprite0XPos,x
+    lda ZoneSprite0XPos,x
+    cmp #MAX_X
+    bcc EndMove0
+.ResetSpriteXPosToRight0
+    lda #MAX_X
+    sta ZoneSprite0XPos,x
+EndMove0
+
+#if USE_SPRITE_1 = 1
+    ; SPRITE_MOVABLEでなければ移動処理はスキップ
+    LOAD_SPRITE_INFO 1
+    UnlessSprite1MovableThen EndMove1
 
     ; スプライト1の移動処理
-.StartMove1
+.StartMove2
     ldx ZoneIndex
     lda FrameCounter
     and ZoneSprite1Speeds,x
@@ -666,40 +701,6 @@ ProcZone
     lda #MAX_X
     sta ZoneSprite1XPos,x
 EndMove1
-
-#if USE_SPRITE_2 = 1
-    ; SPRITE_MOVABLEでなければ移動処理はスキップ
-    LoadSpriteInfo 2
-    UnlessSprite2MovableThen EndMove2
-
-    ; スプライト2の移動処理
-.StartMove2
-    ldx ZoneIndex
-    lda FrameCounter
-    and ZoneSprite2Speeds,x
-    bne EndMove2
-    lda ZoneSprite2Orients,x
-    cmp #ORIENT_RIGHT
-    beq .MoveRight2
-    jmp .MoveLeft2
-.MoveRight2
-    inc ZoneSprite2XPos,x
-    lda ZoneSprite2XPos,x
-    cmp #MAX_X
-    bcc EndMove2
-.ResetSpriteXPosToLeft2
-    lda #MIN_X
-    sta ZoneSprite2XPos,x
-    jmp EndMove2
-.MoveLeft2
-    dec ZoneSprite2XPos,x
-    lda ZoneSprite2XPos,x
-    cmp #MAX_X
-    bcc EndMove2
-.ResetSpriteXPosToRight2
-    lda #MAX_X
-    sta ZoneSprite2XPos,x
-EndMove2
 #endif
 
 .EndMove
@@ -750,7 +751,7 @@ ResetScene subroutine
 
     ; 各ゾーンの初期化
 .InitializeZoneLoop
-    ; ゾーンの高さはランダム
+    ; ゾーンの高さをランダムで決定
     jsr NextRandomValue
     lda RandomValue
     and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
@@ -765,117 +766,117 @@ ResetScene subroutine
     lda RandomValue
     sta ZoneBgColors,x
 
-    ; スプライトを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPRITES_MASK
-    sta ZoneSprite1Numbers,x
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPRITES_MASK
-    sta ZoneSprite2Numbers,x
-#endif
-
     ; プレイフィールドの色を決定
     jsr NextRandomValue
     lda RandomValue
     sta ZonePlayfieldColors,x
 
-    ; スプライトの色を決定
+    ; スプライト0を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #NUMBER_OF_SPRITES_MASK
+    sta ZoneSprite0Numbers,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #NUMBER_OF_SPRITES_MASK
+    sta ZoneSprite1Numbers,x
+#endif
+
+    ; スプライト0の色を決定
     jsr NextRandomValue
     lda RandomValue
     sta ZoneSpriteColors,x
 
-#if USE_SPRITE_2 = 1
-    ; スプライト2の色を決定
+#if USE_SPRITE_1 = 1
+    ; スプライト1の色を決定
     jsr NextRandomValue
     lda RandomValue
-    sta ZoneSprite2Colors,x
+    sta ZoneSprite1Colors,x
 #endif
 
-    ; スプライトのX座標を決定
+    ; スプライト0のX座標の初期値を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%01111111
+    sta ZoneSprite0XPos,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のX座標の初期値を決定
     jsr NextRandomValue
     lda RandomValue
     and #%01111111
     sta ZoneSprite1XPos,x
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2のX座標を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%01111111
-    sta ZoneSprite2XPos,x
 #endif
 
-    ; スプライトの向きを決定
+    ; スプライト0の向きを決定
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
-    bne .SetZoneSpriteOrientRight
+    bne .SetZoneSprite0OrientRight
     lda #ORIENT_LEFT
-    jmp .SetZoneSpriteOrientEnd
-.SetZoneSpriteOrientRight
+    jmp .SetZoneSprite0OrientEnd
+.SetZoneSprite0OrientRight
     lda #ORIENT_RIGHT
-.SetZoneSpriteOrientEnd
+.SetZoneSprite0OrientEnd
+    sta ZoneSprite0Orients,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1の向きを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000001
+    bne .SetZoneSprite1OrientRight
+    lda #ORIENT_LEFT
+    jmp .SetZoneSprite1OrientEnd
+.SetZoneSprite1OrientRight
+    lda #ORIENT_RIGHT
+.SetZoneSprite1OrientEnd
     sta ZoneSprite1Orients,x
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2の向きを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000001
-    bne .SetZoneSprite2OrientRight
-    lda #ORIENT_LEFT
-    jmp .SetZoneSprite2OrientEnd
-.SetZoneSprite2OrientRight
-    lda #ORIENT_RIGHT
-.SetZoneSprite2OrientEnd
-    sta ZoneSprite2Orients,x
 #endif
 
-    ; スプライトの速さを決定
+    ; スプライト0の速さを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000011
+    tay
+    lda SpeedTable,y
+    sta ZoneSprite0Speeds,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1の速さを決定
     jsr NextRandomValue
     lda RandomValue
     and #%00000011
     tay
     lda SpeedTable,y
     sta ZoneSprite1Speeds,x
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2の速さを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000011
-    tay
-    lda SpeedTable,y
-    sta ZoneSprite2Speeds,x
 #endif
 
-    ; スプライトのNUSIZを決定
+    ; スプライト0のNUSIZを決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000111
+    tay
+    sta ZoneSprite0Nusiz,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のNUSIZを決定
     jsr NextRandomValue
     lda RandomValue
     and #%00000111
     tay
     sta ZoneSprite1Nusiz,x
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2のNUSIZを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000111
-    tay
-    sta ZoneSprite2Nusiz,x
 #endif
 
-    ; 使用した高さを保持
+    ; ゾーンの高さの合計を保持
     lda UsingHeight
     adc ZoneHeights,x
     sta UsingHeight
 
-    ; 使用した高さが風景に使える高さを超えていないかチェック
+    ; ゾーンの合計の高さが風景に使える高さを超えていないかチェック
     lda #LANDSCAPE_ZONE_HEIGHT
     sec
     sbc UsingHeight
@@ -912,7 +913,7 @@ ResetScene subroutine
     sta ZoneHeights,x
 .SkipCombineZone
 
-    ; ゾーン数を計算してセット
+    ; ゾーン数を計算してセット(ゾーンインデックスに1を足してゾーン数とする)
     txa
     clc
     adc #1
@@ -924,34 +925,6 @@ ResetScene subroutine
     jsr ResetScene
 
 .DoneResetScene
-    rts
-
-RenderSprites subroutine
-    ; スプライト1の描画
-    txa
-    sec
-    sbc #1 ; Y座標は一旦固定で1
-    cmp Sprite1Height
-    bcc .DrawSprite1
-    lda #0
-.DrawSprite1
-    tay
-    lda (Sprite1Gfx),y
-    sta GRP0
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2の描画
-    txa
-    sec
-    sbc #20 ; Y座標は一旦固定で20
-    cmp Sprite2Height
-    bcc .DrawSprite2
-    lda #0
-.DrawSprite2
-    tay
-    lda (Sprite2Gfx),y
-    sta GRP1
-#endif
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

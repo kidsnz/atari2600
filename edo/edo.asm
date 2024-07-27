@@ -105,9 +105,11 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
+
 Sprite0Info         byte ; スプライト0情報
 Sprite0Height       byte ; スプライト0の高さを保持
 Sprite0Gfx          word ; スプライト0のアドレス
+
 Sprite1Info         byte ; スプライト1情報
 Sprite1Height       byte ; スプライト1の高さを保持
 Sprite1Gfx          word ; スプライト1のアドレス
@@ -121,15 +123,18 @@ PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
 ; 91 byte ゾーン関連
 NumberOfZones       byte ; ゾーン数
+
 ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
+
 ZoneSprite0Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
 ZoneSprite0XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
 ZoneSprite0Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の向き
 ZoneSprite0Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の速さ
 ZoneSprite0Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のNUSIZ
 ZoneSprite0Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の番号
+
 ZoneSprite1Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
 ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
 ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の向き
@@ -265,7 +270,7 @@ RenderPlayerZoneReturn:
 ;; 処理の開始（オーバースキャン）
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    TIMER_SETUP 30
+    TIMER_SETUP 29
     lda #%00000010
     sta VBLANK
 

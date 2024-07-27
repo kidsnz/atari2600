@@ -450,6 +450,12 @@ RenderPlayerZoneReturn:
 RenderZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
+    ; 初期化
+    lda #0
+    sta PF0
+    sta PF1
+    sta PF2
+
     ; X座標を取得
     ldx ZoneIndex
     lda ZoneSprite0XPos,x
@@ -549,11 +555,10 @@ RenderZone:
     lda ZoneHeights,y
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
-
     tax
 
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
-.RenderZoneLoop
+.BeginRenderZoneLoop
 
     ; 1ライン目の処理
     sta WSYNC
@@ -565,12 +570,6 @@ RenderZone:
     RENDER_SPRITES
     RENDER_PLAYFIELD 0
     dex
-
-    ; ループを戻すときに遠すぎてジャンプできないのでそのための中間ジャンプ
-    jmp .SkipNearJmp
-.RenderZoneLoopNearJmp
-    jmp .RenderZoneLoop
-.SkipNearJmp
 
     ; 3ライン目の処理
     sta WSYNC
@@ -584,17 +583,18 @@ RenderZone:
     RENDER_PLAYFIELD 2
     dex
     
-    bne .RenderZoneLoopNearJmp
+    beq .EndRenderZoneLoop
+    jmp .BeginRenderZoneLoop
+    
+.EndRenderZoneLoop
 
+    ; 後処理
 #if USE_PLAYFIELD = 1
-    ; プレイフィールドをクリアするのに時間がかかるので背景色をプレイフィールドの色にして同化させる
+    ; 次のゾーンの初期化でプレイフィールドがクリアされるまで時間がかかるので
+    ; 背景色をプレイフィールドの色にして同化させる
     ldx ZoneIndex
     lda ZonePlayfieldColors,x
     sta COLUBK
-    lda #0
-    sta PF0
-    sta PF1
-    sta PF2
 #endif
 
     jmp RenderZoneReturn
@@ -605,6 +605,12 @@ RenderZone:
 
 RenderPlayerZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
+    
+    ; 初期化
+    lda #0
+    sta PF0
+    sta PF1
+    sta PF2
     
     ; X座標を取得
     lda PlayerXPos

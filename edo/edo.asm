@@ -21,6 +21,9 @@ DEBUG = 1
 ; スプライト2を使う
 USE_SPRITE_2 = 1
 
+; プレイフィールドを使う
+USE_PLAYFIELD = 1
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,10 +80,15 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 15 byte 作業用
+; 11 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
+Sprite0Data         byte ; スプライト0データ
+Sprite1Data         byte ; スプライト1データ
+Playfield0Data      byte ; プレイフィールド0データ
+Playfield1Data      byte ; プレイフィールド1データ
+Playfield2Data      byte ; プレイフィールド2データ
 SpriteInfo          byte ; スプライト情報
 SpriteHeight        byte ; スプライトの高さを保持
 SpriteGfx           word ; スプライトのアドレス
@@ -386,21 +394,27 @@ RenderLandscapeZone:
     sta REFP1
 #endif
 
+#if USE_PLAYFIELD = 1
     ; プレイフィールドの色をセット
-    ; lda #COLOR_BUILDING
-    ; sta COLUPF
+    lda #COLOR_BUILDING
+    sta COLUPF
+#endif
 
     ; ゾーンの高さ分のループ
     ldy ZoneIndex
     lda ZoneHeights,y
-    clc
-    sbc #2 + #1 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
+    sec
+    sbc #2 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
 #if USE_SPRITE_2 = 1
-    clc
+    sec
     sbc #4 ; スプライト2の処理多いので更に猶予を作る
 #endif
     tax
+
+; ラインの描画(2xlineで処理するので2ライン分の処理)
 .RenderLandscapeZoneLoop
+
+; 1ライン目の処理
     sta WSYNC
 
     ; スプライト1の描画
@@ -429,30 +443,88 @@ RenderLandscapeZone:
     sta GRP1
 #endif
 
+#if USE_PLAYFIELD = 1
+    ; プレイフィールドの描画
+    txa
+    cmp #BUILDING_GFX_HEIGHT
+    bcc .LoadPlayfield
+    lda #0
+.LoadPlayfield
+    tay
+    lda PlayFieldBuildingGfx0,y
+    sta Playfield0Data
+    lda PlayFieldBuildingGfx1,y
+    sta Playfield1Data
+    ; lda PlayFieldBuildingGfx2,y
+    ; sta Playfield2Data
+#endif
+
+    dex
+
+; 2ライン目の処理
+    sta WSYNC
+
+    ; スプライト1の描画
+    txa
+    sec
+    sbc #1 ; Y座標は一旦固定で1
+    cmp SpriteHeight
+    bcc .DrawSprite1_2
+    lda #0
+.DrawSprite1_2
+    tay
+    lda (SpriteGfx),y
+    sta GRP0
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2の描画
+    txa
+    sec
+    sbc #20 ; Y座標は一旦固定で20
+    cmp Sprite2Height
+    bcc .DrawSprite2_2
+    lda #0
+.DrawSprite2_2
+    tay
+    lda (Sprite2Gfx),y
+    sta GRP1
+#endif
+
+#if USE_PLAYFIELD = 1
+    lda Playfield0Data
+    sta PF0
+    lda Playfield1Data
+    sta PF1
+    ; lda Playfield2
+    ; sta PF2
 ;     ; プレイフィールドの描画
 ;     txa
 ;     cmp #BUILDING_GFX_HEIGHT
-;     bcc .DrawPlayField
+;     bcc .LoadPlayfield
 ;     lda #0
-; .DrawPlayField
+; .LoadPlayfield
 ;     tay
 ;     lda PlayFieldBuildingGfx0,y
-;     sta PF0
+;     sta Playfield0
 ;     lda PlayFieldBuildingGfx1,y
-;     sta PF1
-;     lda PlayFieldBuildingGfx2,y
-;     sta PF2
+;     sta Playfield1
+    ; lda PlayFieldBuildingGfx2,y
+    ; sta Playfield2
+#endif
     
     dex
+    
     bne .RenderLandscapeZoneLoop
 
+#if USE_PLAYFIELD = 1
     ; プレイフィールドをクリア
-    ; lda #COLOR_BUILDING
-    ; sta COLUBK
-    ; lda #0
-    ; sta PF0
-    ; sta PF1
-    ; sta PF2
+    lda #COLOR_BUILDING
+    sta COLUBK
+    lda #0
+    sta PF0
+    sta PF1
+    sta PF2
+#endif
 
     jmp RenderLandscapeZoneReturn
 
@@ -672,6 +744,13 @@ ResetScene subroutine
     and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
     clc
     adc #MIN_ZONE_HEIGHT
+    tay
+    ; 高さが偶数になるように丸める(各ゾーンで2xline処理をするので偶数である必要がある)
+    and #%00000001
+    beq .SkipRound
+    iny
+.SkipRound
+    tya
     sta ZoneHeights,x
 
     ; ゾーンの色を決定

@@ -408,7 +408,6 @@ RenderPlayerZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; SpriteInfoが移動不可の場合はジャンプする
     MAC IF_SPRITE_IS_UNMOVABLE
-; .THEN_POINTER SET {1}
         lda Sprite{1}Info
         and #SPRITE_MOVABLE
         beq {2}

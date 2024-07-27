@@ -108,7 +108,7 @@ ZoneSpriteXPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX�
 ZoneSpriteOrients   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
 ZoneSpriteSpeeds    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
 ZoneSpriteNusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
-ZoneSpriteGfx       ds MAX_NUMBER_OF_ZONES * 2 ; 各ゾーンのスプライトのアドレス
+ZoneSpriteNumber    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの番号
 ZoneSprite2Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
 ZoneSprite2XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
 ZoneSprite2Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
@@ -225,14 +225,14 @@ ProcPlayerReturn:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     ldx #0
-ProcLandscapeZoneLoopStart:
+ProcZoneLoopStart:
     stx ZoneIndex
-    jmp ProcLandscapeZone
-ProcLandscapeZoneReturn:
+    jmp ProcZone
+ProcZoneReturn:
     ldx ZoneIndex
     inx
     cpx NumberOfZones
-    bcc ProcLandscapeZoneLoopStart
+    bcc ProcZoneLoopStart
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; オーバースキャン
@@ -306,6 +306,21 @@ ProcLandscapeZoneReturn:
 #endif
     ENDM
 
+    MAC LoadSpriteInfo
+        ldx ZoneIndex
+        lda ZoneSpriteNumber,x
+        asl
+        tay
+        lda SpriteGfxs,y
+        sta SpriteGfx
+        lda SpriteGfxs,y+1
+        ldy #1
+        sta SpriteGfx,y
+        ldy #0
+        lda (SpriteGfx),y
+        sta SpriteInfo
+    ENDM
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 風景ゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -337,18 +352,9 @@ RenderZone:
     ldx ZoneIndex
     lda ZoneBgColors,x
     sta COLUBK
-    ; スプライト情報を取得してSpriteInfoにセット
-    lda ZoneIndex
-    asl
-    tax
-    lda ZoneSpriteGfx,x
-    sta SpriteGfx
-    lda ZoneSpriteGfx,x+1
-    ldy #1
-    sta SpriteGfx,y
-    ldy #0
-    lda (SpriteGfx),y
-    sta SpriteInfo
+
+    ; スプライト情報をロード
+    LoadSpriteInfo
     ; スプライトの高さを取得してSpriteHeightにセット
     lda SpriteInfo
     and #SPRITE_HEIGHT_MASK
@@ -590,18 +596,10 @@ RenderPlayerZone:
 ;; 風景ゾーンの処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-ProcLandscapeZone
+ProcZone
     ; SPRITE_MOVABLEでなければ移動処理はスキップ
-    lda ZoneIndex
-    asl
-    tax
-    lda ZoneSpriteGfx,x
-    sta SpriteGfx
-    lda ZoneSpriteGfx,x+1
-    ldy #1
-    sta SpriteGfx,y
-    ldy #0
-    lda (SpriteGfx),y
+    LoadSpriteInfo
+    lda SpriteInfo
     and #SPRITE_MOVABLE
     beq .EndMove1
 
@@ -680,7 +678,7 @@ ProcLandscapeZone
 #endif
 
 .EndMove
-    jmp ProcLandscapeZoneReturn
+    jmp ProcZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイヤーの処理
@@ -751,19 +749,20 @@ ResetScene subroutine
     lda RandomValue
     ; yはランダムなスプライトの先頭アドレスを指すようにする
     and #NUMBER_OF_SPRITES_MASK
-    asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
-    tay
-    ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
-    stx Tmp
-    txa
-    asl
-    tax
-    ; スプライトのアドレスを取得してセット
-    lda SpriteGfxs,y
-    sta ZoneSpriteGfx,x
-    lda SpriteGfxs,y+1
-    sta ZoneSpriteGfx,x+1
-    ldx Tmp
+    sta ZoneSpriteNumber
+    ; asl ; SpriteGfxsのアドレスは2バイトなので2倍にする
+    ; tay
+    ; ; xはZoneSpriteGfxのアドレスの先頭を指すようにする
+    ; stx Tmp
+    ; txa
+    ; asl
+    ; tax
+    ; ; スプライトのアドレスを取得してセット
+    ; lda SpriteGfxs,y
+    ; sta ZoneSpriteGfx,x
+    ; lda SpriteGfxs,y+1
+    ; sta ZoneSpriteGfx,x+1
+    ; ldx Tmp
 
 #if USE_SPRITE_2 = 1
     ; スプライト2を決定

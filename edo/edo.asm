@@ -401,7 +401,7 @@ RenderZone:
     sta WSYNC
 .SkipLandscapeWsync
 
-    ; スプライトの横位置の補正
+    ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
@@ -423,31 +423,31 @@ RenderZone:
     lda ZoneBgColors,x
     sta COLUBK
 
-    ; スプライト情報をロード
+    ; スプライト0をロード
     LOAD_SPRITE 0
 
 #if USE_SPRITE_1 = 1
-    ; スプライト2情報をロード
+    ; スプライト1をロード
     LOAD_SPRITE 1
 #endif
 
-    ; スプライト色のセット
+    ; スプライト0色のセット
     ldx ZoneIndex
     lda ZoneSpriteColors,x
     sta COLUP0
     
 #if USE_SPRITE_1 = 1
-    ; スプライト2色のセット
+    ; スプライト1色のセット
     lda ZoneSprite1Colors,x
     sta COLUP1
 #endif
 
-    ; スプライトのNUSIZのセット
+    ; スプライト0のNUSIZのセット
     lda ZoneSprite0Nusiz,x
     sta NUSIZ0
 
 #if USE_SPRITE_1 = 1
-    ; スプライト2のNUSIZのセット
+    ; スプライト1のNUSIZのセット
     lda ZoneSprite1Nusiz,x
     sta NUSIZ1
 #endif
@@ -464,7 +464,7 @@ RenderZone:
     sta REFP0
 
 #if USE_SPRITE_1 = 1
-    ; スプライト2の向きのセット
+    ; スプライト1の向きのセット
     lda Sprite1Info
     and #SPRITE_ORIENTABLE
     bne .LoadOrient2
@@ -488,26 +488,31 @@ RenderZone:
     lda ZoneHeights,y
     sec
     sbc #4 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
+
 #if USE_SPRITE_1 = 1
     sec
-    sbc #4 ; スプライト2の処理多いので更に猶予を作る
+    sbc #2 ; スプライト2の処理多いので更に猶予を作る
 #endif
+
+#if USE_PLAYFIELD = 1
+    sec
+    sbc #2 ; 4の倍数にする必要があるので更に2を引く
+#endif
+
     tax
 
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
 .RenderZoneLoop
 
-; 1ライン目の処理
+    ; 1ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-
     dex
 
-; 2ライン目の処理
+    ; 2ライン目の処理
     sta WSYNC
     RENDER_SPRITES
     RENDER_PLAYFIELD 0
-    
     dex
 
 ; ループを戻すときに遠すぎてジャンプできないのでそのための中間ジャンプ
@@ -520,14 +525,12 @@ RenderZone:
     sta WSYNC
     RENDER_SPRITES
     RENDER_PLAYFIELD 1
-
     dex
 
 ; 4ライン目の処理
     sta WSYNC
     RENDER_SPRITES
     RENDER_PLAYFIELD 2
-    
     dex
     
     bne .RenderZoneLoopNearJmp
@@ -567,6 +570,7 @@ RenderPlayerZone:
     lda PlayerXPos
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
+
     sta WSYNC
     sta HMOVE
 
@@ -579,7 +583,7 @@ RenderPlayerZone:
     sta COLUBK
 
     ; プレイヤーの高さ
-    ldx #PLAYER_ZONE_HEIGHT-2
+    ldx #PLAYER_ZONE_HEIGHT
 
     ; プレイヤースプライトのアドレスをセット
     lda #<PlayerGfx
@@ -674,7 +678,7 @@ EndMove0
     UnlessSprite1MovableThen EndMove1
 
     ; スプライト1の移動処理
-.StartMove2
+.StartMove1
     ldx ZoneIndex
     lda FrameCounter
     and ZoneSprite1Speeds,x

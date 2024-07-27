@@ -604,6 +604,8 @@ RenderZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderPlayerZone:
+    TIMER_SETUP #RENDER_ZONE_INIT_TIME
+    
     ; X座標を取得
     lda PlayerXPos
 
@@ -612,29 +614,18 @@ RenderPlayerZone:
     bcs .SkipPlayerWsync
     sta WSYNC
 .SkipPlayerWsync
-
-    ; プレイヤーを伸ばす
-    lda #%00000101
-    sta NUSIZ0
-
     ; 横位置の補正
     lda PlayerXPos
     ldy #0 ; プレイヤー0スプライト
     jsr SetObjectXPos
 
+    ; 横位置の補正を適用
     sta WSYNC
     sta HMOVE
-
-    ; 向きのセット
-    lda PlayerOrient
-    sta REFP0
 
     ; 背景色のセット
     lda PlayerBgColor
     sta COLUBK
-
-    ; プレイヤーの高さ
-    ldx #PLAYER_ZONE_HEIGHT
 
     ; プレイヤースプライトのアドレスをセット
     lda #<PlayerGfx
@@ -643,7 +634,7 @@ RenderPlayerZone:
     ldy #1
     sta PlayerGfxAddr,y
     ldy #0
-    
+
     ; アニメーションカウンタが1の場合はアドレスをずらす
     lda AnimFrameCounter
     and #%00000001
@@ -653,6 +644,22 @@ RenderPlayerZone:
     adc #PLAYER_GFX_HEIGHT
     sta PlayerGfxAddr
 .SkipPlayerAnimation
+
+    ; プレイヤーのNUSIZのセット
+    lda #%00000101
+    sta NUSIZ0
+
+    ; プレイヤーの向きのセット
+    lda PlayerOrient
+    sta REFP0
+
+    TIMER_WAIT
+
+    ; プレイヤーゾーンの高さ
+    lda #PLAYER_ZONE_HEIGHT
+    sec
+    sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
+    tax
 
     ; プレイヤーゾーンの描画を開始
 .RenderPlayerZoneLoop

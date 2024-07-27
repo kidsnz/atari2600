@@ -65,13 +65,14 @@ MAX_X                  = 160 ; X座標の最大値
 MIN_X                  = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
+NUMBER_OF_SPEEDS_MASK  = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT            = %00001000 ; 左向き
 ORIENT_RIGHT           = %00000000 ; 右向き
 BUILDING_GFX_HEIGHT    = 18 ; ビルの高さ
 RENDER_ZONE_INIT_TIME  = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; スプライト設定用定数
+;; スプライト設定/属性用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 各スプライトの先頭バイトは以下を示す
@@ -79,13 +80,17 @@ RENDER_ZONE_INIT_TIME  = 12 ; ゾーン描画の初期化処理に使う時間(�
 ;  6bit: アニメーション可能かどうか
 ;  5bit: 方向づけ可能かどうか
 ;  4~0bit: 高さ
-SPRITE_HEIGHT_MASK  = %00011111 ; スプライトの高さを取得するマスク
 SPRITE_MOVABLE      = %10000000 ; スプライトを動かすことが可能
 SPRITE_UNMOVABLE    = %00000000 ; スプライトを動かすことがなし
 SPRITE_ANIMATABLE   = %01000000 ; スプライトアニメーション可能
 SPRITE_UNANIMATABLE = %00000000 ; スプライトアニメーションなし
 SPRITE_ORIENTABLE   = %00100000 ; スプライト方向可能
 SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
+SPRITE_HEIGHT_MASK  = %00011111 ; スプライトの高さを取得するマスク
+
+SPRITE_ORIENT_RIGHT = %00000000 ; スプライトの向き右
+SPRITE_ORIENT_LEFT  = %00100000 ; スプライトの向き右
+SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -129,19 +134,17 @@ ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
 
-ZoneSprite0Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
-ZoneSprite0XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
-ZoneSprite0Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の向き
-ZoneSprite0Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の速さ
-ZoneSprite0Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のNUSIZ
-ZoneSprite0Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の番号
+ZoneSprite0Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
+ZoneSprite0XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
+ZoneSprite0Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の属性
+ZoneSprite0Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のNUSIZ
+ZoneSprite0Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の番号
 
-ZoneSprite1Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
-ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
-ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の向き
-ZoneSprite1Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の速さ
-ZoneSprite1Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
-ZoneSprite1Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
+ZoneSprite1Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
+ZoneSprite1XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
+ZoneSprite1Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の属性
+ZoneSprite1Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
+ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -416,11 +419,14 @@ RenderPlayerZoneReturn:
     MAC MOVE_SPRITE
 .StartMove{1}
         ldx ZoneIndex
+        lda ZoneSprite{1}Abilities,x
+        and #SPRITE_SPEED_MASK
+        sta Tmp
         lda FrameCounter
-        and ZoneSprite{1}Speeds,x
+        and Tmp
         bne .EndMove{1}
-        lda ZoneSprite{1}Orients,x
-        cmp #ORIENT_RIGHT
+        lda ZoneSprite{1}Abilities,x
+        and #SPRITE_ORIENTABLE
         beq .MoveRight{1}
         jmp .MoveLeft{1}
 .MoveRight{1}
@@ -517,27 +523,39 @@ RenderZone:
     sta NUSIZ1
 #endif
 
-    ; スプライトの向きのセット
+    ; スプライト0の向きのセット
     lda Sprite0Info
     and #SPRITE_ORIENTABLE
-    bne .LoadOrient
+    bne .LoadOrient0
     lda #0
-    jmp .SetOrient
-.LoadOrient
-    lda ZoneSprite0Orients,x
-.SetOrient
+    jmp .SetOrient0
+.LoadOrient0 
+    lda ZoneSprite0Abilities,x
+    and #SPRITE_ORIENT_LEFT
+    bne .SetOrientLeft0
+    lda #ORIENT_RIGHT
+    jmp .SetOrient0
+.SetOrientLeft0
+    lda #ORIENT_LEFT
+.SetOrient0
     sta REFP0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きのセット
     lda Sprite1Info
     and #SPRITE_ORIENTABLE
-    bne .LoadOrient2
+    bne .LoadOrient1
     lda #0
-    jmp .SetOrient2
-.LoadOrient2
-    lda ZoneSprite1Orients,x
-.SetOrient2
+    jmp .SetOrient1
+.LoadOrient1
+    lda ZoneSprite1Abilities,x
+    and #SPRITE_ORIENT_LEFT
+    bne .SetOrientLeft1
+    lda #ORIENT_RIGHT
+    jmp .SetOrient1
+.SetOrientLeft1
+    lda #ORIENT_LEFT
+.SetOrient1
     sta REFP1
 #endif
 
@@ -611,7 +629,7 @@ RenderPlayerZone:
     sta PF0
     sta PF1
     sta PF2
-    
+
     ; X座標を取得
     lda PlayerXPos
 
@@ -832,44 +850,48 @@ ResetScene subroutine
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
-    bne .SetZoneSprite0OrientRight
-    lda #ORIENT_LEFT
+    beq .SetZoneSprite0OrientRight
+    lda ZoneSprite0Abilities,x
+    ora #SPRITE_ORIENT_LEFT
     jmp .SetZoneSprite0OrientEnd
-.SetZoneSprite0OrientRight
-    lda #ORIENT_RIGHT
-.SetZoneSprite0OrientEnd
-    sta ZoneSprite0Orients,x
-
+.SetZoneSprite0OrientRight 
+    lda ZoneSprite0Abilities,x
+    ora #SPRITE_ORIENT_RIGHT
+.SetZoneSprite0OrientEnd 
+    sta ZoneSprite0Abilities,x
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きを決定
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
-    bne .SetZoneSprite1OrientRight
-    lda #ORIENT_LEFT
+    beq .SetZoneSprite1OrientRight
+    lda ZoneSprite1Abilities,x
+    ora #SPRITE_ORIENT_LEFT
     jmp .SetZoneSprite1OrientEnd
 .SetZoneSprite1OrientRight
-    lda #ORIENT_RIGHT
+    lda ZoneSprite1Abilities,x
+    ora #SPRITE_ORIENT_RIGHT
 .SetZoneSprite1OrientEnd
-    sta ZoneSprite1Orients,x
+    sta ZoneSprite1Abilities,x
 #endif
 
     ; スプライト0の速さを決定
     jsr NextRandomValue
     lda RandomValue
-    and #%00000011
-    tay
-    lda SpeedTable,y
-    sta ZoneSprite0Speeds,x
-
+    and #NUMBER_OF_SPEEDS_MASK
+    tay 
+    lda ZoneSprite0Abilities,x
+    ora SpeedTable,y
+    sta ZoneSprite0Abilities,x
 #if USE_SPRITE_1 = 1
     ; スプライト1の速さを決定
     jsr NextRandomValue
     lda RandomValue
-    and #%00000011
+    and #NUMBER_OF_SPEEDS_MASK
     tay
-    lda SpeedTable,y
-    sta ZoneSprite1Speeds,x
+    lda ZoneSprite1Abilities,x
+    ora SpeedTable,y
+    sta ZoneSprite1Abilities,x
 #endif
 
     ; スプライト0のNUSIZを決定

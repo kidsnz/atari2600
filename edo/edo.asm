@@ -25,7 +25,6 @@ USE_SPRITE_2 = 1
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-COLOR_ROAD        = $08 ; 道の背景色
 COLOR_BUILDING    = $03 ; ビルの色
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -70,10 +69,15 @@ SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
     seg.u Variables
     org $80
 
+; 117 byte / 128 byte
+
+; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
 AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
+
+; 15 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -84,22 +88,23 @@ Sprite2Info         byte ; スプライト2情報
 Sprite2Height       byte ; スプライト2の高さを保持
 Sprite2Gfx          word ; スプライト2のアドレス
 
+; 5 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
 PlayerOrient        byte ; プレイヤーの向き
+PlayerBgColor       byte ; プレイヤーの背景色
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
+; 97 byte ゾーン関連
 NumberOfZones       byte ; ゾーン数
 ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
-
 ZoneSpriteXPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
 ZoneSpriteOrients   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
 ZoneSpriteSpeeds    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
 ZoneSpriteNusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
 ZoneSpriteGfx       ds MAX_NUMBER_OF_ZONES * 2 ; 各ゾーンのスプライトのアドレス
-
 ZoneSprite2Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
 ZoneSprite2XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
 ZoneSprite2Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
@@ -476,8 +481,9 @@ RenderPlayerZone:
     lda PlayerOrient
     sta REFP0
     ; 背景色のセット
-    lda #COLOR_ROAD
+    lda PlayerBgColor
     sta COLUBK
+    ; プレイヤーの高さ
     ldx #PLAYER_ZONE_HEIGHT-2
     ; プレイヤースプライトのアドレスをセット
     lda #<PlayerGfx
@@ -652,6 +658,13 @@ ProcPlayer:
 ResetScene subroutine
     ldx #0
     stx UsingHeight
+
+    ; プレイヤー背景色を決定
+    jsr NextRandomValue
+    lda RandomValue
+    sta PlayerBgColor
+
+    ; 各ゾーンの初期化
 .InitializeZoneLoop
     ; ゾーンの高さはランダム
     jsr NextRandomValue

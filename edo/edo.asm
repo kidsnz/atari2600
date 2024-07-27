@@ -8,7 +8,7 @@
     include "macro.h"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; マクロ
+;; 共通マクロ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -84,8 +84,8 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-Sprite0Data         byte ; スプライト0データ
-Sprite1Data         byte ; スプライト1データ
+Player0Data         byte ; スプライト0データ
+Player1Data         byte ; スプライト1データ
 Playfield0Data      byte ; プレイフィールド0データ
 Playfield1Data      byte ; プレイフィールド1データ
 Playfield2Data      byte ; プレイフィールド2データ
@@ -257,6 +257,60 @@ ProcLandscapeZoneReturn:
     
     jmp StartFrame
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ゾーン用マクロ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの描画マクロ
+    ;  x: ゾーンのY座標
+    MAC RenderSprites
+        ; スプライト1の描画
+        txa
+        sec
+        sbc #1 ; Y座標は一旦固定で1
+        cmp SpriteHeight
+        bcc .DrawSprite1
+        lda #0
+.DrawSprite1
+        tay
+        lda (SpriteGfx),y
+        sta Player0Data
+        sta GRP0
+
+#if USE_SPRITE_2 = 1
+        ; スプライト2の描画
+        txa
+        sec
+        sbc #20 ; Y座標は一旦固定で20
+        cmp Sprite2Height
+        bcc .DrawSprite2
+        lda #0
+.DrawSprite2
+        tay
+        lda (Sprite2Gfx),y
+        sta GRP1
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドの描画マクロ
+    ;  x: ゾーンのY座標
+    MAC RenderPlayfield
+#if USE_PLAYFIELD = 1
+        ; プレイフィールドの描画
+        txa
+        cmp #BUILDING_GFX_HEIGHT
+        bcc .LoadPlayfield_{0}
+        lda #0
+.LoadPlayfield_{0}
+        tay
+        lda PlayFieldBuildingGfx{0},y
+        sta PF{0}
+#endif
+    ENDM
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 風景ゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -404,117 +458,50 @@ RenderLandscapeZone:
     ldy ZoneIndex
     lda ZoneHeights,y
     sec
-    sbc #2 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
+    sbc #4 ; 最初のWSYNC2つとプレイフィールド分を飛ばす
 #if USE_SPRITE_2 = 1
     sec
     sbc #4 ; スプライト2の処理多いので更に猶予を作る
 #endif
     tax
 
-; ラインの描画(2xlineで処理するので2ライン分の処理)
+; ラインの描画(4xlineで処理するので4ライン分の処理)
 .RenderLandscapeZoneLoop
 
 ; 1ライン目の処理
     sta WSYNC
-
-    ; スプライト1の描画
-    txa
-    sec
-    sbc #1 ; Y座標は一旦固定で1
-    cmp SpriteHeight
-    bcc .DrawSprite1
-    lda #0
-.DrawSprite1
-    tay
-    lda (SpriteGfx),y
-    sta GRP0
-
-#if USE_SPRITE_2 = 1
-    ; スプライト2の描画
-    txa
-    sec
-    sbc #20 ; Y座標は一旦固定で20
-    cmp Sprite2Height
-    bcc .DrawSprite2
-    lda #0
-.DrawSprite2
-    tay
-    lda (Sprite2Gfx),y
-    sta GRP1
-#endif
-
-#if USE_PLAYFIELD = 1
-    ; プレイフィールドの描画
-    txa
-    cmp #BUILDING_GFX_HEIGHT
-    bcc .LoadPlayfield
-    lda #0
-.LoadPlayfield
-    tay
-    lda PlayFieldBuildingGfx0,y
-    sta Playfield0Data
-    lda PlayFieldBuildingGfx1,y
-    sta Playfield1Data
-    ; lda PlayFieldBuildingGfx2,y
-    ; sta Playfield2Data
-#endif
+    RenderSprites
+    RenderPlayfield 0
 
     dex
 
 ; 2ライン目の処理
     sta WSYNC
+    RenderSprites
+    RenderPlayfield 1
+    
+    dex
 
-    ; スプライト1の描画
-    txa
-    sec
-    sbc #1 ; Y座標は一旦固定で1
-    cmp SpriteHeight
-    bcc .DrawSprite1_2
-    lda #0
-.DrawSprite1_2
-    tay
-    lda (SpriteGfx),y
-    sta GRP0
+; ループを戻すときに遠すぎてジャンプできないのでそのための中間ジャンプ
+    jmp .SkipNearJmp
+.RenderLandscapeZoneLoopNearJmp
+    jmp .RenderLandscapeZoneLoop
+.SkipNearJmp
 
-#if USE_SPRITE_2 = 1
-    ; スプライト2の描画
-    txa
-    sec
-    sbc #20 ; Y座標は一旦固定で20
-    cmp Sprite2Height
-    bcc .DrawSprite2_2
-    lda #0
-.DrawSprite2_2
-    tay
-    lda (Sprite2Gfx),y
-    sta GRP1
-#endif
+; 3ライン目の処理
+    sta WSYNC
+    RenderSprites
+    RenderPlayfield 2
 
-#if USE_PLAYFIELD = 1
-    lda Playfield0Data
-    sta PF0
-    lda Playfield1Data
-    sta PF1
-    ; lda Playfield2
-    ; sta PF2
-;     ; プレイフィールドの描画
-;     txa
-;     cmp #BUILDING_GFX_HEIGHT
-;     bcc .LoadPlayfield
-;     lda #0
-; .LoadPlayfield
-;     tay
-;     lda PlayFieldBuildingGfx0,y
-;     sta Playfield0
-;     lda PlayFieldBuildingGfx1,y
-;     sta Playfield1
-    ; lda PlayFieldBuildingGfx2,y
-    ; sta Playfield2
-#endif
+    dex
+
+; 4ライン目の処理
+    sta WSYNC
+    RenderSprites
     
     dex
     
-    bne .RenderLandscapeZoneLoop
+    bne .RenderLandscapeZoneLoopNearJmp
 
 #if USE_PLAYFIELD = 1
     ; プレイフィールドをクリア
@@ -744,13 +731,13 @@ ResetScene subroutine
     and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
     clc
     adc #MIN_ZONE_HEIGHT
-    tay
-    ; 高さが偶数になるように丸める(各ゾーンで2xline処理をするので偶数である必要がある)
-    and #%00000001
-    beq .SkipRound
-    iny
-.SkipRound
-    tya
+    ; tay
+    ; 高さが4の偶数になるように丸める(各ゾーンで4xline処理をするので偶数である必要がある)
+    and #%11111100
+;     beq .SkipRound
+;     iny
+; .SkipRound
+;     tya
     sta ZoneHeights,x
 
     ; ゾーンの色を決定
@@ -937,6 +924,35 @@ ResetScene subroutine
     jsr ResetScene
 
 .DoneResetScene
+    rts
+
+RenderSprites subroutine
+    ; スプライト1の描画
+    txa
+    sec
+    sbc #1 ; Y座標は一旦固定で1
+    cmp SpriteHeight
+    bcc .DrawSprite1
+    lda #0
+.DrawSprite1
+    tay
+    lda (SpriteGfx),y
+    sta Player0Data
+    sta GRP0
+
+#if USE_SPRITE_2 = 1
+    ; スプライト2の描画
+    txa
+    sec
+    sbc #20 ; Y座標は一旦固定で20
+    cmp Sprite2Height
+    bcc .DrawSprite2
+    lda #0
+.DrawSprite2
+    tay
+    lda (Sprite2Gfx),y
+    sta GRP1
+#endif
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -68,6 +68,7 @@ NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
 ORIENT_LEFT            = %00001000 ; 左向き
 ORIENT_RIGHT           = %00000000 ; 右向き
 BUILDING_GFX_HEIGHT    = 18 ; ビルの高さ
+RENDER_ZONE_INIT_TIME  = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定用定数
@@ -447,7 +448,7 @@ RenderPlayerZoneReturn:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderZone:
-    TIMER_SETUP 12
+    TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
     ; X座標を取得
     ldx ZoneIndex
@@ -547,8 +548,7 @@ RenderZone:
     ldy ZoneIndex
     lda ZoneHeights,y
     sec
-    sbc #12 ; 最初のWSYNC2つと初期化処理にかかった分を適当にラインを減らす
-
+    sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
 
     tax
 

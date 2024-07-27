@@ -780,8 +780,9 @@ ProcPlayer:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; シーンをリセットする(ゾーンを再生成するなど)
 ResetScene subroutine
-    ldx #0
-    stx UsingHeight
+    ; 初期化
+    lda #0
+    sta UsingHeight
 
     ; プレイヤー背景色を決定
     jsr NextRandomValue
@@ -789,7 +790,13 @@ ResetScene subroutine
     sta PlayerBgColor
 
     ; 各ゾーンの初期化
+    ldx #0
 .InitializeZoneLoop
+    ; 初期化
+    lda #0
+    sta ZoneSprite0Abilities,x
+    sta ZoneSprite1Abilities,x
+
     ; ゾーンの高さをランダムで決定
     jsr NextRandomValue
     lda RandomValue
@@ -1924,10 +1931,10 @@ MontezumaGfx:
     .byte %00000010 ; |      X |
         
 SpeedTable:
+    .byte %00000001
     .byte %00000011
     .byte %00000111
     .byte %00001111
-    .byte %00011111
 
 ; 乱数テーブル
 RandomTable:

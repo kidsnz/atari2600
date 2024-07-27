@@ -72,7 +72,7 @@ SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
     seg.u Variables
     org $80
 
-; 117 byte / 128 byte
+; 124 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -84,11 +84,6 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-Player0Data         byte ; スプライト0データ
-Player1Data         byte ; スプライト1データ
-Playfield0Data      byte ; プレイフィールド0データ
-Playfield1Data      byte ; プレイフィールド1データ
-Playfield2Data      byte ; プレイフィールド2データ
 SpriteInfo          byte ; スプライト情報
 SpriteHeight        byte ; スプライトの高さを保持
 SpriteGfx           word ; スプライトのアドレス
@@ -96,16 +91,17 @@ Sprite2Info         byte ; スプライト2情報
 Sprite2Height       byte ; スプライト2の高さを保持
 Sprite2Gfx          word ; スプライト2のアドレス
 
-; 5 byte プレイヤー関連
+; 6 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
 PlayerOrient        byte ; プレイヤーの向き
 PlayerBgColor       byte ; プレイヤーの背景色
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
-; 97 byte ゾーン関連
+; 103 byte ゾーン関連
 NumberOfZones       byte ; ゾーン数
 ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
+ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
 ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
 ZoneSpriteXPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
@@ -276,7 +272,6 @@ ProcLandscapeZoneReturn:
 .DrawSprite1
         tay
         lda (SpriteGfx),y
-        sta Player0Data
         sta GRP0
 
 #if USE_SPRITE_2 = 1
@@ -412,6 +407,7 @@ RenderLandscapeZone:
     ldx ZoneIndex
     lda ZoneSpriteColors,x
     sta COLUP0
+    
 #if USE_SPRITE_2 = 1
     ; スプライト2色のセット
     lda ZoneSprite2Colors,x
@@ -450,7 +446,8 @@ RenderLandscapeZone:
 
 #if USE_PLAYFIELD = 1
     ; プレイフィールドの色をセット
-    lda #COLOR_BUILDING
+    ldx ZoneIndex
+    lda ZonePlayfieldColors,x
     sta COLUPF
 #endif
 
@@ -471,14 +468,13 @@ RenderLandscapeZone:
 ; 1ライン目の処理
     sta WSYNC
     RenderSprites
-    RenderPlayfield 0
 
     dex
 
 ; 2ライン目の処理
     sta WSYNC
     RenderSprites
-    RenderPlayfield 1
+    RenderPlayfield 0
     
     dex
 
@@ -491,21 +487,23 @@ RenderLandscapeZone:
 ; 3ライン目の処理
     sta WSYNC
     RenderSprites
-    RenderPlayfield 2
+    RenderPlayfield 1
 
     dex
 
 ; 4ライン目の処理
     sta WSYNC
     RenderSprites
+    RenderPlayfield 2
     
     dex
     
     bne .RenderLandscapeZoneLoopNearJmp
 
 #if USE_PLAYFIELD = 1
-    ; プレイフィールドをクリア
-    lda #COLOR_BUILDING
+    ; プレイフィールドをクリアするのに時間がかかるので背景色をプレイフィールドの色にして同化させる
+    ldx ZoneIndex
+    lda ZonePlayfieldColors,x
     sta COLUBK
     lda #0
     sta PF0
@@ -784,6 +782,11 @@ ResetScene subroutine
     ldx Tmp
 #endif
 
+    ; プレイフィールドの色を決定
+    jsr NextRandomValue
+    lda RandomValue
+    sta ZonePlayfieldColors,x
+
     ; スプライトの色を決定
     jsr NextRandomValue
     lda RandomValue
@@ -937,7 +940,6 @@ RenderSprites subroutine
 .DrawSprite1
     tay
     lda (SpriteGfx),y
-    sta Player0Data
     sta GRP0
 
 #if USE_SPRITE_2 = 1
@@ -1659,37 +1661,37 @@ Dragonstomper3Gfx:
 
 Dragonstomper4Gfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_ANIMATABLE | #SPRITE_UNORIENTABLE | #15
-	.byte %00000000 ; |        |
-	.byte %01111100 ; | XXXXX  |
-	.byte %00111000 ; |  XXX   |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %10010000 ; |X  X    |
-	.byte %01010100 ; | X X X  |
-	.byte %10111000 ; |X XXX   |
-	.byte %11100000 ; |XXX     |
-	.byte %01011000 ; | X XX   |
-	.byte %00001110 ; |    XXX |
+    .byte %00000000 ; |        |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %10010000 ; |X  X    |
+    .byte %01010100 ; | X X X  |
+    .byte %10111000 ; |X XXX   |
+    .byte %11100000 ; |XXX     |
+    .byte %01011000 ; | X XX   |
+    .byte %00001110 ; |    XXX |
 
-	.byte %00000000 ; |        |
-	.byte %01111100 ; | XXXXX  |
-	.byte %00111000 ; |  XXX   |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010000 ; |   X    |
-	.byte %00010100 ; |   X X  |
-	.byte %01010100 ; | X X X  |
-	.byte %00111000 ; |  XXX   |
-	.byte %11010011 ; |XX X  XX|
-	.byte %01101110 ; | XX XXX |
-	.byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00111000 ; |  XXX   |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
+    .byte %00010100 ; |   X X  |
+    .byte %01010100 ; | X X X  |
+    .byte %00111000 ; |  XXX   |
+    .byte %11010011 ; |XX X  XX|
+    .byte %01101110 ; | XX XXX |
+    .byte %00000000 ; |        |
 
 SpringerGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #14
@@ -1765,120 +1767,120 @@ BobbyGfx:
 RaftRiderGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #21
     .byte %00000000 ; |        |
-	.byte %00001000 ; |    X   |
-	.byte %00001000 ; |    X   |
-	.byte %00001000 ; |    X   |
-	.byte %00011100 ; |   XXX  |
-	.byte %01111110 ; | XXXXXX |
-	.byte %01111110 ; | XXXXXX |
-	.byte %10001001 ; |X   X  X|
-	.byte %00001000 ; |    X   |
-	.byte %00111110 ; |  XXXXX |
-	.byte %01111110 ; | XXXXXX |
-	.byte %01001001 ; | X  X  X|
-	.byte %00001100 ; |    XX  |
-	.byte %00011100 ; |   XXX  |
-	.byte %00011110 ; |   XXXX |
-	.byte %00101010 ; |  X X X |
-	.byte %00001001 ; |    X  X|
-	.byte %00011100 ; |   XXX  |
-	.byte %00101010 ; |  X X X |
-	.byte %00001000 ; |    X   |
-	.byte %00001000 ; |    X   |
+    .byte %00001000 ; |    X   |
+    .byte %00001000 ; |    X   |
+    .byte %00001000 ; |    X   |
+    .byte %00011100 ; |   XXX  |
+    .byte %01111110 ; | XXXXXX |
+    .byte %01111110 ; | XXXXXX |
+    .byte %10001001 ; |X   X  X|
+    .byte %00001000 ; |    X   |
+    .byte %00111110 ; |  XXXXX |
+    .byte %01111110 ; | XXXXXX |
+    .byte %01001001 ; | X  X  X|
+    .byte %00001100 ; |    XX  |
+    .byte %00011100 ; |   XXX  |
+    .byte %00011110 ; |   XXXX |
+    .byte %00101010 ; |  X X X |
+    .byte %00001001 ; |    X  X|
+    .byte %00011100 ; |   XXX  |
+    .byte %00101010 ; |  X X X |
+    .byte %00001000 ; |    X   |
+    .byte %00001000 ; |    X   |
 
 DungeonMasterGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #8
     .byte %00000000 ; |        |
-	.byte %00111000 ; |  XXX   |
-	.byte %01111100 ; | XXXXX  |
-	.byte %11111110 ; |XXXXXXX |
-	.byte %11111110 ; |XXXXXXX |
-	.byte %01111100 ; | XXXXX  |
-	.byte %00010000 ; |   X    |
-	.byte %00001000 ; |    X   |
+    .byte %00111000 ; |  XXX   |
+    .byte %01111100 ; | XXXXX  |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %00010000 ; |   X    |
+    .byte %00001000 ; |    X   |
 
 LynxGfx:
     .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #12
     .byte %00000000 ; |        |
-	.byte %10010101 ; |X  X X X|
-	.byte %10010101 ; |X  X X X|
-	.byte %11010010 ; |XX X  X |
-	.byte %11100110 ; |XXX  XX |
-	.byte %01111100 ; | XXXXX  |
-	.byte %01111010 ; | XXXX X |
-	.byte %01111111 ; | XXXXXXX|
-	.byte %00111010 ; |  XXX X |
-	.byte %01000101 ; | X   X X|
-	.byte %10000111 ; |X    XXX|
-	.byte %00000101 ; |     X X|
+    .byte %10010101 ; |X  X X X|
+    .byte %10010101 ; |X  X X X|
+    .byte %11010010 ; |XX X  X |
+    .byte %11100110 ; |XXX  XX |
+    .byte %01111100 ; | XXXXX  |
+    .byte %01111010 ; | XXXX X |
+    .byte %01111111 ; | XXXXXXX|
+    .byte %00111010 ; |  XXX X |
+    .byte %01000101 ; | X   X X|
+    .byte %10000111 ; |X    XXX|
+    .byte %00000101 ; |     X X|
 
 RabbitTransitGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #6
-	.byte %00000000 ; |        |
-	.byte %00001000 ; |    X   |
-	.byte %11011101 ; |XX XXX X|
-	.byte %01110110 ; | XXX XX |
-	.byte %00100011 ; |  X   XX|
-	.byte %00000010 ; |      X |
+    .byte %00000000 ; |        |
+    .byte %00001000 ; |    X   |
+    .byte %11011101 ; |XX XXX X|
+    .byte %01110110 ; | XXX XX |
+    .byte %00100011 ; |  X   XX|
+    .byte %00000010 ; |      X |
 
-	.byte %00000000 ; |        |
-	.byte %00010000 ; |   X    |
-	.byte %00111000 ; |  XXX   |
-	.byte %11101111 ; |XXX XXXX|
-	.byte %01000111 ; | X   XXX|
-	.byte %00000010 ; |      X |
+    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00111000 ; |  XXX   |
+    .byte %11101111 ; |XXX XXXX|
+    .byte %01000111 ; | X   XXX|
+    .byte %00000010 ; |      X |
 
 PitfallGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #10
-	.byte %00000000 ; |        |
-	.byte %11111111 ; |XXXXXXXX|
-	.byte %11010101 ; |XX X X X|
-	.byte %10101010 ; |X X X X |
-	.byte %11111111 ; |XXXXXXXX|
-	.byte %01100000 ; | XX     |
-	.byte %00100000 ; |  X     |
-	.byte %00000000 ; |        |
-	.byte %00000000 ; |        |
-	.byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11010101 ; |XX X X X|
+    .byte %10101010 ; |X X X X |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %01100000 ; | XX     |
+    .byte %00100000 ; |  X     |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
 
-	.byte %00000000 ; |        |
-	.byte %11111111 ; |XXXXXXXX|
-	.byte %11010101 ; |XX X X X|
-	.byte %11000000 ; |XX      |
-	.byte %11000000 ; |XX      |
-	.byte %11010000 ; |XX X    |
-	.byte %01110100 ; | XXX X  |
-	.byte %01011101 ; | X XXX X|
-	.byte %00000111 ; |     XXX|
-	.byte %00000001 ; |       X|
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11010101 ; |XX X X X|
+    .byte %11000000 ; |XX      |
+    .byte %11000000 ; |XX      |
+    .byte %11010000 ; |XX X    |
+    .byte %01110100 ; | XXX X  |
+    .byte %01011101 ; | X XXX X|
+    .byte %00000111 ; |     XXX|
+    .byte %00000001 ; |       X|
 
 MontezumaGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #12
-	.byte %00000000 ; |        |
-	.byte %00011001 ; |   XX  X|
-	.byte %10111101 ; |X XXXX X|
-	.byte %10111111 ; |X XXXXXX|
-	.byte %11111110 ; |XXXXXXX |
-	.byte %01011101 ; | X XXX X|
-	.byte %10111111 ; |X XXXXXX|
-	.byte %11111010 ; |XXXXX X |
-	.byte %01011101 ; | X XXX X|
-	.byte %10110111 ; |X XX XXX|
-	.byte %11100010 ; |XXX   X |
-	.byte %01000000 ; | X      |
+    .byte %00000000 ; |        |
+    .byte %00011001 ; |   XX  X|
+    .byte %10111101 ; |X XXXX X|
+    .byte %10111111 ; |X XXXXXX|
+    .byte %11111110 ; |XXXXXXX |
+    .byte %01011101 ; | X XXX X|
+    .byte %10111111 ; |X XXXXXX|
+    .byte %11111010 ; |XXXXX X |
+    .byte %01011101 ; | X XXX X|
+    .byte %10110111 ; |X XX XXX|
+    .byte %11100010 ; |XXX   X |
+    .byte %01000000 ; | X      |
 
-	.byte %00000000 ; |        |
-	.byte %10011000 ; |X  XX   |
-	.byte %10111101 ; |X XXXX X|
-	.byte %11111101 ; |XXXXXX X|
-	.byte %01111111 ; | XXXXXXX|
-	.byte %10111110 ; |X XXXXX |
-	.byte %11111101 ; |XXXXXX X|
-	.byte %01011111 ; | X XXXXX|
-	.byte %10111010 ; |X XXX X |
-	.byte %11101101 ; |XXX XX X|
-	.byte %01000111 ; | X   XXX|
-	.byte %00000010 ; |      X |
+    .byte %00000000 ; |        |
+    .byte %10011000 ; |X  XX   |
+    .byte %10111101 ; |X XXXX X|
+    .byte %11111101 ; |XXXXXX X|
+    .byte %01111111 ; | XXXXXXX|
+    .byte %10111110 ; |X XXXXX |
+    .byte %11111101 ; |XXXXXX X|
+    .byte %01011111 ; | X XXXXX|
+    .byte %10111010 ; |X XXX X |
+    .byte %11101101 ; |XXX XX X|
+    .byte %01000111 ; | X   XXX|
+    .byte %00000010 ; |      X |
         
 SpeedTable:
     .byte %00000011

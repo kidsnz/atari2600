@@ -329,92 +329,117 @@ RenderPlayerZoneReturn:
         ; プレイフィールドの描画
         txa
         cmp #BUILDING_GFX_HEIGHT
-        bcc .LoadPlayfield_{0}
+        bcc .LoadPlayfield_{1}
         lda #0
-.LoadPlayfield_{0}
+.LoadPlayfield_{1}
         tay
-        lda PlayFieldBuildingGfx{0},y
-        sta PF{0}
+        lda PlayFieldBuildingGfx{1},y
+        sta PF{1}
 #endif
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトをロードする
-    ;  {0}: スプライト番号 なしか1
+    ;  {1}: スプライト番号 なしか1
     MAC LOAD_SPRITE
-        LOAD_SPRITE_INFO {0}
-        _LOAD_SPRITE_HEIGHT {0}
-        _CALCULATE_SPRITE_GFX {0}
+        LOAD_SPRITE_INFO {1}
+        _LOAD_SPRITE_HEIGHT {1}
+        _CALCULATE_SPRITE_GFX {1}
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライト情報を読み取ってSpriteInfoにセットする
-    ;  {0}: スプライト番号 なしか1
+    ;  {1}: スプライト番号 なしか1
     MAC LOAD_SPRITE_INFO
         ldx ZoneIndex
-        lda ZoneSprite{0}Numbers,x
+        lda ZoneSprite{1}Numbers,x
         asl
         tay
         lda SpriteGfxs,y
-        sta Sprite{0}Gfx
+        sta Sprite{1}Gfx
         lda SpriteGfxs,y+1
         ldy #1
-        sta Sprite{0}Gfx,y
+        sta Sprite{1}Gfx,y
         ldy #0
-        lda (Sprite{0}Gfx),y
-        sta Sprite{0}Info
+        lda (Sprite{1}Gfx),y
+        sta Sprite{1}Info
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトの高さをSpriteInfoから読み取ってSpriteHeightにセットする
-    ;  {0}: スプライト番号 なしか1
+    ;  {1}: スプライト番号 なしか1
     MAC _LOAD_SPRITE_HEIGHT
         ; スプライトの高さを取得してSpriteHeightにセット
-        lda Sprite{0}Info
+        lda Sprite{1}Info
         and #SPRITE_HEIGHT_MASK
-        sta Sprite{0}Height
+        sta Sprite{1}Height
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; SpriteGfxが先頭を指している状態でアニメーションカウンターも考慮してSpriteGfxのアドレスを計算する
-    ;  {0}: スプライト番号 なしか1
+    ;  {1}: スプライト番号 なしか1
     MAC _CALCULATE_SPRITE_GFX
         ; SpriteGfxがスプライトのアドレスを指すようにする
-        inc Sprite{0}Gfx
+        inc Sprite{1}Gfx
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
-        lda Sprite{0}Info
+        lda Sprite{1}Info
         and #SPRITE_ANIMATABLE
-        beq .SkipSprite{0}Animation
+        beq .SkipSprite{1}Animation
         lda AnimFrameCounter
         and #%00000001
         ; アニメーションカウンタが1の場合はアドレスをずらす
-        beq .SkipSprite{0}Animation
-        lda Sprite{0}Gfx
+        beq .SkipSprite{1}Animation
+        lda Sprite{1}Gfx
         clc
-        adc Sprite{0}Height
-        sta Sprite{0}Gfx
+        adc Sprite{1}Height
+        sta Sprite{1}Gfx
         ; 繰り上がり(キャリー)を上位バイトに足す
         ldy #1
-        lda Sprite{0}Gfx,y
+        lda Sprite{1}Gfx,y
         adc #0 
-        sta Sprite{0}Gfx,y
-.SkipSprite{0}Animation
+        sta Sprite{1}Gfx,y
+.SkipSprite{1}Animation
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; SpriteInfoが移動不可の場合はジャンプする
-    MAC UnlessSpriteMovableThen
-        lda Sprite0Info
+    MAC IF_SPRITE_IS_UNMOVABLE
+; .THEN_POINTER SET {1}
+        lda Sprite{1}Info
         and #SPRITE_MOVABLE
-        beq {0}
+        beq {2}
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; Sprite1Infoが移動不可の場合はジャンプする
-    MAC UnlessSprite1MovableThen
-        lda Sprite1Info
-        and #SPRITE_MOVABLE
-        beq {0}
+    ; スプライトの移動処理
+    MAC MOVE_SPRITE
+.StartMove{1}
+        ldx ZoneIndex
+        lda FrameCounter
+        and ZoneSprite{1}Speeds,x
+        bne .EndMove{1}
+        lda ZoneSprite{1}Orients,x
+        cmp #ORIENT_RIGHT
+        beq .MoveRight{1}
+        jmp .MoveLeft{1}
+.MoveRight{1}
+        inc ZoneSprite{1}XPos,x
+        lda ZoneSprite{1}XPos,x
+        cmp #MAX_X
+        bcc .EndMove{1}
+.ResetSpriteXPosToLeft{1}
+        lda #MIN_X
+        sta ZoneSprite{1}XPos,x
+        jmp .EndMove{1}
+.MoveLeft{1}
+        dec ZoneSprite{1}XPos,x
+        lda ZoneSprite{1}XPos,x
+        cmp #MAX_X
+        bcc .EndMove{1}
+.ResetSpriteXPosToRight{1}
+        lda #MAX_X
+        sta ZoneSprite{1}XPos,x
+.EndMove{1}
     ENDM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -422,6 +447,8 @@ RenderPlayerZoneReturn:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderZone:
+    TIMER_SETUP 12
+
     ; X座標を取得
     ldx ZoneIndex
     lda ZoneSprite0XPos,x
@@ -514,21 +541,14 @@ RenderZone:
     sta COLUPF
 #endif
 
+    TIMER_WAIT
+
     ; ゾーンの高さ分のループ
     ldy ZoneIndex
     lda ZoneHeights,y
     sec
-    sbc #4 ; 最初のWSYNC2つと初期化処理にかかった分を適当にラインを減らす
+    sbc #12 ; 最初のWSYNC2つと初期化処理にかかった分を適当にラインを減らす
 
-#if USE_SPRITE_1 = 1
-    sec
-    sbc #4 ; スプライト1の処理分更に減らす
-#endif
-
-; #if USE_PLAYFIELD = 1
-;     sec
-;     sbc #1 ; 4の倍数にする必要があるので更に2を引く
-; #endif
 
     tax
 
@@ -672,69 +692,19 @@ RenderPlayerZone:
 ProcZone
     ; SPRITE_MOVABLEでなければ移動処理はスキップ
     LOAD_SPRITE_INFO 0
-    UnlessSpriteMovableThen EndMove0
+    IF_SPRITE_IS_UNMOVABLE 0,EnvMove0
 
     ; スプライト0の移動処理
-.StartMove0
-    ldx ZoneIndex
-    lda FrameCounter
-    and ZoneSprite0Speeds,x
-    bne EndMove0
-    lda ZoneSprite0Orients,x
-    cmp #ORIENT_RIGHT
-    beq .MoveRight0
-    jmp .MoveLeft0
-.MoveRight0
-    inc ZoneSprite0XPos,x
-    lda ZoneSprite0XPos,x
-    cmp #MAX_X
-    bcc EndMove0
-.ResetSpriteXPosToLeft0
-    lda #MIN_X
-    sta ZoneSprite0XPos,x
-    jmp EndMove0
-.MoveLeft0
-    dec ZoneSprite0XPos,x
-    lda ZoneSprite0XPos,x
-    cmp #MAX_X
-    bcc EndMove0
-.ResetSpriteXPosToRight0
-    lda #MAX_X
-    sta ZoneSprite0XPos,x
-EndMove0
+    MOVE_SPRITE 0
+EnvMove0
 
 #if USE_SPRITE_1 = 1
     ; SPRITE_MOVABLEでなければ移動処理はスキップ
     LOAD_SPRITE_INFO 1
-    UnlessSprite1MovableThen EndMove1
+    IF_SPRITE_IS_UNMOVABLE 1,EndMove1
 
     ; スプライト1の移動処理
-.StartMove1
-    ldx ZoneIndex
-    lda FrameCounter
-    and ZoneSprite1Speeds,x
-    bne EndMove1
-    lda ZoneSprite1Orients,x
-    cmp #ORIENT_RIGHT
-    beq .MoveRight1
-    jmp .MoveLeft1
-.MoveRight1
-    inc ZoneSprite1XPos,x
-    lda ZoneSprite1XPos,x
-    cmp #MAX_X
-    bcc EndMove1
-.ResetSpriteXPosToLeft1
-    lda #MIN_X
-    sta ZoneSprite1XPos,x
-    jmp EndMove1
-.MoveLeft1
-    dec ZoneSprite1XPos,x
-    lda ZoneSprite1XPos,x
-    cmp #MAX_X
-    bcc EndMove1
-.ResetSpriteXPosToRight1
-    lda #MAX_X
-    sta ZoneSprite1XPos,x
+    MOVE_SPRITE 1
 EndMove1
 #endif
 
@@ -755,7 +725,6 @@ ProcPlayer:
     lda #%00100000
     bit SWCHA
     bne .SkipMoveDown
-    ; TODO
 .SkipMoveDown:
     lda #%01000000
     bit SWCHA

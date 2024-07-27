@@ -105,12 +105,12 @@ RandomValue         byte ; 乱数値
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
-Sprite0Info         byte ; スプライト情報
-Sprite0Height       byte ; スプライトの高さを保持
-Sprite0Gfx          word ; スプライトのアドレス
-Sprite1Info         byte ; スプライト2情報
-Sprite1Height       byte ; スプライト2の高さを保持
-Sprite1Gfx          word ; スプライト2のアドレス
+Sprite0Info         byte ; スプライト0情報
+Sprite0Height       byte ; スプライト0の高さを保持
+Sprite0Gfx          word ; スプライト0のアドレス
+Sprite1Info         byte ; スプライト1情報
+Sprite1Height       byte ; スプライト1の高さを保持
+Sprite1Gfx          word ; スプライト1のアドレス
 
 ; 6 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
@@ -123,19 +123,19 @@ PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 NumberOfZones       byte ; ゾーン数
 ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
-ZoneSpriteColors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの色
 ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
-ZoneSprite0XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのX座標
-ZoneSprite0Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの向き
-ZoneSprite0Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの速さ
-ZoneSprite0Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトのNUSIZ
-ZoneSprite0Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライトの番号
-ZoneSprite1Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の色
-ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のX座標
-ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の向き
-ZoneSprite1Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の速さ
-ZoneSprite1Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2のNUSIZ
-ZoneSprite1Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト2の番号
+ZoneSprite0Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
+ZoneSprite0XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
+ZoneSprite0Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の向き
+ZoneSprite0Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の速さ
+ZoneSprite0Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のNUSIZ
+ZoneSprite0Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の番号
+ZoneSprite1Colors   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
+ZoneSprite1XPos     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
+ZoneSprite1Orients  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の向き
+ZoneSprite1Speeds   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の速さ
+ZoneSprite1Nusiz    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
+ZoneSprite1Numbers  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -302,7 +302,7 @@ RenderPlayerZoneReturn:
         sta GRP0
 
 #if USE_SPRITE_1 = 1
-        ; スプライト2の描画
+        ; スプライト1の描画
         txa
         sec
         sbc #20 ; Y座標は一旦固定で20
@@ -433,7 +433,7 @@ RenderZone:
     jsr SetObjectXPos
 
 #if USE_SPRITE_1 = 1
-    ; スプライト2の横位置の補正
+    ; スプライト1の横位置の補正
     ldx ZoneIndex
     lda ZoneSprite1XPos,x
     ldy #1 ; プレイヤー1スプライト
@@ -459,7 +459,7 @@ RenderZone:
 
     ; スプライト0色のセット
     ldx ZoneIndex
-    lda ZoneSpriteColors,x
+    lda ZoneSprite0Colors,x
     sta COLUP0
     
 #if USE_SPRITE_1 = 1
@@ -517,7 +517,7 @@ RenderZone:
 
 #if USE_SPRITE_1 = 1
     sec
-    sbc #4 ; スプライト2の処理分更に減らす
+    sbc #4 ; スプライト1の処理分更に減らす
 #endif
 
 ; #if USE_PLAYFIELD = 1
@@ -818,7 +818,7 @@ ResetScene subroutine
     ; スプライト0の色を決定
     jsr NextRandomValue
     lda RandomValue
-    sta ZoneSpriteColors,x
+    sta ZoneSprite0Colors,x
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の色を決定

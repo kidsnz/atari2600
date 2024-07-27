@@ -93,7 +93,7 @@ SPRITE_UNORIENTABLE = %00000000 ; スプライト方向なし
     seg.u Variables
     org $80
 
-; 124 byte / 128 byte
+; 112 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -119,7 +119,7 @@ PlayerOrient        byte ; プレイヤーの向き
 PlayerBgColor       byte ; プレイヤーの背景色
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
-; 103 byte ゾーン関連
+; 91 byte ゾーン関連
 NumberOfZones       byte ; ゾーン数
 ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
 ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
@@ -788,7 +788,7 @@ ResetScene subroutine
     clc
     adc #MIN_ZONE_HEIGHT
 
-    ; 高さが4の偶数になるように丸める(各ゾーンで4xline処理をするので偶数である必要がある)
+    ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
     and #%11111100
     sta ZoneHeights,x
 

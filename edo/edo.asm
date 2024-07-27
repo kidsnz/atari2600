@@ -99,7 +99,7 @@ SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマス�
     seg.u Variables
     org $80
 
-; 112 byte / 128 byte
+; 100 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -127,12 +127,12 @@ PlayerOrient        byte ; プレイヤーの向き
 PlayerBgColor       byte ; プレイヤーの背景色
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
-; 91 byte ゾーン関連
-NumberOfZones       byte ; ゾーン数
+; 79 byte ゾーン関連
+NumberOfZones        byte ; ゾーン数
 
-ZoneBgColors        ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
-ZonePlayfieldColors ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
-ZoneHeights         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
+ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
+ZonePlayfieldColors  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
+ZoneHeights          ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
 
 ZoneSprite0Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
 ZoneSprite0XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
@@ -410,6 +410,10 @@ RenderPlayerZoneReturn:
     MAC IF_SPRITE_IS_UNMOVABLE
 ; .THEN_POINTER SET {1}
         lda Sprite{1}Info
+        and #SPRITE_MOVABLE
+        beq {2}
+        ldx ZoneIndex
+        lda ZoneSprite{1}Abilities,x
         and #SPRITE_MOVABLE
         beq {2}
     ENDM
@@ -859,6 +863,7 @@ ResetScene subroutine
     ora #SPRITE_ORIENT_RIGHT
 .SetZoneSprite0OrientEnd 
     sta ZoneSprite0Abilities,x
+
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きを決定
     jsr NextRandomValue
@@ -883,6 +888,7 @@ ResetScene subroutine
     lda ZoneSprite0Abilities,x
     ora SpeedTable,y
     sta ZoneSprite0Abilities,x
+
 #if USE_SPRITE_1 = 1
     ; スプライト1の速さを決定
     jsr NextRandomValue
@@ -891,6 +897,36 @@ ResetScene subroutine
     tay
     lda ZoneSprite1Abilities,x
     ora SpeedTable,y
+    sta ZoneSprite1Abilities,x
+#endif
+
+    ; スプライト0の移動可否を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000001
+    beq .SetZoneSprite0Unmovable
+    lda ZoneSprite0Abilities,x
+    ora #SPRITE_MOVABLE
+    jmp .SetZoneSprite0MovableEnd
+.SetZoneSprite0Unmovable
+    lda ZoneSprite0Abilities,x
+    ora #SPRITE_UNMOVABLE
+.SetZoneSprite0MovableEnd 
+    sta ZoneSprite0Abilities,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1の移動可否を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00000001
+    beq .SetZoneSprite1Unmovable
+    lda ZoneSprite1Abilities,x
+    ora #SPRITE_MOVABLE
+    jmp .SetZoneSprite1MovableEnd
+.SetZoneSprite1Unmovable
+    lda ZoneSprite1Abilities,x
+    ora #SPRITE_UNMOVABLE
+.SetZoneSprite1MovableEnd 
     sta ZoneSprite1Abilities,x
 #endif
 

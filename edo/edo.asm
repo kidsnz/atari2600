@@ -197,14 +197,14 @@ StartFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
     ldx #0
-RenderLandscapeZoneLoopStart:
+RenderZoneLoopStart:
     stx ZoneIndex
-    jmp RenderLandscapeZone
-RenderLandscapeZoneReturn:
+    jmp RenderZone
+RenderZoneReturn:
     ldx ZoneIndex
     inx
     cpx NumberOfZones
-    bcc RenderLandscapeZoneLoopStart
+    bcc RenderZoneLoopStart
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイヤーゾーンの描画
@@ -310,7 +310,7 @@ ProcLandscapeZoneReturn:
 ;; 風景ゾーンの描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-RenderLandscapeZone:
+RenderZone:
     ; X座標を取得
     ldx ZoneIndex
     lda ZoneSpriteXPos,x
@@ -366,6 +366,10 @@ RenderLandscapeZone:
     lda SpriteGfx
     clc
     adc SpriteHeight
+    sta SpriteGfx
+    ; 繰り上がり(キャリー)を上位バイトに足す
+    lda SpriteGfx,1
+    adc #0 
     sta SpriteGfx
 .SkipSpriteAnimation
 
@@ -463,7 +467,7 @@ RenderLandscapeZone:
     tax
 
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
-.RenderLandscapeZoneLoop
+.RenderZoneLoop
 
 ; 1ライン目の処理
     sta WSYNC
@@ -480,8 +484,8 @@ RenderLandscapeZone:
 
 ; ループを戻すときに遠すぎてジャンプできないのでそのための中間ジャンプ
     jmp .SkipNearJmp
-.RenderLandscapeZoneLoopNearJmp
-    jmp .RenderLandscapeZoneLoop
+.RenderZoneLoopNearJmp
+    jmp .RenderZoneLoop
 .SkipNearJmp
 
 ; 3ライン目の処理
@@ -498,7 +502,7 @@ RenderLandscapeZone:
     
     dex
     
-    bne .RenderLandscapeZoneLoopNearJmp
+    bne .RenderZoneLoopNearJmp
 
 #if USE_PLAYFIELD = 1
     ; プレイフィールドをクリアするのに時間がかかるので背景色をプレイフィールドの色にして同化させる
@@ -511,7 +515,7 @@ RenderLandscapeZone:
     sta PF2
 #endif
 
-    jmp RenderLandscapeZoneReturn
+    jmp RenderZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイヤーゾーンの描画
@@ -1055,8 +1059,6 @@ SetObject2XPos subroutine
 ;; データ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    org $FA00
-
 ; プレイヤースプライト
 PlayerGfx:
     .byte %00000000 ; |        |
@@ -1200,8 +1202,6 @@ SpriteGfxs:
     .word RabbitTransitGfx
     .word PitfallGfx
     .word MontezumaGfx
-
-    org $FB00
 
 BearGfx:
     .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20

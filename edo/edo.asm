@@ -623,6 +623,7 @@ ProcPlayer:
     lda #%00010000
     bit SWCHA
     bne .SkipMoveUp
+    jsr ResetRandomCounter
     jsr ResetScene
 .SkipMoveUp:
     lda #%00100000
@@ -847,6 +848,13 @@ ResetScene subroutine
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 乱数をリセットする
+ResetRandomCounter subroutine
+    lda FrameCounter
+    sta RandomCounter
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 次の乱数値をセットする
 NextRandomValue subroutine
     pha
@@ -874,6 +882,7 @@ LeftPlayerXPos subroutine
 .ResetPlayerXPosToRight
     lda #MAX_X-#20
     sta PlayerXPos
+    jsr ResetRandomCounter
     jsr ResetScene
 .EndMove
     rts
@@ -891,6 +900,7 @@ RightPlayerXPos subroutine
 .ResetPlayerXPosToLeft
     lda #MIN_X
     sta PlayerXPos
+    jsr ResetRandomCounter
     jsr ResetScene
 .EndMove
     rts

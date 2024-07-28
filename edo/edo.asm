@@ -100,7 +100,7 @@ SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマス�
     seg.u Variables
     org $80
 
-; 113 byte / 128 byte
+; 111 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -126,12 +126,12 @@ PlayFieldGfx0       word ; プレイフィールド0のアドレス
 PlayFieldGfx1       word ; プレイフィールド1のアドレス
 PlayFieldGfx2       word ; プレイフィールド2のアドレス
 
-; 6 byte プレイヤー関連
+; 4 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
 PlayerOrient        byte ; プレイヤーの向き
 PlayerBgColor       byte ; プレイヤーの背景色
-PlayerGfxAddr       word ; プレイヤースプライトのアドレス
+PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
 ; 85 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
@@ -305,7 +305,7 @@ RenderPlayerZoneReturn:
     ; スプライトの描画マクロ
     ;  x: ゾーンのY座標
     MAC RENDER_SPRITES
-        ; スプライト1の描画
+        ; スプライト0の描画
         txa
         sec
         sbc #1 ; Y座標は一旦固定で1

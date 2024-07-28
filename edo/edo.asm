@@ -16,6 +16,7 @@ DEBUG = 1
 
 ; 乱数カウンターの初期値
 INITIAL_RANDOM_COUNTER = 0
+; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 
 ; スプライト1を使う
 USE_SPRITE_1 = 1
@@ -650,7 +651,7 @@ RenderZone:
     ; プレイフィールドの色をセット
     lda ZonePlayFieldColors,x
     sta COLUPF
-
+    
     ; プレイフィールドの設定
     lda PlayFieldInfo
     and #PLAYFIELD_MIRRORING

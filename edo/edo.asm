@@ -1217,10 +1217,6 @@ PlayFieldGfxs:
 PlayFieldNoneGfx:
     .byte #0
     .byte %00000000 ; |        |
-
-    .byte %00000000 ; |        |
-
-    .byte %00000000 ; |        |
    
 PlayFieldBuildingGfx:
     .byte #18

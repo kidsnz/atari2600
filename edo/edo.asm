@@ -534,11 +534,6 @@ RenderZone:
     sta WSYNC
     sta HMOVE
 
-    ; 背景色のセット
-    ldx ZoneIndex
-    lda ZoneBgColors,x
-    sta COLUBK
-
     ; スプライト0をロード
     LOAD_SPRITE 0
 

@@ -15,7 +15,7 @@
 DEBUG = 1
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER = 0
+INITIAL_RANDOM_COUNTER = 18
 
 ; スプライト1を使う
 USE_SPRITE_1 = 1
@@ -129,10 +129,10 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
         adc {2}
         sta {1}
         ; 繰り上がり(キャリー)を上位バイトに足す
-        ldy #1
-        lda {1},y
+        ldy #0
+        lda {1},y+1
         adc #0
-        sta {1},y
+        sta {1},y+1
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,13 +443,11 @@ RenderPlayerZoneReturn:
 .SkipPlayField
 #endif
     ENDM
-
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; プレイフィールドをロードする
     MAC LOAD_PLAYFIELD
         ; PlayFieldGfxの先頭アドレスを得てPlayFieldInfoをセット
-        ldx ZoneIndex
         lda ZonePlayFieldNumbers,x
         asl
         tay
@@ -458,12 +456,10 @@ RenderPlayerZoneReturn:
         lda PlayFieldGfxs,y+1
         ldy #0
         sta PlayFieldGfx0,y+1
-        ldy #0
         lda (PlayFieldGfx0),y
         sta PlayFieldInfo
         ; PlayFieldGfx0のアドレスをインクリメントして高さのアドレスを指すようにしてPlayFieldHeightのセット
         ADD_ADDRESS PlayFieldGfx0,#1
-        ldy #0
         lda (PlayFieldGfx0),y
         sta PlayFieldHeight
         ; PlayFieldGfx0のアドレスをインクリメントしてグラフィック部を指すようにインクリメント
@@ -487,9 +483,8 @@ RenderPlayerZoneReturn:
     ; スプライト情報を読み取ってSpriteInfoにセットする
     ;  {1}: スプライト番号 なしか1
     MAC LOAD_SPRITE_INFO
-        ldx ZoneIndex
         lda ZoneSprite{1}Numbers,x
-        asl ; wordを指したいので2倍にする
+        asl
         tay
         lda SpriteGfxs,y
         sta Sprite{1}Gfx
@@ -506,7 +501,6 @@ RenderPlayerZoneReturn:
     MAC _LOAD_SPRITE_HEIGHT
         ADD_ADDRESS Sprite{1}Gfx,#1
         ; スプライトの高さを取得してSpriteHeightにセット
-        ldy #0
         lda (Sprite{1}Gfx),y
         sta Sprite{1}Height
     ENDM
@@ -611,6 +605,8 @@ RenderZone:
     sta WSYNC
     sta HMOVE
 
+    ldx ZoneIndex
+
     ; スプライト0をロード
     LOAD_SPRITE 0
 
@@ -620,7 +616,6 @@ RenderZone:
 #endif
 
     ; スプライト0色のセット
-    ldx ZoneIndex
     lda ZoneSprite0Colors,x
     sta COLUP0
     
@@ -661,7 +656,6 @@ RenderZone:
     LOAD_PLAYFIELD
 
     ; プレイフィールドの色をセット
-    ldx ZoneIndex
     lda ZonePlayFieldColors,x
     sta COLUPF
 
@@ -671,14 +665,13 @@ RenderZone:
     sta CTRLPF
 #endif
 
-    TIMER_WAIT
-
     ; ゾーンの高さ分のループ
-    ldy ZoneIndex
-    lda ZoneHeights,y
+    lda ZoneHeights,x
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
+
+    TIMER_WAIT
 
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
 .BeginRenderZoneLoop
@@ -776,13 +769,13 @@ RenderPlayerZone:
     lda PlayerOrient
     sta REFP0
 
-    TIMER_WAIT
-
     ; プレイヤーゾーンの高さ
     lda #PLAYER_ZONE_HEIGHT
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
+
+    TIMER_WAIT
 
     ; プレイヤーゾーンの描画を開始
 .RenderPlayerZoneLoop

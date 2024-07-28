@@ -49,26 +49,39 @@ BUILDING_GFX_HEIGHT        = 18 ; ビルの高さ
 RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; スプライト設定/属性用定数
+;; スプライト情報用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 各スプライトの先頭バイトは以下を示す
 ;  7bit: 移動可能かどうか
 ;  6bit: アニメーション可能かどうか
 ;  5bit: 方向づけ可能かどうか
-;  4~0bit: 高さ
+;  4bit: NUSIZの種類(0: ALL, 1: UNWIDEABLE)
+;  3bit: 空き
+;  2bit: 空き
+;  1bit: 空き
+;  0bit: 空き
 SPRITE_MOVABLE          = %10000000 ; スプライトを動かすことが可能
 SPRITE_UNMOVABLE        = %00000000 ; スプライトを動かすことがなし
 SPRITE_ANIMATABLE       = %01000000 ; スプライトアニメーション可能
 SPRITE_UNANIMATABLE     = %00000000 ; スプライトアニメーションなし
 SPRITE_ORIENTABLE       = %00100000 ; スプライト方向可能
 SPRITE_UNORIENTABLE     = %00000000 ; スプライト方向なし
-SPRITE_NUSIZ_ALL        = %00000000 ; スプライトのNUSIZ全種類
-SPRITE_NUSIZ_UNWIDEABLE = %00010000 ; スプライトのNUSIZ最大サイズなし
+SPRITE_NUSIZ_ALL        = %00000000 ; スプライトのNUSIZの全種類使う
+SPRITE_NUSIZ_UNQUADABLE = %00010000 ; スプライトのNUSIZのQuadサイズなし
 
-SPRITE_ORIENT_RIGHT = %00000000 ; スプライトの向き右
-SPRITE_ORIENT_LEFT  = %00100000 ; スプライトの向き右
-SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマスク
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; スプライト属性(Sprite0,1Abilities)用定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; 各スプライトの属性情報バイト(Sprite0,1Abilities)は以下を示す
+;  7bit: 移動可能かどうか
+;  6bit: アニメーション可能かどうか
+;  5bit: 方向づけ可能かどうか
+;  4~0bit: 速度 
+SPRITE_ORIENT_RIGHT     = %00000000 ; スプライトの向き右
+SPRITE_ORIENT_LEFT      = %00100000 ; スプライトの向き右
+SPRITE_SPEED_MASK       = %00011111 ; スプライトの速度を取得するマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 共通マクロ
@@ -92,10 +105,6 @@ SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマス�
         lda INTIM
         bne .waittimer
         sta WSYNC
-    ENDM
-
-    MAC SPRITE_HEIGHT
-        {1}
     ENDM
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -132,10 +141,10 @@ PlayFieldGfx1       word ; プレイフィールド1のアドレス
 PlayFieldGfx2       word ; プレイフィールド2のアドレス
 
 ; 4 byte プレイヤー関連
-PlayerXPos          byte ; プレイヤーのX座標
-PlayerYPos          byte ; プレイヤーのY座標
-PlayerOrient        byte ; プレイヤーの向き
-PlayerBgColor       byte ; プレイヤーの背景色
+PlayerXPos          byte   ; プレイヤーのX座標
+PlayerYPos          byte   ; プレイヤーのY座標
+PlayerOrient        byte   ; プレイヤーの向き
+PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
 ; 85 byte ゾーン関連
@@ -998,7 +1007,7 @@ ResetScene subroutine
     and #%00000111
     tay
     lda Sprite0Info
-    and #SPRITE_NUSIZ_UNWIDEABLE
+    and #SPRITE_NUSIZ_UNQUADABLE
     bne .SetSprite0NusizUnwideable
     lda NUSIZTableAll,y
     jmp .EndSprite0Nusiz
@@ -1014,7 +1023,7 @@ ResetScene subroutine
     and #%00000111
     tay
     lda Sprite1Info
-    and #SPRITE_NUSIZ_UNWIDEABLE
+    and #SPRITE_NUSIZ_UNQUADABLE
     bne .SetSprite1NusizUnwideable
     lda NUSIZTableAll,y
     jmp .EndSprite1Nusiz

@@ -84,6 +84,13 @@ SPRITE_ORIENT_LEFT      = %00100000 ; スプライトの向き右
 SPRITE_SPEED_MASK       = %00011111 ; スプライトの速度を取得するマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイフィールド情報用定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+PLAYFIELD_UNMIRRORING = %00000000 ; プレイフィールドをミラーリングしない
+PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 共通マクロ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -114,7 +121,7 @@ SPRITE_SPEED_MASK       = %00011111 ; スプライトの速度を取得するマ
     seg.u Variables
     org $80
 
-; 114 byte / 128 byte
+; 115 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -122,7 +129,7 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 21 byte 作業用
+; 22 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -135,6 +142,7 @@ Sprite1Info         byte ; スプライト1情報
 Sprite1Height       byte ; スプライト1の高さを保持
 Sprite1Gfx          word ; スプライト1のアドレス
 
+PlayFieldInfo       byte ; プレイフィールド情報
 PlayFieldHeight     byte ; プレイフィールドの高さ
 PlayFieldGfx0       word ; プレイフィールド0のアドレス
 PlayFieldGfx1       word ; プレイフィールド1のアドレス
@@ -370,7 +378,7 @@ RenderPlayerZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; プレイフィールドの描画マクロ
     ;  x: ゾーンのY座標
-    MAC RENDER_ALL_PLAYFIELD
+    MAC FLASH_PLAYFIELD
 #if USE_PLAYFIELD = 1
         lda PF0Buffer
         sta PF0
@@ -384,7 +392,7 @@ RenderPlayerZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; プレイフィールドの読み込み
     ;  x: ゾーンのY座標
-    MAC LOAD_PLAYFIELD
+    MAC BUFFER_PLAYFIELD
 #if USE_PLAYFIELD = 1
         txa
         cmp PlayFieldHeight
@@ -396,6 +404,67 @@ RenderPlayerZoneReturn:
         sta PF{1}Buffer
 .SkipPlayField
 #endif
+    ENDM
+
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドをロードする
+    MAC LOAD_PLAYFIELD
+        ; PlayFieldGfxの先頭アドレスを得てPlayFieldInfoをセット
+        ldx ZoneIndex
+        lda ZonePlayFieldNumbers,x
+        asl
+        tay
+        lda PlayFieldGfxs,y
+        sta PlayFieldGfx0
+        lda PlayFieldGfxs,y+1
+        ldy #0
+        sta PlayFieldGfx0,y+1
+        ldy #0
+        lda (PlayFieldGfx0),y
+        sta PlayFieldInfo
+        ; PlayFieldGfx0のアドレスをインクリメントして高さのアドレスを指すようにしてPlayFieldHeightのセット
+        lda PlayFieldGfx0
+        clc
+        adc #1
+        sta PlayFieldGfx0
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        ldy #0
+        lda PlayFieldGfx0,y+1
+        adc #0
+        sta PlayFieldGfx0,y+1
+        lda (PlayFieldGfx0),y
+        sta PlayFieldHeight
+        ; PlayFieldGfx0のアドレスをインクリメントしてグラフィック部を指すようにインクリメント
+        lda PlayFieldGfx0
+        clc
+        adc #1
+        sta PlayFieldGfx0
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        ldy #1
+        lda PlayFieldGfx0,y
+        adc #0
+        sta PlayFieldGfx0,y
+        ; PlayFieldGfx1のアドレスを計算
+        lda PlayFieldGfx0
+        clc
+        adc PlayFieldHeight
+        ldy #0
+        sta PlayFieldGfx1,y
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        lda PlayFieldGfx0,y+1
+        adc #0 
+        sta PlayFieldGfx1,y+1
+        ; PlayFieldGfx2のアドレスを指す
+        lda PlayFieldGfx1
+        clc
+        adc PlayFieldHeight
+        ldy #0
+        sta PlayFieldGfx2,y
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        lda PlayFieldGfx1,y+1
+        adc #0 
+        sta PlayFieldGfx2,y+1
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -476,46 +545,6 @@ RenderPlayerZoneReturn:
         adc #0 
         sta Sprite{1}Gfx,y
 .SkipSprite{1}Animation
-    ENDM
-
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; プレイフィールドをロードする
-    MAC LOAD_PLAY_FIELD
-        ; PlayFieldGfxの先頭アドレスを得るのとPlayFieldHeightのセット
-        ldx ZoneIndex
-        lda ZonePlayFieldNumbers,x
-        asl
-        tay
-        lda PlayFieldGfxs,y
-        sta PlayFieldGfx0
-        lda PlayFieldGfxs,y+1
-        ldy #0
-        sta PlayFieldGfx0,y+1
-        ldy #0
-        lda (PlayFieldGfx0),y
-        sta PlayFieldHeight
-        ; PlayFieldGfx0がグラフィック部を指すようにインクリメント
-        inc PlayFieldGfx0
-        ; PlayFieldGfx1のアドレスを計算
-        lda PlayFieldGfx0
-        clc
-        adc PlayFieldHeight
-        ldy #0
-        sta PlayFieldGfx1,y
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        lda PlayFieldGfx0,y+1
-        adc #0 
-        sta PlayFieldGfx1,y+1
-        ; PlayFieldGfx2のアドレスを指す
-        lda PlayFieldGfx1
-        clc
-        adc PlayFieldHeight
-        ldy #0
-        sta PlayFieldGfx2,y
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        lda PlayFieldGfx1,y+1
-        adc #0 
-        sta PlayFieldGfx2,y+1
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -647,7 +676,7 @@ RenderZone:
 
 #if USE_PLAYFIELD = 1
     ; プレイフィールドのロード
-    LOAD_PLAY_FIELD
+    LOAD_PLAYFIELD
 
     ; プレイフィールドの色をセット
     ldx ZoneIndex
@@ -655,7 +684,8 @@ RenderZone:
     sta COLUPF
 
     ; プレイフィールドの設定
-    lda #%00000001 ; 左右ミラーリング
+    lda PlayFieldInfo
+    and #PLAYFIELD_MIRRORING
     sta CTRLPF
 #endif
 
@@ -674,25 +704,25 @@ RenderZone:
     ; 1ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    LOAD_PLAYFIELD 0
+    BUFFER_PLAYFIELD 0
     dex
 
     ; 2ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    LOAD_PLAYFIELD 1
+    BUFFER_PLAYFIELD 1
     dex
 
     ; 3ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    LOAD_PLAYFIELD 2
+    BUFFER_PLAYFIELD 2
     dex
 
     ; 4ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    RENDER_ALL_PLAYFIELD
+    FLASH_PLAYFIELD
     dex
     
     beq .EndRenderZoneLoop
@@ -1300,6 +1330,7 @@ PlayFieldNoneGfx:
     .byte %00000000 ; |        |
    
 PlayFieldBuildingGfx:
+    .byte PLAYFIELD_UNMIRRORING
     .byte #24
     .byte %00000000 ; |        |
     .byte %11110000 ; |XXXX    |
@@ -1377,6 +1408,7 @@ PlayFieldBuildingGfx:
     .byte %10000000 ; |X       |
 
 PlayFieldMountainGfx:
+    .byte PLAYFIELD_MIRRORING
     .byte #24
     .byte %00000000 ; |        |
     .byte %11110000 ; |XXXX    |

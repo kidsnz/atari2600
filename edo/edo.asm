@@ -459,21 +459,16 @@ RenderPlayerZoneReturn:
 RenderZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
+    ; まず背景色をセットしてゾーンがガタつかないようにする
+    ldx ZoneIndex
+    lda ZoneBgColors,x
+    sta COLUBK
+
     ; 初期化
     lda #0
     sta PF0
     sta PF1
     sta PF2
-
-    ; X座標を取得
-    ldx ZoneIndex
-    lda ZoneSprite0XPos,x
-
-    ; 右端にいる場合にWSYNCを挟む
-    cmp #135
-    bcs .SkipLandscapeWsync ; will take >1 scanline if > 134
-    sta WSYNC
-.SkipLandscapeWsync
 
     ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
@@ -627,20 +622,16 @@ RenderZone:
 RenderPlayerZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
     
+    ; 背景色のセット
+    lda PlayerBgColor
+    sta COLUBK
+
     ; 初期化
     lda #0
     sta PF0
     sta PF1
     sta PF2
 
-    ; X座標を取得
-    lda PlayerXPos
-
-    ; 右端にいる場合にWSYNCを挟む
-    cmp #135
-    bcs .SkipPlayerWsync
-    sta WSYNC
-.SkipPlayerWsync
     ; 横位置の補正
     lda PlayerXPos
     ldy #0 ; プレイヤー0スプライト
@@ -649,10 +640,6 @@ RenderPlayerZone:
     ; 横位置の補正を適用
     sta WSYNC
     sta HMOVE
-
-    ; 背景色のセット
-    lda PlayerBgColor
-    sta COLUBK
 
     ; プレイヤースプライトのアドレスをセット
     lda #<PlayerGfx

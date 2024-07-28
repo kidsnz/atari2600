@@ -584,6 +584,31 @@ RenderZone:
     lda ZoneBgColors,x
     sta COLUBK
 
+; >>> 横位置補正前初期化
+;  NOTE: 処理時間の関係で横位置補正前にいくつか初期化をしておく(この処理が横位置補正後だとタイマーに間に合わない)
+
+    ; スプライト0色のセット
+    lda ZoneSprite0Colors,x
+    sta COLUP0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1色のセット
+    lda ZoneSprite1Colors,x
+    sta COLUP1
+#endif
+
+    ; スプライト0のNUSIZのセット
+    lda ZoneSprite0Nusiz,x
+    sta NUSIZ0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のNUSIZのセット
+    lda ZoneSprite1Nusiz,x
+    sta NUSIZ1
+#endif
+
+; <<< 横位置補正前初期化終わり
+
     ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
     ldy #0 ; プレイヤー0
@@ -606,26 +631,6 @@ RenderZone:
 #if USE_SPRITE_1 = 1
     ; スプライト1をロード
     LOAD_SPRITE 1
-#endif
-
-    ; スプライト0色のセット
-    lda ZoneSprite0Colors,x
-    sta COLUP0
-    
-#if USE_SPRITE_1 = 1
-    ; スプライト1色のセット
-    lda ZoneSprite1Colors,x
-    sta COLUP1
-#endif
-
-    ; スプライト0のNUSIZのセット
-    lda ZoneSprite0Nusiz,x
-    sta NUSIZ0
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1のNUSIZのセット
-    lda ZoneSprite1Nusiz,x
-    sta NUSIZ1
 #endif
 
     ; スプライト0の向きのセット

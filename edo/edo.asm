@@ -579,12 +579,6 @@ RenderPlayerZoneReturn:
 RenderZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
-    ; 初期化
-    lda #0
-    sta PF0
-    sta PF1
-    sta PF2
-
     ; まず背景色をセットしてゾーンがガタつかないようにする
     lda ZoneBgColors,x
     sta COLUBK
@@ -705,14 +699,22 @@ RenderZone:
 
     ; 後処理
 #if USE_PLAYFIELD = 1
-    ; 次のゾーンの初期化でプレイフィールドがクリアされるまで時間がかかるので
-    ; 背景色をプレイフィールドの色にして同化させる
+
     lda #0
     cmp PlayFieldHeight ; 高さが0のプレイフィールドの場合は後処理は不要
     beq .SkipPlayFieldPostProc
+    
+    ; プレイフィールドがクリアされるまで時間がかかるので背景を同化させる
     ldx ZoneIndex
     lda ZonePlayFieldColors,x
     sta COLUBK
+
+    ; プレイフィールドを初期化
+    lda #0
+    sta PF0
+    sta PF1
+    sta PF2
+
 .SkipPlayFieldPostProc
 #endif
 
@@ -728,12 +730,6 @@ RenderPlayerZone:
     ; 背景色のセット
     lda PlayerBgColor
     sta COLUBK
-
-    ; 初期化
-    lda #0
-    sta PF0
-    sta PF1
-    sta PF2
 
     ; 横位置の補正
     lda PlayerXPos

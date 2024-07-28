@@ -114,7 +114,7 @@ SPRITE_SPEED_MASK       = %00011111 ; スプライトの速度を取得するマ
     seg.u Variables
     org $80
 
-; 111 byte / 128 byte
+; 114 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -122,7 +122,7 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 18 byte 作業用
+; 21 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -139,6 +139,10 @@ PlayFieldHeight     byte ; プレイフィールドの高さ
 PlayFieldGfx0       word ; プレイフィールド0のアドレス
 PlayFieldGfx1       word ; プレイフィールド1のアドレス
 PlayFieldGfx2       word ; プレイフィールド2のアドレス
+
+PF0Buffer           byte ; PF0のバッファ
+PF1Buffer           byte ; PF1のバッファ
+PF2Buffer           byte ; PF2のバッファ
 
 ; 4 byte プレイヤー関連
 PlayerXPos          byte   ; プレイヤーのX座標
@@ -359,6 +363,37 @@ RenderPlayerZoneReturn:
         tay
         lda (PlayFieldGfx{1}),y
         sta PF{1}
+.SkipPlayField
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドの描画マクロ
+    ;  x: ゾーンのY座標
+    MAC RENDER_ALL_PLAYFIELD
+#if USE_PLAYFIELD = 1
+        lda PF0Buffer
+        sta PF0
+        lda PF1Buffer
+        sta PF1
+        lda PF2Buffer
+        sta PF2
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドの読み込み
+    ;  x: ゾーンのY座標
+    MAC LOAD_PLAYFIELD
+#if USE_PLAYFIELD = 1
+        txa
+        cmp PlayFieldHeight
+        bcc .LoadPlayfield{1}
+        lda #0
+.LoadPlayfield{1}
+        tay
+        lda (PlayFieldGfx{1}),y
+        sta PF{1}Buffer
 .SkipPlayField
 #endif
     ENDM
@@ -639,24 +674,25 @@ RenderZone:
     ; 1ライン目の処理
     sta WSYNC
     RENDER_SPRITES
+    LOAD_PLAYFIELD 0
     dex
 
     ; 2ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    RENDER_PLAYFIELD 0
+    LOAD_PLAYFIELD 1
     dex
 
     ; 3ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    RENDER_PLAYFIELD 1
+    LOAD_PLAYFIELD 2
     dex
 
     ; 4ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    RENDER_PLAYFIELD 2
+    RENDER_ALL_PLAYFIELD
     dex
     
     beq .EndRenderZoneLoop
@@ -1060,7 +1096,7 @@ ResetScene subroutine
 .InitializeNext
     inx
     jmp .InitializeZoneLoop
-.InitializeEnd
+.InitializeEnd                   
     ; はみ出した分を最後のゾーンから引いておく
     lda UsingHeight
     sec
@@ -1264,7 +1300,7 @@ PlayFieldNoneGfx:
     .byte %00000000 ; |        |
    
 PlayFieldBuildingGfx:
-    .byte #18
+    .byte #24
     .byte %00000000 ; |        |
     .byte %11110000 ; |XXXX    |
     .byte %11110000 ; |XXXX    |
@@ -1274,11 +1310,17 @@ PlayFieldBuildingGfx:
     .byte %11110000 ; |XXXX    |
     .byte %01110000 ; | XXX    |
     .byte %01110000 ; | XXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01110000 ; | XXX    |
+    .byte %01010000 ; | X X    |
+    .byte %01010000 ; | X X    |
     .byte %01010000 ; | X X    |
     .byte %01010000 ; | X X    |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
-    .byte %00000000 ; |        |
+    .byte %00010000 ; |   X    |
+    .byte %00010000 ; |   X    |
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
@@ -1291,12 +1333,18 @@ PlayFieldBuildingGfx:
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11110111 ; |XXXX XXX|
     .byte %11110111 ; |XXXX XXX|
     .byte %11110111 ; |XXXX XXX|
     .byte %11010111 ; |XX X XXX|
     .byte %11010011 ; |XX X  XX|
+    .byte %11010011 ; |XX X  XX|
+    .byte %01010011 ; | X X  XX|
     .byte %01010011 ; | X X  XX|
     .byte %01010010 ; | X X  X |
+    .byte %01010010 ; | X X  X |
+    .byte %00000010 ; |      X |
     .byte %00000010 ; |      X |
     .byte %00000010 ; |      X |
     .byte %00000010 ; |      X |
@@ -1304,6 +1352,7 @@ PlayFieldBuildingGfx:
     .byte %00000000 ; |        |
 
     .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
@@ -1311,22 +1360,33 @@ PlayFieldBuildingGfx:
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11101111 ; |XXX XXXX|
+    .byte %11101111 ; |XXX XXXX|
     .byte %11100111 ; |XXX  XXX|
     .byte %11100111 ; |XXX  XXX|
+    .byte %11100111 ; |XXX  XXX|
+    .byte %11000101 ; |XX   X X|
     .byte %11000101 ; |XX   X X|
     .byte %10000001 ; |X      X|
     .byte %10000001 ; |X      X|
     .byte %10000001 ; |X      X|
+    .byte %10000001 ; |X      X|
+    .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
 
 PlayFieldMountainGfx:
-    .byte #18
+    .byte #24
     .byte %00000000 ; |        |
     .byte %11110000 ; |XXXX    |
     .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11000000 ; |XX      |
+    .byte %11000000 ; |XX      |
+    .byte %11000000 ; |XX      |
     .byte %11000000 ; |XX      |
     .byte %11000000 ; |XX      |
     .byte %00000000 ; |        |
@@ -1350,6 +1410,12 @@ PlayFieldMountainGfx:
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
     .byte %00111111 ; |  XXXXXX|
     .byte %00111111 ; |  XXXXXX|
     .byte %00001111 ; |    XXXX|
@@ -1363,6 +1429,12 @@ PlayFieldMountainGfx:
     .byte %00000000 ; |        |
 
     .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|

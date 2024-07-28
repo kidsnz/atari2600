@@ -92,7 +92,7 @@ SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマス�
         bne .waittimer
         sta WSYNC
     ENDM
-    
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -364,14 +364,13 @@ RenderPlayerZoneReturn:
     MAC LOAD_SPRITE_INFO
         ldx ZoneIndex
         lda ZoneSprite{1}Numbers,x
-        asl
+        asl ; wordを指したいので2倍にする
         tay
         lda SpriteGfxs,y
         sta Sprite{1}Gfx
         lda SpriteGfxs,y+1
-        ldy #1
-        sta Sprite{1}Gfx,y
         ldy #0
+        sta Sprite{1}Gfx,y+1
         lda (Sprite{1}Gfx),y
         sta Sprite{1}Info
     ENDM
@@ -380,9 +379,11 @@ RenderPlayerZoneReturn:
     ; スプライトの高さをSpriteInfoから読み取ってSpriteHeightにセットする
     ;  {1}: スプライト番号 なしか1
     MAC _LOAD_SPRITE_HEIGHT
+        ; SpriteGfxが高さのアドレスを指すようにする
+        inc Sprite{1}Gfx
         ; スプライトの高さを取得してSpriteHeightにセット
-        lda Sprite{1}Info
-        and #SPRITE_HEIGHT_MASK
+        ldy #0
+        lda (Sprite{1}Gfx),y
         sta Sprite{1}Height
     ENDM
 
@@ -390,7 +391,7 @@ RenderPlayerZoneReturn:
     ; SpriteGfxが先頭を指している状態でアニメーションカウンターも考慮してSpriteGfxのアドレスを計算する
     ;  {1}: スプライト番号 なしか1
     MAC _CALCULATE_SPRITE_GFX
-        ; SpriteGfxがスプライトのアドレスを指すようにする
+        ; SpriteGfxがスプライトのグラフィックのアドレスを指すようにする
         inc Sprite{1}Gfx
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
         lda Sprite{1}Info
@@ -1380,7 +1381,8 @@ SpriteGfxs:
     .word MontezumaGfx
 
 BearGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+    .byte #20
     .byte %00000000 ; |        |
     .byte %11100000 ; |###     |
     .byte %11100000 ; |###     |
@@ -1424,7 +1426,8 @@ BearGfx:
     .byte %00010100 ; |   X X  |
 
 CloudGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #13
+    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+    .byte #13
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00111100 ; |  XXXX  |
@@ -1440,7 +1443,9 @@ CloudGfx:
     .byte %00000000 ; |        |
 
 TreeGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #14
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #14
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -1457,7 +1462,9 @@ TreeGfx:
     .byte %00010000 ; |   X    |
 
 Tree2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #18
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #18
     .byte %00000000 ; |        |
     .byte %00010000 ; |   X    |
     .byte %00010000 ; |   X    |
@@ -1478,7 +1485,9 @@ Tree2Gfx:
     .byte %00010000 ; |   X    |
 
 BirdGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #8
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #8
     .byte %00000000 ; |        |
     .byte %11000000 ; |XX      |
     .byte %01100000 ; | XX     |
@@ -1498,7 +1507,9 @@ BirdGfx:
     .byte %11100100 ; |XXX  X  |
 
 FishGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #11
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #11
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
@@ -1524,7 +1535,9 @@ FishGfx:
     .byte %10000000 ; |X       |
 
 HouseGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #9
     .byte %00000000 ; |        |
     .byte %01011100 ; | X XXX  |
     .byte %01011100 ; | X XXX  |
@@ -1536,7 +1549,9 @@ HouseGfx:
     .byte %00010000 ; |   X    |
 
 BuildingGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #11
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #11
     .byte %00000000 ; |        |
     .byte %01001100 ; | X  XX  |
     .byte %01001100 ; | X  XX  |
@@ -1550,7 +1565,9 @@ BuildingGfx:
     .byte %10101010 ; |X X X X |
 
 Building2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #15
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #15
     .byte %00000000 ; |        |
     .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
@@ -1568,7 +1585,9 @@ Building2Gfx:
     .byte %00010000 ; |   X    |
 
 BoxGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #10
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #10
     .byte %00000000 ; |        |
     .byte %11111110 ; |XXXXXXX |
     .byte %10101010 ; |X X X X |
@@ -1581,7 +1600,9 @@ BoxGfx:
     .byte %11111110 ; |XXXXXXX |
     
 DonkeyKongGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #20
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #20
     .byte %00000000 ; |        |
     .byte %11100000 ; |###     |
     .byte %11100000 ; |###     |
@@ -1625,7 +1646,9 @@ DonkeyKongGfx:
     .byte %00011100 ; |   XXX  |
 
 ETGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #16
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #16
     .byte %00000000 ; |        |
     .byte %11100111 ; |XXX  XXX|
     .byte %01100011 ; | XX   XX|
@@ -1644,7 +1667,9 @@ ETGfx:
     .byte %11111110 ; |XXXXXXX |
 
 Walker1Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #19
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #19
     .byte %00000000 ; |        |
     .byte %00011100 ; |   ###  |
     .byte %00111110 ; |  ##### |
@@ -1666,7 +1691,9 @@ Walker1Gfx:
     .byte %00001000 ; |    #   |
     
 Walker2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #19
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #19
     .byte %00000000 ; |        |
     .byte %00011000 ; |   XX   |
     .byte %00011000 ; |   XX   |
@@ -1688,7 +1715,9 @@ Walker2Gfx:
     .byte %00000001 ; |       X|
         
 Walker3Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #9
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #9
     .byte %00000000 ; |        |
     .byte %00011000 ; |   ##   |
     .byte %00011000 ; |   ##   |
@@ -1700,32 +1729,38 @@ Walker3Gfx:
     .byte %00111100 ; |  ####  |
 
 Walker4Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #8
-    .byte   %00000000 ; |        |
-    .byte   %11111111 ; |########|
-    .byte   %10011001 ; |#  ##  #|
-    .byte   %10011001 ; |#  ##  #|
-    .byte   %11111111 ; |########|
-    .byte   %11111111 ; |########|
-    .byte   %01111110 ; | ###### |
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #8
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |########|
+    .byte %10011001 ; |#  ##  #|
+    .byte %10011001 ; |#  ##  #|
+    .byte %11111111 ; |########|
+    .byte %11111111 ; |########|
+    .byte %01111110 ; | ###### |
 
 Walker5Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #12
-    .byte   %00000000 ; |        |
-    .byte   %11111111 ; |########|
-    .byte   %11111111 ; |########|
-    .byte   %11111111 ; |########|
-    .byte   %10011001 ; |#  ##  #|
-    .byte   %10011001 ; |#  ##  #|
-    .byte   %11111111 ; |########|
-    .byte   %11111111 ; |########|
-    .byte   %01111110 ; | ###### |
-    .byte   %01111110 ; | ###### |
-    .byte   %01100000 ; | ##     |
-    .byte   %01100000 ; | ##     |
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #12
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |########|
+    .byte %11111111 ; |########|
+    .byte %11111111 ; |########|
+    .byte %10011001 ; |#  ##  #|
+    .byte %10011001 ; |#  ##  #|
+    .byte %11111111 ; |########|
+    .byte %11111111 ; |########|
+    .byte %01111110 ; | ###### |
+    .byte %01111110 ; | ###### |
+    .byte %01100000 ; | ##     |
+    .byte %01100000 ; | ##     |
 
 Walker6Gfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #9
     .byte %00000000 ; |        |
     .byte %10100010 ; |X X   X |
     .byte %01010101 ; | X X X X|
@@ -1747,7 +1782,9 @@ Walker6Gfx:
     .byte %00001010 ; |    X X |
 
 Walker7Gfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #9
     .byte %00000000 ; |        |
     .byte %01001001 ; | X  X  X|
     .byte %00110011 ; |  XX  XX|
@@ -1769,7 +1806,9 @@ Walker7Gfx:
     .byte %01110000 ; | XXX    |
 
 Walker8Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #7
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #7
     .byte %00000000 ; |        |
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
@@ -1779,7 +1818,9 @@ Walker8Gfx:
     .byte %00011000 ; |   XX   |
 
 Dragonstomper1Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #20
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #20
     .byte %00000000 ; |        |
     .byte %00011000 ; |   XX   |
     .byte %00111100 ; |  XXXX  |
@@ -1802,7 +1843,9 @@ Dragonstomper1Gfx:
     .byte %10000001 ; |X      X|
     
 Dragonstomper2Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #16
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #16
     .byte %00000000 ; |        |
     .byte %10011001 ; |X  XX  X|
     .byte %10111101 ; |X XXXX X|
@@ -1821,7 +1864,9 @@ Dragonstomper2Gfx:
     .byte %11000011 ; |XX    XX|
     
 Dragonstomper3Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #12
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #12
     .byte %00000000 ; |        |
     .byte %11001100 ; |XX  XX  |
     .byte %01001000 ; | X  X   |
@@ -1836,7 +1881,9 @@ Dragonstomper3Gfx:
     .byte %01001000 ; | X  X   |
 
 Dragonstomper4Gfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_ANIMATABLE | #SPRITE_UNORIENTABLE | #15
+    .byte #SPRITE_UNMOVABLE | #SPRITE_ANIMATABLE | #SPRITE_UNORIENTABLE
+
+    .byte #15
     .byte %00000000 ; |        |
     .byte %01111100 ; | XXXXX  |
     .byte %00111000 ; |  XXX   |
@@ -1870,7 +1917,9 @@ Dragonstomper4Gfx:
     .byte %00000000 ; |        |
 
 SpringerGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #14
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #14
     .byte %00000000 ; |        | 
     .byte %01001100 ; | X  XX  |
     .byte %01111000 ; | XXXX   |
@@ -1902,7 +1951,9 @@ SpringerGfx:
     .byte %11000110 ; |XX   XX |
 
 SkyPatrolGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #14
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #14
     .byte %00000000 ; |        |
     .byte %01011000 ; | X XX   |
     .byte %00111000 ; |  XXX   |
@@ -1919,7 +1970,9 @@ SkyPatrolGfx:
     .byte %00001000 ; |    X   |
 
 BobbyGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #9
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #9
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
     .byte %00101000 ; |  X X   |
@@ -1941,7 +1994,9 @@ BobbyGfx:
     .byte %00000000 ; |        |
 
 RaftRiderGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #21
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #21
     .byte %00000000 ; |        |
     .byte %00001000 ; |    X   |
     .byte %00001000 ; |    X   |
@@ -1965,7 +2020,9 @@ RaftRiderGfx:
     .byte %00001000 ; |    X   |
 
 DungeonMasterGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #8
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #8
     .byte %00000000 ; |        |
     .byte %00111000 ; |  XXX   |
     .byte %01111100 ; | XXXXX  |
@@ -1976,7 +2033,9 @@ DungeonMasterGfx:
     .byte %00001000 ; |    X   |
 
 LynxGfx:
-    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE | #12
+    .byte #SPRITE_UNMOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #12
     .byte %00000000 ; |        |
     .byte %10010101 ; |X  X X X|
     .byte %10010101 ; |X  X X X|
@@ -1991,7 +2050,9 @@ LynxGfx:
     .byte %00000101 ; |     X X|
 
 RabbitTransitGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #6
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #6
     .byte %00000000 ; |        |
     .byte %00001000 ; |    X   |
     .byte %11011101 ; |XX XXX X|
@@ -2007,7 +2068,9 @@ RabbitTransitGfx:
     .byte %00000010 ; |      X |
 
 PitfallGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #10
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #10
     .byte %00000000 ; |        |
     .byte %11111111 ; |XXXXXXXX|
     .byte %11010101 ; |XX X X X|
@@ -2031,7 +2094,9 @@ PitfallGfx:
     .byte %00000001 ; |       X|
 
 MontezumaGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #12
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE
+
+    .byte #12
     .byte %00000000 ; |        |
     .byte %00011001 ; |   XX  X|
     .byte %10111101 ; |X XXXX X|

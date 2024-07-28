@@ -1191,6 +1191,7 @@ PlayerGfx:
 
 ; プレイヤースプライトカラー
 PlayerGfxColor:
+    .byte $00
     .byte $16
     .byte $26
     .byte $36
@@ -1198,6 +1199,11 @@ PlayerGfxColor:
     .byte $56
     .byte $66
     .byte $76
+    .byte $86
+    .byte $86
+    .byte $86
+    .byte $86
+    .byte $86
     .byte $86
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

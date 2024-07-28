@@ -94,6 +94,9 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
 ;; 共通マクロ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; 指定のライン数のタイマーをセットする
+    ;  {1}: ライン数
     MAC TIMER_SETUP
 .lines  SET {1}
 .cycles SET ((.lines * 76) - 13)
@@ -107,11 +110,46 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
         sta TIM64T
     ENDM
 
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; タイマーを待機する
     MAC TIMER_WAIT
 .waittimer
         lda INTIM
         bne .waittimer
         sta WSYNC
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; 指定のメモリのアドレスに加算する
+    ;  {1}: 加算対象のメモリ
+    ;  {2}: 加算する値
+    MAC ADD_ADDRESS
+        lda {1}
+        clc
+        adc {2}
+        sta {1}
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        ldy #1
+        lda {1},y
+        adc #0
+        sta {1},y
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; 指定のメモリのアドレスをコピーする
+    ;  {1}: コピー元メモリ
+    ;  {2}: コピー先メモリ
+    ;  {3}: 加算する値
+    MAC COPY_AND_ADD_ADDRESS
+        lda {1}
+        clc
+        adc {3}
+        ldy #0
+        sta {2},y
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        lda {1},y+1
+        adc #0 
+        sta {2},y+1
     ENDM
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -424,47 +462,16 @@ RenderPlayerZoneReturn:
         lda (PlayFieldGfx0),y
         sta PlayFieldInfo
         ; PlayFieldGfx0のアドレスをインクリメントして高さのアドレスを指すようにしてPlayFieldHeightのセット
-        lda PlayFieldGfx0
-        clc
-        adc #1
-        sta PlayFieldGfx0
-        ; 繰り上がり(キャリー)を上位バイトに足す
+        ADD_ADDRESS PlayFieldGfx0,#1
         ldy #0
-        lda PlayFieldGfx0,y+1
-        adc #0
-        sta PlayFieldGfx0,y+1
         lda (PlayFieldGfx0),y
         sta PlayFieldHeight
         ; PlayFieldGfx0のアドレスをインクリメントしてグラフィック部を指すようにインクリメント
-        lda PlayFieldGfx0
-        clc
-        adc #1
-        sta PlayFieldGfx0
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        ldy #1
-        lda PlayFieldGfx0,y
-        adc #0
-        sta PlayFieldGfx0,y
+        ADD_ADDRESS PlayFieldGfx0,#1
         ; PlayFieldGfx1のアドレスを計算
-        lda PlayFieldGfx0
-        clc
-        adc PlayFieldHeight
-        ldy #0
-        sta PlayFieldGfx1,y
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        lda PlayFieldGfx0,y+1
-        adc #0 
-        sta PlayFieldGfx1,y+1
-        ; PlayFieldGfx2のアドレスを指す
-        lda PlayFieldGfx1
-        clc
-        adc PlayFieldHeight
-        ldy #0
-        sta PlayFieldGfx2,y
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        lda PlayFieldGfx1,y+1
-        adc #0 
-        sta PlayFieldGfx2,y+1
+        COPY_AND_ADD_ADDRESS PlayFieldGfx0,PlayFieldGfx1,PlayFieldHeight
+        ; PlayFieldGfx2のアドレスを計算
+        COPY_AND_ADD_ADDRESS PlayFieldGfx1,PlayFieldGfx2,PlayFieldHeight
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -497,16 +504,7 @@ RenderPlayerZoneReturn:
     ; スプライトの高さをSpriteInfoから読み取ってSpriteHeightにセットする
     ;  {1}: スプライト番号 なしか1
     MAC _LOAD_SPRITE_HEIGHT
-        ; SpriteGfxのアドレスをインクリメントして高さのアドレスを指すようにする
-        lda Sprite{1}Gfx
-        clc
-        adc #1
-        sta Sprite{1}Gfx
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        ldy #1
-        lda Sprite{1}Gfx,y
-        adc #0
-        sta Sprite{1}Gfx,y
+        ADD_ADDRESS Sprite{1}Gfx,#1
         ; スプライトの高さを取得してSpriteHeightにセット
         ldy #0
         lda (Sprite{1}Gfx),y
@@ -518,15 +516,7 @@ RenderPlayerZoneReturn:
     ;  {1}: スプライト番号 なしか1
     MAC _CALCULATE_SPRITE_GFX
         ; SpriteGfxがスプライトのグラフィックのアドレスを指すようにする
-        lda Sprite{1}Gfx
-        clc
-        adc #1
-        sta Sprite{1}Gfx
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        ldy #1
-        lda Sprite{1}Gfx,y
-        adc #0
-        sta Sprite{1}Gfx,y
+        ADD_ADDRESS Sprite{1}Gfx,#1
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
         lda Sprite{1}Info
         and #SPRITE_ANIMATABLE
@@ -535,15 +525,7 @@ RenderPlayerZoneReturn:
         and #%00000001
         ; アニメーションカウンタが1の場合はアドレスをずらす
         beq .SkipSprite{1}Animation
-        lda Sprite{1}Gfx
-        clc
-        adc Sprite{1}Height
-        sta Sprite{1}Gfx
-        ; 繰り上がり(キャリー)を上位バイトに足す
-        ldy #1
-        lda Sprite{1}Gfx,y
-        adc #0 
-        sta Sprite{1}Gfx,y
+        ADD_ADDRESS Sprite{1}Gfx,Sprite{1}Height
 .SkipSprite{1}Animation
     ENDM
 
@@ -783,15 +765,7 @@ RenderPlayerZone:
     lda AnimFrameCounter
     and #%00000001
     beq .SkipPlayerAnimation
-    lda PlayerGfxAddr
-    clc
-    adc #PLAYER_GFX_HEIGHT
-    sta PlayerGfxAddr
-    ; 繰り上がり(キャリー)を上位バイトに足す
-    ldy #1
-    lda PlayerGfxAddr,y
-    adc #0
-    sta PlayerGfxAddr,y
+    ADD_ADDRESS PlayerGfxAddr,#PLAYER_GFX_HEIGHT
 .SkipPlayerAnimation
 
     ; プレイヤーのNUSIZのセット

@@ -15,7 +15,7 @@
 DEBUG = 1
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER = 18
+INITIAL_RANDOM_COUNTER = 0
 
 ; スプライト1を使う
 USE_SPRITE_1 = 1
@@ -75,13 +75,16 @@ SPRITE_NUSIZ_UNQUADABLE = %00010000 ; スプライトのNUSIZのQuadサイズな
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 各スプライトの属性情報バイト(Sprite0,1Abilities)は以下を示す
-;  7bit: 移動可能かどうか
-;  6bit: アニメーション可能かどうか
-;  5bit: 方向づけ可能かどうか
-;  4~0bit: 速度 
+;  7bit: 移動が有効
+;  6bit: アニメーションが有効
+;  5bit: 方向
+;  4bit: 空き
+;  3~0bit: 速度 
+SPRITE_MOVING_ON        = %10000000 ; スプライトの移動ON
+SPRITE_ANIMATION_ON     = %01000000 ; スプライトの向き右
 SPRITE_ORIENT_RIGHT     = %00000000 ; スプライトの向き右
 SPRITE_ORIENT_LEFT      = %00100000 ; スプライトの向き右
-SPRITE_SPEED_MASK       = %00011111 ; スプライトの速度を取得するマスク
+SPRITE_SPEED_MASK       = %00001111 ; スプライトの速度を取得するマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド情報用定数
@@ -414,22 +417,8 @@ RenderPlayerZoneReturn:
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; プレイフィールドの描画マクロ
-    ;  x: ゾーンのY座標
-    MAC FLASH_PLAYFIELD
-#if USE_PLAYFIELD = 1
-        lda PF0Buffer
-        sta PF0
-        lda PF1Buffer
-        sta PF1
-        lda PF2Buffer
-        sta PF2
-#endif
-    ENDM
-
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; プレイフィールドの読み込み
-    ;  x: ゾーンのY座標
+    ; プレイフィールドのバッファリング
+    ;  x: プレイフィールドの番号
     MAC BUFFER_PLAYFIELD
 #if USE_PLAYFIELD = 1
         txa
@@ -441,6 +430,19 @@ RenderPlayerZoneReturn:
         lda (PlayFieldGfx{1}),y
         sta PF{1}Buffer
 .SkipPlayField
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドのバッファを適用
+    MAC FLASH_PLAYFIELD
+#if USE_PLAYFIELD = 1
+        lda PF0Buffer
+        sta PF0
+        lda PF1Buffer
+        sta PF1
+        lda PF2Buffer
+        sta PF2
 #endif
     ENDM
     
@@ -531,7 +533,7 @@ RenderPlayerZoneReturn:
         beq {2}
         ldx ZoneIndex
         lda ZoneSprite{1}Abilities,x
-        and #SPRITE_MOVABLE
+        and #SPRITE_MOVING_ON
         beq {2}
     ENDM
 
@@ -577,35 +579,31 @@ RenderPlayerZoneReturn:
 RenderZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
-    ; まず背景色をセットしてゾーンがガタつかないようにする
-    ldx ZoneIndex
-    lda ZoneBgColors,x
-    sta COLUBK
-
     ; 初期化
     lda #0
     sta PF0
     sta PF1
     sta PF2
 
+    ; まず背景色をセットしてゾーンがガタつかないようにする
+    lda ZoneBgColors,x
+    sta COLUBK
+
     ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
-    ldy #0 ; プレイヤー0スプライト
+    ldy #0 ; プレイヤー0
     jsr SetObjectXPos
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の横位置の補正
-    ldx ZoneIndex
     lda ZoneSprite1XPos,x
-    ldy #1 ; プレイヤー1スプライト
+    ldy #1 ; プレイヤー1
     jsr SetObjectXPos
 #endif
 
     ; 横位置の補正を適用
     sta WSYNC
     sta HMOVE
-
-    ldx ZoneIndex
 
     ; スプライト0をロード
     LOAD_SPRITE 0
@@ -665,13 +663,13 @@ RenderZone:
     sta CTRLPF
 #endif
 
+    TIMER_WAIT
+
     ; ゾーンの高さ分のループ
     lda ZoneHeights,x
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
-
-    TIMER_WAIT
 
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
 .BeginRenderZoneLoop
@@ -769,13 +767,13 @@ RenderPlayerZone:
     lda PlayerOrient
     sta REFP0
 
+    TIMER_WAIT
+
     ; プレイヤーゾーンの高さ
     lda #PLAYER_ZONE_HEIGHT
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
-
-    TIMER_WAIT
 
     ; プレイヤーゾーンの描画を開始
 .RenderPlayerZoneLoop
@@ -1194,7 +1192,6 @@ RightPlayerXPos subroutine
 ;  A は対象のピクセル単位のX座標
 ;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
 SetObjectXPos subroutine
-    tax
     sec
     sta WSYNC
 .Div15Loop
@@ -1207,22 +1204,6 @@ SetObjectXPos subroutine
     asl
     sta HMP0,Y
     sta RESP0,Y
-    rts
-
-SetObject2XPos subroutine
-    tax
-    sec
-    sta WSYNC
-.Div15Loop
-    sbc #15
-    bcs .Div15Loop
-    eor #%0111
-    asl
-    asl
-    asl
-    asl
-    sta HMP1,Y
-    sta RESP1,Y
     rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

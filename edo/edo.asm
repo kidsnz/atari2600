@@ -17,6 +17,7 @@ DEBUG = 1
 ; 乱数カウンターの初期値
 INITIAL_RANDOM_COUNTER = 0
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
+; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
 
 ; スプライト1を使う
 USE_SPRITE_1 = 1

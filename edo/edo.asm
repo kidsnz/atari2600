@@ -643,20 +643,20 @@ RenderZone:
 
     ; 2ライン目の処理
     sta WSYNC
-    RENDER_PLAYFIELD 0
     RENDER_SPRITES
+    RENDER_PLAYFIELD 0
     dex
 
     ; 3ライン目の処理
     sta WSYNC
-    RENDER_PLAYFIELD 1
     RENDER_SPRITES
+    RENDER_PLAYFIELD 1
     dex
 
     ; 4ライン目の処理
     sta WSYNC
-    RENDER_PLAYFIELD 2
     RENDER_SPRITES
+    RENDER_PLAYFIELD 2
     dex
     
     beq .EndRenderZoneLoop

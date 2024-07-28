@@ -595,38 +595,18 @@ RenderZone:
 #endif
 
     ; スプライト0の向きのセット
-    lda Sprite0Info
-    and #SPRITE_ORIENTABLE
-    bne .LoadOrient0
-    lda #0
-    jmp .SetOrient0
-.LoadOrient0 
     lda ZoneSprite0Abilities,x
     and #SPRITE_ORIENT_LEFT
-    bne .SetOrientLeft0
-    lda #ORIENT_RIGHT
-    jmp .SetOrient0
-.SetOrientLeft0
-    lda #ORIENT_LEFT
-.SetOrient0
+    lsr
+    lsr
     sta REFP0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きのセット
-    lda Sprite1Info
-    and #SPRITE_ORIENTABLE
-    bne .LoadOrient1
-    lda #0
-    jmp .SetOrient1
-.LoadOrient1
     lda ZoneSprite1Abilities,x
     and #SPRITE_ORIENT_LEFT
-    bne .SetOrientLeft1
-    lda #ORIENT_RIGHT
-    jmp .SetOrient1
-.SetOrientLeft1
-    lda #ORIENT_LEFT
-.SetOrient1
+    lsr
+    lsr
     sta REFP1
 #endif
 
@@ -943,6 +923,9 @@ ResetScene subroutine
 #endif
 
     ; スプライト0の向きを決定
+    lda Sprite0Info
+    and #SPRITE_ORIENTABLE
+    beq .SkipSetZoneSprite0Orient ; SPRITE_ORIENTABLEでなければスキップ
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
@@ -955,9 +938,13 @@ ResetScene subroutine
     ora #SPRITE_ORIENT_RIGHT
 .SetZoneSprite0OrientEnd 
     sta ZoneSprite0Abilities,x
+.SkipSetZoneSprite0Orient
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きを決定
+    lda Sprite1Info
+    and #SPRITE_ORIENTABLE
+    beq .SkipSetZoneSprite1Orient ; SPRITE_ORIENTABLEでなければスキップ
     jsr NextRandomValue
     lda RandomValue
     and #%00000001
@@ -970,6 +957,7 @@ ResetScene subroutine
     ora #SPRITE_ORIENT_RIGHT
 .SetZoneSprite1OrientEnd
     sta ZoneSprite1Abilities,x
+.SkipSetZoneSprite1Orient
 #endif
 
     ; スプライト0の速さを決定

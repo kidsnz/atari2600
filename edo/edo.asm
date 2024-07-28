@@ -335,7 +335,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
-        sbc #12 ; Y座標は一旦固定で12
+        sbc #20 ; Y座標は一旦固定で20
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0

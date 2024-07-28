@@ -46,7 +46,7 @@ NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマス
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 BUILDING_GFX_HEIGHT        = 18 ; ビルの高さ
-RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
+RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -335,7 +335,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
-        sbc #20 ; Y座標は一旦固定で20
+        sbc #12 ; Y座標は一旦固定で12
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0
@@ -393,8 +393,16 @@ RenderPlayerZoneReturn:
     ; スプライトの高さをSpriteInfoから読み取ってSpriteHeightにセットする
     ;  {1}: スプライト番号 なしか1
     MAC _LOAD_SPRITE_HEIGHT
-        ; SpriteGfxが高さのアドレスを指すようにする
-        inc Sprite{1}Gfx
+        ; SpriteGfxのアドレスをインクリメントして高さのアドレスを指すようにする
+        lda Sprite{1}Gfx
+        clc
+        adc #1
+        sta Sprite{1}Gfx
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        ldy #1
+        lda Sprite{1}Gfx,y
+        adc #0
+        sta Sprite{1}Gfx,y
         ; スプライトの高さを取得してSpriteHeightにセット
         ldy #0
         lda (Sprite{1}Gfx),y
@@ -406,7 +414,15 @@ RenderPlayerZoneReturn:
     ;  {1}: スプライト番号 なしか1
     MAC _CALCULATE_SPRITE_GFX
         ; SpriteGfxがスプライトのグラフィックのアドレスを指すようにする
-        inc Sprite{1}Gfx
+        lda Sprite{1}Gfx
+        clc
+        adc #1
+        sta Sprite{1}Gfx
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        ldy #1
+        lda Sprite{1}Gfx,y
+        adc #0
+        sta Sprite{1}Gfx,y
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
         lda Sprite{1}Info
         and #SPRITE_ANIMATABLE
@@ -725,6 +741,11 @@ RenderPlayerZone:
     clc
     adc #PLAYER_GFX_HEIGHT
     sta PlayerGfxAddr
+    ; 繰り上がり(キャリー)を上位バイトに足す
+    ldy #1
+    lda PlayerGfxAddr,y
+    adc #0
+    sta PlayerGfxAddr,y
 .SkipPlayerAnimation
 
     ; プレイヤーのNUSIZのセット
@@ -1244,10 +1265,10 @@ PlayFieldGfxs:
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
-    .word PlayFieldNoneGfx
-    .word PlayFieldNoneGfx
     .word PlayFieldBuildingGfx
     .word PlayFieldBuildingGfx
+    .word PlayFieldBuildingGfx
+    .word PlayFieldMountainGfx
     .word PlayFieldMountainGfx
 
 PlayFieldNoneGfx:

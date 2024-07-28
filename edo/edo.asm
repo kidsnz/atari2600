@@ -55,21 +55,22 @@ USE_PLAYFIELD = 1
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT      = 14  ; プレイヤーの高さ
-MAX_LINES              = 192 ; スキャンライン数 
-MAX_NUMBER_OF_ZONES    = 6   ; ゾーンの最大数
-MIN_ZONE_HEIGHT        = 32  ; ゾーンの最小の高さ
-MAX_ZONE_HEIGHT        = 64  ; ゾーンの最大の高さ
-PLAYER_ZONE_HEIGHT     = 32  ; プレイヤーのゾーンの高さ
-MAX_X                  = 160 ; X座標の最大値
-MIN_X                  = 0   ; X座標の最小値
-LANDSCAPE_ZONE_HEIGHT  = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
-NUMBER_OF_SPRITES_MASK = %00011111 ; スプライトの数のマスク
-NUMBER_OF_SPEEDS_MASK  = %00000011 ; スプライトの速度の数のマスク
-ORIENT_LEFT            = %00001000 ; 左向き
-ORIENT_RIGHT           = %00000000 ; 右向き
-BUILDING_GFX_HEIGHT    = 18 ; ビルの高さ
-RENDER_ZONE_INIT_TIME  = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
+PLAYER_GFX_HEIGHT          = 14  ; プレイヤーの高さ
+MAX_LINES                  = 192 ; スキャンライン数 
+MAX_NUMBER_OF_ZONES        = 6   ; ゾーンの最大数
+MIN_ZONE_HEIGHT            = 32  ; ゾーンの最小の高さ
+MAX_ZONE_HEIGHT            = 64  ; ゾーンの最大の高さ
+PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
+MAX_X                      = 160 ; X座標の最大値
+MIN_X                      = 0   ; X座標の最小値
+LANDSCAPE_ZONE_HEIGHT      = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+NUMBER_OF_SPRITES_MASK     = %00011111 ; スプライトの数のマスク
+NUMBER_OF_PLAY_FIELDS_MASK = %00000111 ; プレイフィールドの数のマスク
+NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
+ORIENT_LEFT                = %00001000 ; 左向き
+ORIENT_RIGHT               = %00000000 ; 右向き
+BUILDING_GFX_HEIGHT        = 18 ; ビルの高さ
+RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト設定/属性用定数
@@ -99,7 +100,7 @@ SPRITE_SPEED_MASK   = %00011111 ; スプライトの速度を取得するマス�
     seg.u Variables
     org $80
 
-; 100 byte / 128 byte
+; 113 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -107,7 +108,7 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 11 byte 作業用
+; 18 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -120,6 +121,11 @@ Sprite1Info         byte ; スプライト1情報
 Sprite1Height       byte ; スプライト1の高さを保持
 Sprite1Gfx          word ; スプライト1のアドレス
 
+PlayFieldHeight     byte ; プレイフィールドの高さ
+PlayFieldGfx0       word ; プレイフィールド0のアドレス
+PlayFieldGfx1       word ; プレイフィールド1のアドレス
+PlayFieldGfx2       word ; プレイフィールド2のアドレス
+
 ; 6 byte プレイヤー関連
 PlayerXPos          byte ; プレイヤーのX座標
 PlayerYPos          byte ; プレイヤーのY座標
@@ -127,12 +133,13 @@ PlayerOrient        byte ; プレイヤーの向き
 PlayerBgColor       byte ; プレイヤーの背景色
 PlayerGfxAddr       word ; プレイヤースプライトのアドレス
 
-; 79 byte ゾーン関連
+; 85 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
 
 ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
-ZonePlayfieldColors  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
+ZonePlayFieldColors  ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの色
 ZoneHeights          ds MAX_NUMBER_OF_ZONES ; 各ゾーンの高さ
+ZonePlayFieldNumbers ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィールドの番号
 
 ZoneSprite0Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
 ZoneSprite0XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
@@ -330,15 +337,15 @@ RenderPlayerZoneReturn:
     ;  x: ゾーンのY座標
     MAC RENDER_PLAYFIELD
 #if USE_PLAYFIELD = 1
-        ; プレイフィールドの描画
         txa
-        cmp #BUILDING_GFX_HEIGHT
-        bcc .LoadPlayfield_{1}
+        cmp PlayFieldHeight
+        bcc .LoadPlayfield{1}
         lda #0
-.LoadPlayfield_{1}
+.LoadPlayfield{1}
         tay
-        lda PlayFieldBuildingGfx{1},y
+        lda (PlayFieldGfx{1}),y
         sta PF{1}
+.SkipPlayField
 #endif
     ENDM
 
@@ -403,6 +410,46 @@ RenderPlayerZoneReturn:
         adc #0 
         sta Sprite{1}Gfx,y
 .SkipSprite{1}Animation
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドをロードする
+    MAC LOAD_PLAY_FIELD
+        ; PlayFieldGfxの先頭アドレスを得るのとPlayFieldHeightのセット
+        ldx ZoneIndex
+        lda ZonePlayFieldNumbers,x
+        asl
+        tay
+        lda PlayFieldGfxs,y
+        sta PlayFieldGfx0
+        lda PlayFieldGfxs,y+1
+        ldy #0
+        sta PlayFieldGfx0,y+1
+        ldy #0
+        lda (PlayFieldGfx0),y
+        sta PlayFieldHeight
+        ; PlayFieldGfx0がグラフィック部を指すようにインクリメント
+        inc PlayFieldGfx0
+        ; PlayFieldGfx1のアドレスを計算
+        lda PlayFieldGfx0
+        clc
+        adc PlayFieldHeight
+        ldy #0
+        sta PlayFieldGfx1,y
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        lda PlayFieldGfx0,y+1
+        adc #0 
+        sta PlayFieldGfx1,y+1
+        ; PlayFieldGfx2のアドレスを指す
+        lda PlayFieldGfx1
+        clc
+        adc PlayFieldHeight
+        ldy #0
+        sta PlayFieldGfx2,y
+        ; 繰り上がり(キャリー)を上位バイトに足す
+        lda PlayFieldGfx1,y+1
+        adc #0 
+        sta PlayFieldGfx2,y+1
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -558,10 +605,17 @@ RenderZone:
 #endif
 
 #if USE_PLAYFIELD = 1
+    ; プレイフィールドのロード
+    LOAD_PLAY_FIELD
+
     ; プレイフィールドの色をセット
     ldx ZoneIndex
-    lda ZonePlayfieldColors,x
+    lda ZonePlayFieldColors,x
     sta COLUPF
+
+    ; プレイフィールドの設定
+    lda #%00000001 ; 左右ミラーリング
+    sta CTRLPF
 #endif
 
     TIMER_WAIT
@@ -583,20 +637,20 @@ RenderZone:
 
     ; 2ライン目の処理
     sta WSYNC
-    RENDER_SPRITES
     RENDER_PLAYFIELD 0
+    RENDER_SPRITES
     dex
 
     ; 3ライン目の処理
     sta WSYNC
-    RENDER_SPRITES
     RENDER_PLAYFIELD 1
+    RENDER_SPRITES
     dex
 
     ; 4ライン目の処理
     sta WSYNC
-    RENDER_SPRITES
     RENDER_PLAYFIELD 2
+    RENDER_SPRITES
     dex
     
     beq .EndRenderZoneLoop
@@ -608,9 +662,13 @@ RenderZone:
 #if USE_PLAYFIELD = 1
     ; 次のゾーンの初期化でプレイフィールドがクリアされるまで時間がかかるので
     ; 背景色をプレイフィールドの色にして同化させる
+    lda #0
+    cmp PlayFieldHeight ; 高さが0のプレイフィールドの場合は後処理は不要
+    beq .SkipPlayFieldPostProc
     ldx ZoneIndex
-    lda ZonePlayfieldColors,x
+    lda ZonePlayFieldColors,x
     sta COLUBK
+.SkipPlayFieldPostProc
 #endif
 
     jmp RenderZoneReturn
@@ -798,10 +856,16 @@ ResetScene subroutine
     lda RandomValue
     sta ZoneBgColors,x
 
+    ; プレイフィールドの決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #NUMBER_OF_PLAY_FIELDS_MASK
+    sta ZonePlayFieldNumbers,x
+    
     ; プレイフィールドの色を決定
     jsr NextRandomValue
     lda RandomValue
-    sta ZonePlayfieldColors,x
+    sta ZonePlayFieldColors,x
 
     ; スプライト0を決定
     jsr NextRandomValue
@@ -1090,7 +1154,7 @@ SetObject2XPos subroutine
     rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; データ
+;; プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; プレイヤースプライト
@@ -1136,8 +1200,30 @@ PlayerGfxColor:
     .byte $76
     .byte $86
 
-; プレイフィールドビル背景0
-PlayFieldBuildingGfx0:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; プレイフィールドデータ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+PlayFieldGfxs:
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldBuildingGfx
+    .word PlayFieldBuildingGfx
+    .word PlayFieldMountainGfx
+
+PlayFieldNoneGfx:
+    .byte #0
+    .byte %00000000 ; |        |
+
+    .byte %00000000 ; |        |
+
+    .byte %00000000 ; |        |
+   
+PlayFieldBuildingGfx:
+    .byte #18
     .byte %00000000 ; |        |
     .byte %11110000 ; |XXXX    |
     .byte %11110000 ; |XXXX    |
@@ -1157,8 +1243,6 @@ PlayFieldBuildingGfx0:
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
 
-; プレイフィールドビル背景1
-PlayFieldBuildingGfx1:
     .byte %00000000 ; |        |
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
@@ -1178,8 +1262,6 @@ PlayFieldBuildingGfx1:
     .byte %00000000 ; |        |
     .byte %00000000 ; |        |
 
-; プレイフィールドビル背景2
-PlayFieldBuildingGfx2:
     .byte %00000000 ; |        |
     .byte %11111111 ; |XXXXXXXX|
     .byte %11111111 ; |XXXXXXXX|
@@ -1198,6 +1280,69 @@ PlayFieldBuildingGfx2:
     .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
     .byte %10000000 ; |X       |
+
+PlayFieldMountainGfx:
+    .byte #18
+    .byte %00000000 ; |        |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %11000000 ; |XX      |
+    .byte %11000000 ; |XX      |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00111111 ; |  XXXXXX|
+    .byte %00001111 ; |    XXXX|
+    .byte %00001111 ; |    XXXX|
+    .byte %00000011 ; |      XX|
+    .byte %00000011 ; |      XX|
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+    .byte %00000000 ; |        |
+
+    .byte %00000000 ; |        |
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111111 ; |XXXXXXXX|
+    .byte %11111100 ; |XXXXXX  |
+    .byte %11110000 ; |XXXX    |
+    .byte %11110000 ; |XXXX    |
+    .byte %00000000 ; |        |
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; スプライトデータ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 SpriteGfxs:
     ; 0 ~ 7

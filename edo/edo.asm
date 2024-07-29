@@ -174,17 +174,19 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 22 byte 作業用
+; 24 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 
 Sprite0Info         byte ; スプライト0情報
 Sprite0Height       byte ; スプライト0の高さを保持
+Sprite0YPos         byte ; スプライト0のY座標を保持
 Sprite0Gfx          word ; スプライト0のアドレス
 
 Sprite1Info         byte ; スプライト1情報
 Sprite1Height       byte ; スプライト1の高さを保持
+Sprite1YPos         byte ; スプライト1のY座標を保持
 Sprite1Gfx          word ; スプライト1のアドレス
 
 PlayFieldInfo       byte ; プレイフィールド情報
@@ -204,7 +206,7 @@ PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
-; 71 byte ゾーン関連
+; 81 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
 
 ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
@@ -214,12 +216,14 @@ ZonePlayFieldNumbers ds MAX_NUMBER_OF_ZONES ; 各ゾーンのプレイフィー�
 
 ZoneSprite0Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の色
 ZoneSprite0XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のX座標
+ZoneSprite0YPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のY座標
 ZoneSprite0Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の属性
 ZoneSprite0Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のNUSIZ
 ZoneSprite0Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の番号
 
 ZoneSprite1Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
 ZoneSprite1XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
+ZoneSprite1YPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のY座標
 ZoneSprite1Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の属性
 ZoneSprite1Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
 ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
@@ -379,7 +383,7 @@ RenderPlayerZoneReturn:
         ; スプライト0の描画
         txa
         sec
-        sbc #1 ; Y座標は一旦固定で1
+        sbc Sprite0YPos
         cmp Sprite0Height
         bcc .DrawSprite0
         lda #0
@@ -392,7 +396,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
-        sbc #20 ; Y座標は一旦固定で20
+        sbc Sprite1YPos
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0
@@ -636,6 +640,16 @@ RenderZone:
 #if USE_SPRITE_1 = 1
     ; スプライト1をロード
     LOAD_SPRITE 1
+#endif
+
+    ; スプライト0のY座標のセット
+    lda ZoneSprite0YPos,x
+    sta Sprite0YPos
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のY座標のセット
+    lda ZoneSprite1YPos,x
+    sta Sprite1YPos
 #endif
 
     ; スプライト0の向きのセット
@@ -958,6 +972,25 @@ ResetScene subroutine
     lda RandomValue
     and #%01111111
     sta ZoneSprite1XPos,x
+#endif
+
+    ; スプライト0のY座標の初期値を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00001111
+    clc
+    adc #1
+    sta ZoneSprite0YPos,x
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のY座標の初期値を決定
+    jsr NextRandomValue
+    lda RandomValue
+    and #%00001111
+    clc
+    adc #1
+    lda #20
+    sta ZoneSprite1YPos,x
 #endif
 
     ; スプライト0の向きを決定

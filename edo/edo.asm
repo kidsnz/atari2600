@@ -15,7 +15,7 @@
 DEBUG = 1
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER = 3
+INITIAL_RANDOM_COUNTER = 0
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 ; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
 
@@ -48,6 +48,7 @@ NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマス
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
+SPRITE1_YPOS               = 2  ; スプライト1のY座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -165,7 +166,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 101 byte / 128 byte
+; 95 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -173,7 +174,7 @@ AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomValue         byte ; 乱数値
 
-; 24 byte 作業用
+; 23 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -185,7 +186,6 @@ Sprite0Gfx          word ; スプライト0のアドレス
 
 Sprite1Info         byte ; スプライト1情報
 Sprite1Height       byte ; スプライト1の高さを保持
-Sprite1YPos         byte ; スプライト1のY座標を保持
 Sprite1Gfx          word ; スプライト1のアドレス
 
 PlayFieldInfo       byte ; プレイフィールド情報
@@ -205,7 +205,7 @@ PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
-; 81 byte ゾーン関連
+; 76 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
 
 ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
@@ -222,7 +222,6 @@ ZoneSprite0Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の
 
 ZoneSprite1Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
 ZoneSprite1XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
-ZoneSprite1YPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のY座標
 ZoneSprite1Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の属性
 ZoneSprite1Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
 ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
@@ -395,7 +394,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
-        sbc Sprite1YPos
+        sbc #SPRITE1_YPOS
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0
@@ -822,12 +821,6 @@ RenderZone:
     lda ZoneSprite0YPos,x
     sta Sprite0YPos
 
-#if USE_SPRITE_1 = 1
-    ; スプライト1のY座標のセット
-    lda ZoneSprite1YPos,x
-    sta Sprite1YPos
-#endif
-
     ; スプライト0の向きのセット
     lda ZoneSprite0Abilities,x
     and #SPRITE_ORIENT_LEFT
@@ -1105,9 +1098,6 @@ ResetScene subroutine
     ; スプライト1を決定
     RESET_SPRITE 1
     LOAD_SPRITE_INFO 1
-
-    lda #2 ; スプライト1のY座標は固定で2
-    sta ZoneSprite1YPos,x
 #endif
 
     ; スプライト0の色を決定

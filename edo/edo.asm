@@ -81,12 +81,14 @@ SPRITE_NUSIZ_UNQUADABLE = %00010000 ; スプライトのNUSIZのQuadサイズな
 ;  6bit: アニメーションが有効
 ;  5bit: 方向
 ;  4bit: 空き
-;  3~0bit: 速度 
+;  3bit: 空き
+;  2bit: 空き
+;  1~0bit: 速度番号
 SPRITE_MOVING_ON        = %10000000 ; スプライトの移動ON
 SPRITE_ANIMATION_ON     = %01000000 ; スプライトの向き右
 SPRITE_ORIENT_RIGHT     = %00000000 ; スプライトの向き右
 SPRITE_ORIENT_LEFT      = %00100000 ; スプライトの向き右
-SPRITE_SPEED_MASK       = %00001111 ; スプライトの速度を取得するマスク
+SPRITE_SPEED_MASK       = %00000011 ; スプライトの速度を取得するマスク
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド情報用定数
@@ -546,6 +548,8 @@ RenderPlayerZoneReturn:
         ldx ZoneIndex
         lda ZoneSprite{1}Abilities,x
         and #SPRITE_SPEED_MASK
+        tay
+        lda SpeedTable,y
         sta Tmp
         lda FrameCounter
         and Tmp

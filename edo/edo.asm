@@ -1221,8 +1221,12 @@ ResetScene subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 乱数をリセットする
 ResetRandomCounter subroutine
-    lda FrameCounter
     sta RandomCounter
+    clc
+    adc FrameCounter
+    sta RandomCounter2
+    clc
+    adc FrameCounter
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

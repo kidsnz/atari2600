@@ -35,7 +35,7 @@ USE_PLAYFIELD = 1
 
 PLAYER_GFX_HEIGHT          = 14  ; プレイヤーの高さ
 MAX_LINES                  = 192 ; スキャンライン数 
-MAX_NUMBER_OF_ZONES        = 6   ; ゾーンの最大数
+MAX_NUMBER_OF_ZONES        = 5   ; ゾーンの最大数
 MIN_ZONE_HEIGHT            = 32  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT            = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
@@ -166,7 +166,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 115 byte / 128 byte
+; 101 byte / 128 byte
 
 ; 4 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -204,7 +204,7 @@ PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
-; 85 byte ゾーン関連
+; 71 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
 
 ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色

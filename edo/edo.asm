@@ -15,7 +15,8 @@
 DEBUG = 1
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER = 0
+INITIAL_RANDOM_COUNTER   = 0
+INITIAL_RANDOM_COUNTER_2 = 128
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 ; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
 
@@ -172,6 +173,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
 FrameCounter        byte ; フレームカウンタ
 AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
+RandomCounter2      byte ; 乱数カウンタ2
 RandomValue         byte ; 乱数値
 
 ; 23 byte 作業用
@@ -251,6 +253,8 @@ Start:
     ; シーンの初期化
     lda #INITIAL_RANDOM_COUNTER
     sta RandomCounter
+    lda #INITIAL_RANDOM_COUNTER_2
+    sta RandomCounter2
     jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1228,8 +1232,12 @@ NextRandomValue subroutine
     txa
     pha
     inc RandomCounter
+    inc RandomCounter2
+    inc RandomCounter2
     ldx RandomCounter
-    lda RandomTable,X
+    lda RandomTable,x
+    ldx RandomCounter2
+    eor RandomTable,x
     sta RandomValue
     pla
     tax

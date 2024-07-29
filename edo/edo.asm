@@ -742,17 +742,15 @@ RenderPlayerZoneReturn:
         ; (Y座標+スプライトの高さ+#RENDER_ZONE_INIT_TIME) - ゾーンの高さ を計算して、プラスならはみ出ているので、差分をY座標から引く
         sec
         sbc ZoneHeights,x
-        bpl .SubSprite{1}Height
+        bpl .JustifySprite{1}YPos
         jmp .SkipSubSprite{1}Height
-.SubSprite{1}Height
-        sta Tmp
-        lda ZoneSprite{1}YPos,x
+.JustifySprite{1}YPos
+	lda ZoneHeights,x
         sec
-        sbc Tmp
+        sbc #RENDER_ZONE_INIT_TIME
+        sec
+        sbc Sprite{1}Height
         ; それでY座標がマイナスになる場合は、座標1
-        bpl .SkipSetZero{1}
-        lda #1
-.SkipSetZero{1}
         sta ZoneSprite{1}YPos,x
 .SkipSubSprite{1}Height
     ENDM
@@ -1065,9 +1063,9 @@ ResetScene subroutine
     lda RandomValue
     sta PlayerBgColor
 
-    ; 各ゾーンの初期化
+    ; 各ゾーンの高さの初期化
     ldx #0
-.InitializeZoneLoop
+.InitializeNumZoneLoop
     stx ZoneIndex
 
     ; 初期化
@@ -1077,6 +1075,58 @@ ResetScene subroutine
 
     ; ゾーンの高さをランダムで決定
     RESET_ZONE_HEIGHT
+
+    ; ゾーンの高さの合計を保持
+    lda UsingHeight
+    adc ZoneHeights,x
+    sta UsingHeight
+
+    ; ゾーンの合計の高さが風景に使える高さを超えていないかチェック
+    lda #LANDSCAPE_ZONE_HEIGHT
+    sec
+    sbc UsingHeight
+
+    ; 超えていなければ次のゾーンを作成へ
+    bcs .InitializeNumZoneNext
+
+    ; 超えていたら終わり
+    jmp .InitializeNumZoneEnd
+.InitializeNumZoneNext
+    inx
+    jmp .InitializeNumZoneLoop
+.InitializeNumZoneEnd
+    ; はみ出した分を最後のゾーンから引いておく
+    lda UsingHeight
+    sec
+    sbc #LANDSCAPE_ZONE_HEIGHT
+    sta Tmp
+    lda ZoneHeights,x
+    sec
+    sbc Tmp
+    sta ZoneHeights,x
+
+    ; もし最後のゾーンが小さすぎたら手前のゾーンに結合
+    lda ZoneHeights,x
+    cmp #MIN_ZONE_HEIGHT
+    bmi .CombineZone
+    jmp .SkipCombineZone
+.CombineZone
+    lda ZoneHeights,x
+    dex
+    clc
+    adc ZoneHeights,x
+    sta ZoneHeights,x
+.SkipCombineZone
+
+    ; ゾーン数を計算してセット(ゾーンインデックスに1を足してゾーン数とする)
+    txa
+    clc
+    adc #1
+    sta NumberOfZones
+
+    ; 各ゾーンの情報を初期化
+    ldx #0
+.InitializeZoneLoop:
 
     ; ゾーンの色を決定
     RESET_ZONE_COLOR
@@ -1148,53 +1198,13 @@ ResetScene subroutine
     RESET_SPRITE_NUSIZ 1
 #endif
 
-    ; ゾーンの高さの合計を保持
-    lda UsingHeight
-    adc ZoneHeights,x
-    sta UsingHeight
-
-    ; ゾーンの合計の高さが風景に使える高さを超えていないかチェック
-    lda #LANDSCAPE_ZONE_HEIGHT
-    sec
-    sbc UsingHeight
-
-    ; 超えていなければ次のゾーンを作成へ
-    bcs .InitializeNext
-
-    ; 超えていたら終わり
-    jmp .InitializeEnd
-.InitializeNext
     inx
+    cpx NumberOfZones
+    bcc .NextInitializeZoneLoop
+    jmp .EndInitializeZoneLoop
+.NextInitializeZoneLoop
     jmp .InitializeZoneLoop
-.InitializeEnd                   
-    ; はみ出した分を最後のゾーンから引いておく
-    lda UsingHeight
-    sec
-    sbc #LANDSCAPE_ZONE_HEIGHT
-    sta Tmp
-    lda ZoneHeights,x
-    sec
-    sbc Tmp
-    sta ZoneHeights,x
-
-    ; もし最後のゾーンが小さすぎたら手前のゾーンに結合
-    lda ZoneHeights,x
-    cmp #MIN_ZONE_HEIGHT
-    bmi .CombineZone
-    jmp .SkipCombineZone
-.CombineZone
-    lda ZoneHeights,x
-    dex
-    clc
-    adc ZoneHeights,x
-    sta ZoneHeights,x
-.SkipCombineZone
-
-    ; ゾーン数を計算してセット(ゾーンインデックスに1を足してゾーン数とする)
-    txa
-    clc
-    adc #1
-    sta NumberOfZones
+.EndInitializeZoneLoop
 
     ; ゾーンの最大数を超えていたらもう一度シーンを生成する
     cmp #MAX_NUMBER_OF_ZONES

@@ -15,7 +15,7 @@
 DEBUG = 1
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER = 0
+INITIAL_RANDOM_COUNTER = 3
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 ; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
 
@@ -47,7 +47,6 @@ NUMBER_OF_PLAY_FIELDS_MASK = %00000111 ; プレイフィールドの数のマス
 NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
-BUILDING_GFX_HEIGHT        = 18 ; ビルの高さ
 RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -485,7 +484,6 @@ RenderPlayerZoneReturn:
     ;  {1}: スプライト番号 なしか1
     MAC LOAD_SPRITE
         LOAD_SPRITE_INFO {1}
-        _LOAD_SPRITE_HEIGHT {1}
         _CALCULATE_SPRITE_GFX {1}
     ENDM
 
@@ -503,6 +501,11 @@ RenderPlayerZoneReturn:
         sta Sprite{1}Gfx,y+1
         lda (Sprite{1}Gfx),y
         sta Sprite{1}Info
+        
+        ; スプライトの高さを取得してSpriteHeightにセット
+        ADD_ADDRESS Sprite{1}Gfx,#1
+        lda (Sprite{1}Gfx),y
+        sta Sprite{1}Height
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -580,6 +583,179 @@ RenderPlayerZoneReturn:
         lda #MAX_X
         sta ZoneSprite{1}XPos,x
 .EndMove{1}
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; ゾーンの高さをリセット
+    MAC RESET_ZONE_HEIGHT
+        jsr NextRandomValue
+        lda RandomValue
+        and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
+        clc
+        adc #MIN_ZONE_HEIGHT
+
+        ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
+        and #%11111100
+        sta ZoneHeights,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; ゾーンの色を決定
+    MAC RESET_ZONE_COLOR
+        jsr NextRandomValue
+        lda RandomValue
+        sta ZoneBgColors,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドを決定
+    MAC RESET_PLAYFIELD
+        jsr NextRandomValue
+        lda RandomValue
+        and #NUMBER_OF_PLAY_FIELDS_MASK
+        sta ZonePlayFieldNumbers,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドの色を決定
+    MAC RESET_PLAYFIELD_COLOR
+        jsr NextRandomValue
+        lda RandomValue
+        sta ZonePlayFieldColors,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE
+        jsr NextRandomValue
+        lda RandomValue
+        and #NUMBER_OF_SPRITES_MASK
+        sta ZoneSprite{1}Numbers,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの色の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_COLOR
+        jsr NextRandomValue
+        lda RandomValue
+        sta ZoneSprite{1}Colors,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトのX座標の初期値の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_XPOS
+        jsr NextRandomValue
+        lda RandomValue
+        and #%01111111
+        sta ZoneSprite{1}XPos,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの向きの決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_ORIENT
+        lda Sprite{1}Info
+        and #SPRITE_ORIENTABLE
+        beq .SkipSetZoneSprite{1}Orient ; SPRITE_ORIENTABLEでなければスキップ
+        jsr NextRandomValue
+        lda RandomValue
+        and #%00000001
+        beq .SetZoneSprite{1}OrientRight
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_ORIENT_LEFT
+        jmp .SetZoneSprite{1}OrientEnd
+.SetZoneSprite{1}OrientRight 
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_ORIENT_RIGHT
+.SetZoneSprite{1}OrientEnd 
+        sta ZoneSprite{1}Abilities,x
+.SkipSetZoneSprite{1}Orient
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの速度の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_SPEED
+        jsr NextRandomValue
+        lda RandomValue
+        and #NUMBER_OF_SPEEDS_MASK
+        tay 
+        lda ZoneSprite{1}Abilities,x
+        ora SpeedTable,y
+        sta ZoneSprite{1}Abilities,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの移動可否の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_MOVABLE
+        jsr NextRandomValue
+        lda RandomValue
+        and #%00000001
+        beq .SetZoneSprite{1}Unmovable
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_MOVABLE
+        jmp .SetZoneSprite{1}MovableEnd
+.SetZoneSprite{1}Unmovable
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_UNMOVABLE
+.SetZoneSprite{1}MovableEnd
+        sta ZoneSprite{1}Abilities,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトのNUSIZの決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_NUSIZ
+        jsr NextRandomValue
+        lda RandomValue
+        and #%00000111
+        tay
+        lda Sprite{1}Info
+        and #SPRITE_NUSIZ_UNQUADABLE
+        bne .SetSprite{1}NusizUnwideable
+        lda NUSIZTableAll,y
+        jmp .EndSprite{1}Nusiz
+.SetSprite{1}NusizUnwideable
+        lda NUSIZTableUnwideable,y
+.EndSprite{1}Nusiz
+        sta ZoneSprite{1}Nusiz,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; ゾーンのスプライトのY座標を決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_YPOS
+        jsr NextRandomValue
+        lda RandomValue
+        and #%00011111
+        clc
+        adc #1
+        sta ZoneSprite{1}YPos,x
+        ; スプライトの高さと#RENDER_ZONE_INIT_TIMEを足す
+        clc
+        adc Sprite{1}Height
+        clc
+        adc #RENDER_ZONE_INIT_TIME
+        ; (Y座標+スプライトの高さ+#RENDER_ZONE_INIT_TIME) - ゾーンの高さ を計算して、プラスならはみ出ているので、差分をY座標から引く
+        sec
+        sbc ZoneHeights,x
+        bpl .SubSprite{1}Height
+        jmp .SkipSubSprite{1}Height
+.SubSprite{1}Height
+        sta Tmp
+        lda ZoneSprite{1}YPos,x
+        sec
+        sbc Tmp
+        ; それでY座標がマイナスになる場合は、座標1
+        bpl .SkipSetZero{1}
+        lda #1
+.SkipSetZero{1}
+        sta ZoneSprite{1}YPos,x
+.SkipSubSprite{1}Height
     ENDM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -907,210 +1083,79 @@ ResetScene subroutine
     sta ZoneSprite1Abilities,x
 
     ; ゾーンの高さをランダムで決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
-    clc
-    adc #MIN_ZONE_HEIGHT
-
-    ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
-    and #%11111100
-    sta ZoneHeights,x
+    RESET_ZONE_HEIGHT
 
     ; ゾーンの色を決定
-    lda RandomValue
-    sta ZoneBgColors,x
+    RESET_ZONE_COLOR
 
     ; プレイフィールドの決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_PLAY_FIELDS_MASK
-    sta ZonePlayFieldNumbers,x
+    RESET_PLAYFIELD
     
     ; プレイフィールドの色を決定
-    jsr NextRandomValue
-    lda RandomValue
-    sta ZonePlayFieldColors,x
+    RESET_PLAYFIELD_COLOR
 
     ; スプライト0を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPRITES_MASK
-    sta ZoneSprite0Numbers,x
+    RESET_SPRITE 0
     LOAD_SPRITE_INFO 0
+    
+    ; スプライト0のY座標を決定
+    RESET_SPRITE_YPOS 0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPRITES_MASK
-    sta ZoneSprite1Numbers,x
+    RESET_SPRITE 1
     LOAD_SPRITE_INFO 1
-#endif
 
-    ; スプライト0の色を決定
-    jsr NextRandomValue
-    lda RandomValue
-    sta ZoneSprite0Colors,x
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1の色を決定
-    jsr NextRandomValue
-    lda RandomValue
-    sta ZoneSprite1Colors,x
-#endif
-
-    ; スプライト0のX座標の初期値を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%01111111
-    sta ZoneSprite0XPos,x
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1のX座標の初期値を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%01111111
-    sta ZoneSprite1XPos,x
-#endif
-
-    ; スプライト0のY座標の初期値を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00001111
-    clc
-    adc #1
-    sta ZoneSprite0YPos,x
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1のY座標の初期値を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00001111
-    clc
-    adc #1
-    lda #20
+    lda #1 ; スプライト1のY座標は固定で1
     sta ZoneSprite1YPos,x
 #endif
 
+    ; スプライト0の色を決定
+    RESET_SPRITE_COLOR 0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1の色を決定
+    RESET_SPRITE_COLOR 1
+#endif
+
+    ; スプライト0のX座標の初期値を決定
+    RESET_SPRITE_XPOS 0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のX座標の初期値を決定
+    RESET_SPRITE_XPOS 1
+#endif
+
     ; スプライト0の向きを決定
-    lda Sprite0Info
-    and #SPRITE_ORIENTABLE
-    beq .SkipSetZoneSprite0Orient ; SPRITE_ORIENTABLEでなければスキップ
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000001
-    beq .SetZoneSprite0OrientRight
-    lda ZoneSprite0Abilities,x
-    ora #SPRITE_ORIENT_LEFT
-    jmp .SetZoneSprite0OrientEnd
-.SetZoneSprite0OrientRight 
-    lda ZoneSprite0Abilities,x
-    ora #SPRITE_ORIENT_RIGHT
-.SetZoneSprite0OrientEnd 
-    sta ZoneSprite0Abilities,x
-.SkipSetZoneSprite0Orient
+    RESET_SPRITE_ORIENT 0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の向きを決定
-    lda Sprite1Info
-    and #SPRITE_ORIENTABLE
-    beq .SkipSetZoneSprite1Orient ; SPRITE_ORIENTABLEでなければスキップ
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000001
-    beq .SetZoneSprite1OrientRight
-    lda ZoneSprite1Abilities,x
-    ora #SPRITE_ORIENT_LEFT
-    jmp .SetZoneSprite1OrientEnd
-.SetZoneSprite1OrientRight
-    lda ZoneSprite1Abilities,x
-    ora #SPRITE_ORIENT_RIGHT
-.SetZoneSprite1OrientEnd
-    sta ZoneSprite1Abilities,x
-.SkipSetZoneSprite1Orient
+    RESET_SPRITE_ORIENT 1
 #endif
 
     ; スプライト0の速さを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPEEDS_MASK
-    tay 
-    lda ZoneSprite0Abilities,x
-    ora SpeedTable,y
-    sta ZoneSprite0Abilities,x
+    RESET_SPRITE_SPEED 0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の速さを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #NUMBER_OF_SPEEDS_MASK
-    tay
-    lda ZoneSprite1Abilities,x
-    ora SpeedTable,y
-    sta ZoneSprite1Abilities,x
+    RESET_SPRITE_SPEED 1
 #endif
 
     ; スプライト0の移動可否を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000001
-    beq .SetZoneSprite0Unmovable
-    lda ZoneSprite0Abilities,x
-    ora #SPRITE_MOVABLE
-    jmp .SetZoneSprite0MovableEnd
-.SetZoneSprite0Unmovable
-    lda ZoneSprite0Abilities,x
-    ora #SPRITE_UNMOVABLE
-.SetZoneSprite0MovableEnd 
-    sta ZoneSprite0Abilities,x
+    RESET_SPRITE_MOVABLE 0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の移動可否を決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000001
-    beq .SetZoneSprite1Unmovable
-    lda ZoneSprite1Abilities,x
-    ora #SPRITE_MOVABLE
-    jmp .SetZoneSprite1MovableEnd
-.SetZoneSprite1Unmovable
-    lda ZoneSprite1Abilities,x
-    ora #SPRITE_UNMOVABLE
-.SetZoneSprite1MovableEnd 
-    sta ZoneSprite1Abilities,x
+    RESET_SPRITE_MOVABLE 1
 #endif
 
     ; スプライト0のNUSIZを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000111
-    tay
-    lda Sprite0Info
-    and #SPRITE_NUSIZ_UNQUADABLE
-    bne .SetSprite0NusizUnwideable
-    lda NUSIZTableAll,y
-    jmp .EndSprite0Nusiz
-.SetSprite0NusizUnwideable
-    lda NUSIZTableUnwideable,y
-.EndSprite0Nusiz
-    sta ZoneSprite0Nusiz,x
+    RESET_SPRITE_NUSIZ 0
 
 #if USE_SPRITE_1 = 1
     ; スプライト1のNUSIZを決定
-    jsr NextRandomValue
-    lda RandomValue
-    and #%00000111
-    tay
-    lda Sprite1Info
-    and #SPRITE_NUSIZ_UNQUADABLE
-    bne .SetSprite1NusizUnwideable
-    lda NUSIZTableAll,y
-    jmp .EndSprite1Nusiz
-.SetSprite1NusizUnwideable
-    lda NUSIZTableUnwideable,y
-.EndSprite1Nusiz
-    sta ZoneSprite1Nusiz,x
+    RESET_SPRITE_NUSIZ 1
 #endif
 
     ; ゾーンの高さの合計を保持

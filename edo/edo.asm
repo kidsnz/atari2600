@@ -733,7 +733,7 @@ RenderPlayerZoneReturn:
         lda RandomValue
         and #%00011111
         clc
-        adc #1
+        adc #20
         sta ZoneSprite{1}YPos,x
         ; スプライトの高さと#RENDER_ZONE_INIT_TIMEを足す
         clc
@@ -1106,7 +1106,7 @@ ResetScene subroutine
     RESET_SPRITE 1
     LOAD_SPRITE_INFO 1
 
-    lda #1 ; スプライト1のY座標は固定で1
+    lda #2 ; スプライト1のY座標は固定で2
     sta ZoneSprite1YPos,x
 #endif
 

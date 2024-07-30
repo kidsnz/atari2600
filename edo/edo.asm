@@ -410,8 +410,27 @@ RenderPlayerZoneReturn:
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドの描画マクロ(一括)
+    MAC RENDER_PLAYFIELDS
+#if USE_PLAYFIELD = 1
+        txa
+        cmp PlayFieldHeight
+        bcc .LoadPlayfield
+        lda #0
+.LoadPlayfield
+        tay
+        lda (PlayFieldGfx0),y
+        sta PF0
+        lda (PlayFieldGfx1),y
+        sta PF1
+        lda (PlayFieldGfx2),y
+        sta PF2
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; プレイフィールドの描画マクロ
-    ;  x: ゾーンのY座標
+    ;  {1}: プレイフィールド番号
     MAC RENDER_PLAYFIELD
 #if USE_PLAYFIELD = 1
         txa
@@ -422,7 +441,6 @@ RenderPlayerZoneReturn:
         tay
         lda (PlayFieldGfx{1}),y
         sta PF{1}
-.SkipPlayField
 #endif
     ENDM
 
@@ -439,7 +457,6 @@ RenderPlayerZoneReturn:
         tay
         lda (PlayFieldGfx{1}),y
         sta PF{1}Buffer
-.SkipPlayField
 #endif
     ENDM
 
@@ -602,8 +619,10 @@ RenderPlayerZoneReturn:
         clc
         adc #MIN_ZONE_HEIGHT
 
-        ; ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
+#if USE_SPRITE_1 = 1 && USE_PLAYFIELD = 1
+        ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
         and #%11111100
+#endif
 
         sta ZoneHeights,x
     ENDM
@@ -875,6 +894,8 @@ RenderZone:
 ; ラインの描画(4xlineで処理するので4ライン分の処理)
 .BeginRenderZoneLoop
 
+#if USE_SPRITE_1 = 1 && USE_PLAYFIELD = 1
+    ; 4xlinesの処理
     ; 1ライン目の処理
     sta WSYNC
     RENDER_SPRITES
@@ -898,6 +919,13 @@ RenderZone:
     RENDER_SPRITES
     FLASH_PLAYFIELD
     dex
+#else
+    ; 1xlineの処理
+    sta WSYNC
+    RENDER_SPRITES
+    RENDER_PLAYFIELDS
+    dex
+#endif
     
     beq .EndRenderZoneLoop
     jmp .BeginRenderZoneLoop

@@ -759,7 +759,7 @@ RenderPlayerZoneReturn:
         sec
         sbc #RENDER_ZONE_INIT_TIME
         sec
-        sbc Sprite{1}Height
+        cmp Sprite{1}Height + 1
         ; それでY座標がマイナスになる場合は、座標1
         bcc .SetSprite{1}HeightOne
         jmp .StoreSprite{1}Height

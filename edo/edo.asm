@@ -37,7 +37,7 @@ USE_PLAYFIELD = 1
 PLAYER_GFX_HEIGHT          = 14  ; プレイヤーの高さ
 MAX_LINES                  = 192 ; スキャンライン数 
 MAX_NUMBER_OF_ZONES        = 5   ; ゾーンの最大数
-MIN_ZONE_HEIGHT            = 32  ; ゾーンの最小の高さ
+MIN_ZONE_HEIGHT            = 24  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT            = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
 MAX_X                      = 160 ; X座標の最大値
@@ -593,12 +593,18 @@ RenderPlayerZoneReturn:
     MAC RESET_ZONE_HEIGHT
         jsr NextRandomValue
         lda RandomValue
-        and #MAX_ZONE_HEIGHT - #MIN_ZONE_HEIGHT - #1
+        ; ゾーンの最小高さ～ゾーンの最大高さの乱数を得る
+        sec
+.ModLoop
+        sbc #(MAX_ZONE_HEIGHT - MIN_ZONE_HEIGHT + 1)
+        bcs .ModLoop
+        adc #(MAX_ZONE_HEIGHT - MIN_ZONE_HEIGHT + 1)
         clc
         adc #MIN_ZONE_HEIGHT
 
-        ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
+        ; ; 高さが4の倍数になるように丸める(各ゾーンで4xline処理をするので4の倍数である必要がある)
         and #%11111100
+
         sta ZoneHeights,x
     ENDM
 
@@ -755,6 +761,11 @@ RenderPlayerZoneReturn:
         sec
         sbc Sprite{1}Height
         ; それでY座標がマイナスになる場合は、座標1
+        bcc .SetSprite{1}HeightOne
+        jmp .StoreSprite{1}Height
+.SetSprite{1}HeightOne
+        lda #1
+.StoreSprite{1}Height
         sta ZoneSprite{1}YPos,x
 .SkipSubSprite{1}Height
     ENDM
@@ -1211,7 +1222,8 @@ ResetScene subroutine
 .EndInitializeZoneLoop
 
     ; ゾーンの最大数を超えていたらもう一度シーンを生成する
-    cmp #MAX_NUMBER_OF_ZONES
+    lda NumberOfZones
+    cmp #MAX_NUMBER_OF_ZONES + 1
     bcc .DoneResetScene
     jsr ResetScene
 

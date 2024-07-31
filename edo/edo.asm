@@ -167,9 +167,9 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 95 byte / 128 byte
+; 113 byte / 128 byte
 
-; 4 byte グローバルに使う用途
+; 5 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
 AnimFrameCounter    byte ; アニメーション用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
@@ -181,20 +181,21 @@ Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
 
-Sprite0Info         byte ; スプライト0情報
+Sprite0Info         byte ; スプライト0情報を保持
 Sprite0Height       byte ; スプライト0の高さを保持
 Sprite0YPos         byte ; スプライト0のY座標を保持
-Sprite0Gfx          word ; スプライト0のアドレス
+Sprite0Gfx          word ; スプライト0のアドレスを保持
 
-Sprite1Info         byte ; スプライト1情報
+Sprite1Info         byte ; スプライト1情報を保持
 Sprite1Height       byte ; スプライト1の高さを保持
-Sprite1Gfx          word ; スプライト1のアドレス
+Sprite1YPos         byte ; スプライト1のY座標を保持
+Sprite1Gfx          word ; スプライト1のアドレスを保持
 
-PlayFieldInfo       byte ; プレイフィールド情報
-PlayFieldHeight     byte ; プレイフィールドの高さ
-PlayFieldGfx0       word ; プレイフィールド0のアドレス
-PlayFieldGfx1       word ; プレイフィールド1のアドレス
-PlayFieldGfx2       word ; プレイフィールド2のアドレス
+PlayFieldInfo       byte ; プレイフィールド情報を保持
+PlayFieldHeight     byte ; プレイフィールドの高さを保持
+PlayFieldGfx0       word ; プレイフィールド0のアドレスを保持
+PlayFieldGfx1       word ; プレイフィールド1のアドレスを保持
+PlayFieldGfx2       word ; プレイフィールド2のアドレスを保持
 
 PF0Buffer           byte ; PF0のバッファ
 PF1Buffer           byte ; PF1のバッファ
@@ -207,7 +208,7 @@ PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
 
-; 76 byte ゾーン関連
+; 81 byte ゾーン関連
 NumberOfZones        byte ; ゾーン数
 
 ZoneBgColors         ds MAX_NUMBER_OF_ZONES ; 各ゾーンの色
@@ -224,6 +225,7 @@ ZoneSprite0Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0の
 
 ZoneSprite1Colors    ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の色
 ZoneSprite1XPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のX座標
+ZoneSprite1YPos      ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト0のY座標
 ZoneSprite1Abilities ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の属性
 ZoneSprite1Nusiz     ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1のNUSIZ
 ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の番号
@@ -398,6 +400,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
+        ; sbc Sprite1YPos
         sbc #SPRITE1_YPOS
         cmp Sprite1Height
         bcc .DrawSprite1
@@ -774,7 +777,7 @@ RenderPlayerZoneReturn:
         bpl .JustifySprite{1}YPos
         jmp .SkipSubSprite{1}Height
 .JustifySprite{1}YPos
-	lda ZoneHeights,x
+	lda ZoneHeights,x 
         sec
         sbc #RENDER_ZONE_INIT_TIME
         sec
@@ -852,6 +855,12 @@ RenderZone:
     ; スプライト0のY座標のセット
     lda ZoneSprite0YPos,x
     sta Sprite0YPos
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のY座標のセット
+    lda ZoneSprite1YPos,x
+    sta Sprite1YPos
+#endif
 
     ; スプライト0の向きのセット
     lda ZoneSprite0Abilities,x
@@ -1191,6 +1200,9 @@ ResetScene subroutine
     ; スプライト1を決定
     RESET_SPRITE 1
     LOAD_SPRITE_INFO 1
+
+    ; スプライト1のY座標を決定
+    RESET_SPRITE_YPOS 1
 #endif
 
     ; スプライト0の色を決定

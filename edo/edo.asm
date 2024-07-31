@@ -49,7 +49,6 @@ NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマス
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
-SPRITE1_YPOS               = 2  ; スプライト1のY座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -400,8 +399,7 @@ RenderPlayerZoneReturn:
         ; スプライト1の描画
         txa
         sec
-        ; sbc Sprite1YPos
-        sbc #SPRITE1_YPOS
+        sbc Sprite1YPos
         cmp Sprite1Height
         bcc .DrawSprite1
         lda #0
@@ -759,30 +757,51 @@ RenderPlayerZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; ゾーンのスプライトのY座標を決定
     ;  {1}: スプライト番号
+    ;  {2}: 最小のY座標
+    ;  {3}: 最大のY座標
     MAC RESET_SPRITE_YPOS
         jsr NextRandomValue
         lda RandomValue
-        and #%00011111
+        ; {2}~{3}の乱数を取る
+        sec
+.ModLoop
+        sbc #({3} - {2} + 1)
+        bcs .ModLoop
+        adc #({3} - {2} + 1)
         clc
-        adc #20
+        adc #{2}
+
+        ; 一旦Y座標を保持
         sta ZoneSprite{1}YPos,x
-        ; スプライトの高さと#RENDER_ZONE_INIT_TIMEを足す
+        
+        ; ゾーンの実質の高さを計算
+        lda ZoneHeights,x
+        sec
+        sbc #RENDER_ZONE_INIT_TIME
+        sta Tmp
+        
+        ; Y座標とスプライトの高さを足して上部のY座標を得る
+        lda ZoneSprite{1}YPos,x
         clc
         adc Sprite{1}Height
-        clc
-        adc #RENDER_ZONE_INIT_TIME
-        ; (Y座標+スプライトの高さ+#RENDER_ZONE_INIT_TIME) - ゾーンの高さ を計算して、プラスならはみ出ているので、差分をY座標から引く
+        
+        ; スプライトの上部のY座標 - ゾーンの実質の高さ
         sec
-        sbc ZoneHeights,x
+        sbc Tmp
+        
+        ; プラスならはみ出ているのではみ出た分を調整
         bpl .JustifySprite{1}YPos
         jmp .SkipSubSprite{1}Height
 .JustifySprite{1}YPos
-	lda ZoneHeights,x 
+	sta Tmp
+	lda ZoneSprite{1}YPos,x
         sec
-        sbc #RENDER_ZONE_INIT_TIME
-        sec
-        cmp Sprite{1}Height + 1
-        ; それでY座標がマイナスになる場合は、座標1
+        sbc Tmp
+        
+        ; 0なら座標1にセット(0だと表示がバグるので)
+        beq .SetSprite{1}HeightOne
+        
+        ; それでY座標がマイナスになる場合は、座標1にセット
         bcc .SetSprite{1}HeightOne
         jmp .StoreSprite{1}Height
 .SetSprite{1}HeightOne
@@ -1194,7 +1213,7 @@ ResetScene subroutine
     LOAD_SPRITE_INFO 0
     
     ; スプライト0のY座標を決定
-    RESET_SPRITE_YPOS 0
+    RESET_SPRITE_YPOS 0,#1,#16
 
 #if USE_SPRITE_1 = 1
     ; スプライト1を決定
@@ -1202,7 +1221,7 @@ ResetScene subroutine
     LOAD_SPRITE_INFO 1
 
     ; スプライト1のY座標を決定
-    RESET_SPRITE_YPOS 1
+    RESET_SPRITE_YPOS 1,#16,#32
 #endif
 
     ; スプライト0の色を決定

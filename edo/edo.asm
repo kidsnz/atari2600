@@ -380,8 +380,7 @@ RenderPlayerZoneReturn:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; スプライトの描画マクロ
-    ;  x: ゾーンのY座標
+    ; スプライトの描画
     MAC RENDER_SPRITES
         ; スプライト0の描画
         txa
@@ -408,6 +407,22 @@ RenderPlayerZoneReturn:
         lda (Sprite1Gfx),y
         sta GRP1
 #endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの描画
+    ;  {1}: スプライト番号
+    MAC RENDER_SPRITE
+        txa
+        sec
+        sbc Sprite{1}YPos
+        cmp Sprite{1}Height
+        bcc .DrawSprite{1}
+        lda #0
+.DrawSprite{1}
+        tay
+        lda (Sprite{1}Gfx),y
+        sta GRP{1}
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -919,46 +934,36 @@ RenderZone:
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
 
-; ラインの描画(4xlineで処理するので4ライン分の処理)
-.BeginRenderZoneLoop
+    ; プレイフィールドがあるかどうかを判定
+    lda PlayFieldHeight
+    cmp #0
+    
+    ; プレイフィールドがない場合はスプライトを2つ表示
+    beq .BeginRenderSpritesLoop 
 
-#if USE_SPRITE_1 = 1 && USE_PLAYFIELD = 1
-    ; 4xlinesの処理
-    ; 1ライン目の処理
-    sta WSYNC
-    RENDER_SPRITES
-    BUFFER_PLAYFIELD 0
-    dex
+    ; プレイフィールドがある場合はスプライト0とプレイフィールドを表示
+    jmp .BeginRenderSprite0AndPlayFieldLoop 
 
-    ; 2ライン目の処理
-    sta WSYNC
-    RENDER_SPRITES
-    BUFFER_PLAYFIELD 1
-    dex
+.BeginRenderSpritesLoop
 
-    ; 3ライン目の処理
     sta WSYNC
     RENDER_SPRITES
-    BUFFER_PLAYFIELD 2
     dex
+    
+    beq .EndRenderLoop
+    jmp .BeginRenderSpritesLoop
+    
+.BeginRenderSprite0AndPlayFieldLoop
 
-    ; 4ライン目の処理
     sta WSYNC
-    RENDER_SPRITES
-    FLASH_PLAYFIELD
-    dex
-#else
-    ; 1xlineの処理
-    sta WSYNC
-    RENDER_SPRITES
+    RENDER_SPRITE 0
     RENDER_PLAYFIELDS
     dex
-#endif
     
-    beq .EndRenderZoneLoop
-    jmp .BeginRenderZoneLoop
+    beq .EndRenderLoop
+    jmp .BeginRenderSprite0AndPlayFieldLoop
     
-.EndRenderZoneLoop
+.EndRenderLoop
 
     ; 後処理
 #if USE_PLAYFIELD = 1
@@ -1435,10 +1440,10 @@ PlayFieldGfxs:
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
     .word PlayFieldBuildingGfx
-    .word PlayFieldBuildingGfx
-    .word PlayFieldBuildingGfx
-    .word PlayFieldMountainGfx
     .word PlayFieldMountainGfx
 
 PlayFieldNoneGfx:

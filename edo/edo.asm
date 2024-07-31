@@ -44,7 +44,7 @@ MAX_X                      = 160 ; X座標の最大値
 MIN_X                      = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT      = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 NUMBER_OF_SPRITES_MASK     = %01111111 ; スプライトの数のマスク
-NUMBER_OF_PLAY_FIELDS_MASK = %00000111 ; プレイフィールドの数のマスク
+NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマスク
 NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
@@ -1437,6 +1437,14 @@ PlayerGfxColor:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 PlayFieldGfxs:
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
+    .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx

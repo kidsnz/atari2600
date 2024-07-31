@@ -926,18 +926,18 @@ RenderZone:
     sta CTRLPF
 #endif
 
-    TIMER_WAIT
-
     ; ゾーンの高さ分のループ
     lda ZoneHeights,x
     sec
     sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
 
+    TIMER_WAIT
+
     ; プレイフィールドがあるかどうかを判定
     lda PlayFieldHeight
     cmp #0
-    
+
     ; プレイフィールドがない場合はスプライトを2つ表示
     beq .BeginRenderSpritesLoop 
 

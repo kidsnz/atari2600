@@ -351,18 +351,6 @@ StartFrame0:
     ;; Bank0 プレイヤーの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ; ボタンが押されたらバンクを切り替える
-    bit INPT4
-    bmi .SkipChangeBank
-#if DEBUG = 0
-    BANK_SWITCH 1,Reset_1
-#endif
-.SkipChangeBank
-
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; Bank0 プレイヤーの処理
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
     jmp ProcTitlePlayer
 ProcTitlePlayerReturn:
 
@@ -555,10 +543,6 @@ RenderTitlePlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcTitlePlayer:
-    lda #%00100000
-    bit SWCHA
-    bne .SkipMoveDownTitle
-.SkipMoveDownTitle:
     lda #%01000000
     bit SWCHA
     bne .SkipMoveLeftTitle
@@ -602,6 +586,8 @@ LeftPlayerXPosTitle subroutine
     lda #MAX_X-#20
     sta PlayerXPos
 #if DEBUG = 0
+    lda FrameCounter
+    sta RandomCounter
     BANK_SWITCH 1,Reset_1
 #endif
 .EndMoveTitle
@@ -619,11 +605,13 @@ RightPlayerXPosTitle subroutine
     lda #MIN_X
     sta PlayerXPos
 #if DEBUG = 0
+    lda FrameCounter
+    sta RandomCounter
     BANK_SWITCH 1,Reset_1
 #endif
 .EndMoveTitle
     rts
-    
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1325,7 +1313,6 @@ BankSwitch:
 #if DEBUG = 0 || DEBUG_BANK = 1
 
 Reset_1:
-    CLEAN_START
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 初期化の開始
@@ -1338,10 +1325,13 @@ Reset_1:
     sta PlayerYPos
 
     ; シーンの初期化
+#if DEBUG = 1 && DEBUG_BANK = 1
     lda #INITIAL_RANDOM_COUNTER
     sta RandomCounter
     lda #INITIAL_RANDOM_COUNTER_2
     sta RandomCounter2
+#endif
+
     jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2375,7 +2365,7 @@ ResetScene subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 乱数をリセットする
 ResetRandomCounter subroutine
-    sta RandomCounter
+    lda RandomCounter
     clc
     adc FrameCounter
     sta RandomCounter2

@@ -12,7 +12,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 開発時は1を指定する
-DEBUG = 1
+DEBUG = 0
+
+; 開発したいバンクを指定する
+;  0: タイトル
+;  1: シーン
+DEBUG_BANK = 0
 
 ; 乱数カウンターの初期値
 INITIAL_RANDOM_COUNTER   = 0
@@ -272,13 +277,25 @@ ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の
 ;; Bank0 プログラムコードの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#if DEBUG = 1 && DEBUG_BANK = 0
+    org $F000
+Start:
+#endif
+
 #if DEBUG = 0
     org $1000
     rorg $F000
 Start:
+#endif
+
+#if DEBUG = 0
     BANK_PROLOGUE
 BankSwitch:
     BANK_SWITCH_TRAMPOLINE
+#endif
+
+#if DEBUG = 0 || DEBUG_BANK = 0
+
 Reset_0:
     CLEAN_START
 
@@ -336,7 +353,9 @@ StartFrame0:
     ; ボタンが押されたらバンクを切り替える
     bit INPT4
     bmi .SkipChangeBank
+#if DEBUG = 0
     BANK_SWITCH 1,Reset_1
+#endif
 .SkipChangeBank
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -484,12 +503,6 @@ RenderTitlePlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcTitlePlayer:
-    lda #%00010000
-    bit SWCHA
-    bne .SkipMoveUpTitle
-    jsr ResetRandomCounter
-    jsr ResetScene
-.SkipMoveUpTitle:
     lda #%00100000
     bit SWCHA
     bne .SkipMoveDownTitle
@@ -536,7 +549,9 @@ LeftPlayerXPosTitle subroutine
     bcc .EndMoveTitle
     lda #MAX_X-#20
     sta PlayerXPos
+#if DEBUG = 0
     BANK_SWITCH 1,Reset_1
+#endif
 .EndMoveTitle
     rts
 
@@ -551,13 +566,14 @@ RightPlayerXPosTitle subroutine
     bcc .EndMoveTitle
     lda #MIN_X
     sta PlayerXPos
+#if DEBUG = 0
     BANK_SWITCH 1,Reset_1
+#endif
 .EndMoveTitle
     rts
-
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bank1 プレイヤーデータ
+;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; プレイヤースプライト
@@ -613,29 +629,43 @@ PlayerGfxColor0:
 ;; Bank0 末尾
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#if DEBUG = 1 && DEBUG_BANK = 0
+    org $FFFC
+    word Start
+    word Start
+#endif
+
+#if DEBUG = 0
     org  $1FFA
     rorg $FFFA
     BANK_VECTORS
+#endif
 
 #endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 プログラムコードの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    
+
+#if DEBUG = 1 && DEBUG_BANK = 1
+    org $F000
+Start:
+#endif
+
 #if DEBUG = 0
     org $2000
     rorg $F000
-#else
-    org $F000
+Start:
 #endif
 
-Start:
 #if DEBUG = 0
     BANK_PROLOGUE
 BankSwitch:
     BANK_SWITCH_TRAMPOLINE
 #endif
+
+#if DEBUG = 0 || DEBUG_BANK = 1
+
 Reset_1:
     CLEAN_START
 
@@ -2932,13 +2962,16 @@ RandomTable:
 ;; Bank1 末尾
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#if DEBUG = 0
-    org  $2FFA
-    rorg $FFFA
-    BANK_VECTORS
-#else
+#if DEBUG = 1 && DEBUG_BANK = 1
     org $FFFC
     word Start
     word Start
 #endif
 
+#if DEBUG = 0
+    org  $2FFA
+    rorg $FFFA
+    BANK_VECTORS
+#endif
+
+#endif

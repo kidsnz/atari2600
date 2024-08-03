@@ -20,7 +20,7 @@ DEBUG = 0
 DEBUG_BANK = 0
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER   = 0
+INITIAL_RANDOM_COUNTER   = 8
 INITIAL_RANDOM_COUNTER_2 = 128
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 ; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
@@ -2518,134 +2518,179 @@ PlayFieldGfxs:
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
     .word PlayFieldNoneGfx
-    .word PlayFieldNoneGfx
-    .word PlayFieldBuildingGfx
-    .word PlayFieldMountainGfx
+    .word PlayFieldTwinMountainGfx
+    .word PlayFieldBigMountainGfx
+    .word PlayFieldGrassGfx
 
 PlayFieldNoneGfx:
     .byte #0
-    .byte %00000000 ; |        |
-   
-PlayFieldBuildingGfx:
-    .byte PLAYFIELD_UNMIRRORING
-    .byte #16
-    .byte %00000000 ; |        |
-    .byte %11110000 ; |XXXX    |
-    .byte %11110000 ; |XXXX    |
-    .byte %11110000 ; |XXXX    |
-    .byte %11110000 ; |XXXX    |
-    .byte %01110000 ; | XXX    |
-    .byte %01110000 ; | XXX    |
-    .byte %01110000 ; | XXX    |
-    .byte %01010000 ; | X X    |
-    .byte %01010000 ; | X X    |
-    .byte %00010000 ; |   X    |
-    .byte %00010000 ; |   X    |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+    .byte %00000000
 
-    .byte %00000000 ; |        |
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11110111 ; |XXXX XXX|
-    .byte %11010111 ; |XX X XXX|
-    .byte %01010011 ; | X X  XX|
-    .byte %01010011 ; | X X  XX|
-    .byte %00000010 ; |      X |
-    .byte %00000010 ; |      X |
-    .byte %00000010 ; |      X |
-    .byte %00000010 ; |      X |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+PlayFieldTwinMountainGfx:
+    .byte PLAYFIELD_MIRRORING
+    .byte #12
+    .byte %00000000
+    .byte %11110000
+    .byte %11100000
+    .byte %11000000
+    .byte %10000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
 
-    .byte %00000000 ; |        |
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11101111 ; |XXX XXXX|
-    .byte %11100111 ; |XXX  XXX|
-    .byte %11100111 ; |XXX  XXX|
-    .byte %11000101 ; |XX   X X|
-    .byte %10000001 ; |X      X|
-    .byte %10000001 ; |X      X|
-    .byte %10000001 ; |X      X|
-    .byte %10000000 ; |X       |
-    .byte %10000000 ; |X       |
-    .byte %10000000 ; |X       |
+    .byte %00000000
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %01111111
+    .byte %00111111
+    .byte %00011111
+    .byte %00001110
+    .byte %00000100
+    .byte %00000000
 
-PlayFieldMountainGfx:
+    .byte %00000000
+    .byte %01111111
+    .byte %00111111
+    .byte %00011111
+    .byte %00001111
+    .byte %00000111
+    .byte %00000011
+    .byte %00000001
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    
+PlayFieldBigMountainGfx:
     .byte PLAYFIELD_MIRRORING
     .byte #20
-    .byte %00000000 ; |        |
-    .byte %11110000 ; |XXXX    |
-    .byte %11100000 ; |XXX     |
-    .byte %11000000 ; |XX      |
-    .byte %10000000 ; |X       |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+    .byte %00000000
+    .byte %11110000
+    .byte %11100000
+    .byte %11000000
+    .byte %10000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
 
-    .byte %00000000 ; |        |
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %01111111 ; | XXXXXXX|
-    .byte %00111111 ; |  XXXXXX|
-    .byte %00011111 ; |   XXXXX|
-    .byte %00001111 ; |    XXXX|
-    .byte %00000111 ; |     XXX|
-    .byte %00000011 ; |      XX|
-    .byte %00000001 ; |       X|
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
-    .byte %00000000 ; |        |
+    .byte %00000000
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %01111111
+    .byte %00111111
+    .byte %00011111
+    .byte %00001111
+    .byte %00000111
+    .byte %00000011
+    .byte %00000001
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
 
-    .byte %00000000 ; |        |
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111111 ; |XXXXXXXX|
-    .byte %11111110 ; |XXXXXXX |
-    .byte %11111100 ; |XXXXXX  |
-    .byte %11111000 ; |XXXXX   |
-    .byte %11110000 ; |XXXX    |
-    .byte %11100000 ; |XXX     |
-    .byte %11000000 ; |XX      |
-    .byte %01000000 ; |X       |
+    .byte %00000000
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11111110
+    .byte %11111100
+    .byte %11111000
+    .byte %11110000
+    .byte %11100000
+    .byte %11000000
+    .byte %01000000
+    
+PlayFieldGrassGfx:
+    .byte PLAYFIELD_UNMIRRORING
+    .byte #16
+    .byte %00000000
+    .byte %11110000
+    .byte %11110000
+    .byte %11110000
+    .byte %01100000
+    .byte %01100000
+    .byte %01000000
+    .byte %01000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+
+    .byte %00000000
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %11011011
+    .byte %11011011
+    .byte %01001001
+    .byte %01001001
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+
+    .byte %00000000
+    .byte %11111111
+    .byte %11111111
+    .byte %11111111
+    .byte %10110110
+    .byte %10110110
+    .byte %00100100
+    .byte %00100100
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 スプライトデータ

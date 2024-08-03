@@ -32,7 +32,7 @@ USE_SPRITE_1 = 1
 USE_PLAYFIELD = 1
 
 ; 音楽を使う
-USE_MUSIC = 0
+USE_MUSIC = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
@@ -76,7 +76,7 @@ TITLE_MUSIC_PITCH          = 16  ; タイトル音楽のピッチ(2の乗数で�
 ;  6bit: アニメーション可能かどうか
 ;  5bit: 方向づけ可能かどうか
 ;  4bit: NUSIZの種類(0: ALL, 1: UNWIDEABLE)
-;  3bit: 空き
+;  3bit: 移動のパターン(0: LINEAR, 1: PULSED)
 ;  2bit: 空き
 ;  1bit: 空き
 ;  0bit: 空き
@@ -88,6 +88,8 @@ SPRITE_ORIENTABLE       = %00100000 ; スプライト方向可能
 SPRITE_UNORIENTABLE     = %00000000 ; スプライト方向なし
 SPRITE_NUSIZ_ALL        = %00000000 ; スプライトのNUSIZの全種類使う
 SPRITE_NUSIZ_UNQUADABLE = %00010000 ; スプライトのNUSIZのQuadサイズなし
+SPRITE_MOVING_LINEAR    = %00000000 ; スプライトが線形に動く
+SPRITE_MOVING_PULSED    = %00001000 ; スプライトがパルス(停止と動くが周期的)に動く
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト属性(Sprite0,1Abilities)用定数
@@ -98,7 +100,7 @@ SPRITE_NUSIZ_UNQUADABLE = %00010000 ; スプライトのNUSIZのQuadサイズな
 ;  6bit: アニメーションが有効
 ;  5bit: 方向
 ;  4bit: 空き
-;  3bit: 空き
+;  3bit: 移動のパターン(0: LINEAR, 1: PULSED)
 ;  2bit: 空き
 ;  1~0bit: 速度番号
 SPRITE_MOVING_ON        = %10000000 ; スプライトの移動ON
@@ -1849,6 +1851,15 @@ RenderPlayerZoneReturn:
 .StartMove{1}
         ldx ZoneIndex
         lda ZoneSprite{1}Abilities,x
+        ; 移動の種類をチェック
+        and #SPRITE_MOVING_PULSED
+        beq .MoveLinear{1}
+        ; パルス移動
+        lda FrameCounter
+        and #%10000000
+        bne .EndMove{1} ; 特定フレームでなかったら移動しない
+.MoveLinear{1}
+        lda ZoneSprite{1}Abilities,x
         and #SPRITE_SPEED_MASK
         tay
         lda SpeedTable,y
@@ -2007,6 +2018,16 @@ RenderPlayerZoneReturn:
         ora #SPRITE_UNMOVABLE
 .SetZoneSprite{1}MovableEnd
         sta ZoneSprite{1}Abilities,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトの移動種類の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_MOVING
+        lda Sprite{1}Info
+        and #%00001000
+        sta Tmp
+        ora ZoneSprite{1}Abilities,x
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2569,6 +2590,14 @@ ResetScene subroutine
     RESET_SPRITE_MOVABLE 1
 #endif
 
+    ; スプライト0の移動の種類を決定
+    RESET_SPRITE_MOVING 0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1の移動の種類を決定
+    RESET_SPRITE_MOVING 1
+#endif
+
     ; スプライト0のNUSIZを決定
     RESET_SPRITE_NUSIZ 0
 
@@ -3003,7 +3032,7 @@ SpriteGfxs:
     .word MontezumaGfx
 
 BearGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #20
     .byte %00000000 ; |        |
@@ -3049,7 +3078,7 @@ BearGfx:
     .byte %00010100 ; |   X X  |
 
 CloudGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_UNANIMATABLE | #SPRITE_UNORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #13
     .byte %00000000 ; |        |
@@ -3109,7 +3138,7 @@ Tree2Gfx:
     .byte %00010000 ; |   X    |
 
 BirdGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #8
     .byte %00000000 ; |        |
@@ -3131,7 +3160,7 @@ BirdGfx:
     .byte %11100100 ; |XXX  X  |
 
 FishGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #11
     .byte %00000000 ; |        |
@@ -3224,7 +3253,7 @@ BoxGfx:
     .byte %11111110 ; |XXXXXXX |
     
 DonkeyKongGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #20
     .byte %00000000 ; |        |
@@ -3382,7 +3411,7 @@ Walker5Gfx:
     .byte %01100000 ; | ##     |
 
 Walker6Gfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #9
     .byte %00000000 ; |        |
@@ -3406,7 +3435,7 @@ Walker6Gfx:
     .byte %00001010 ; |    X X |
 
 Walker7Gfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #9
     .byte %00000000 ; |        |
@@ -3541,7 +3570,7 @@ Dragonstomper4Gfx:
     .byte %00000000 ; |        |
 
 SpringerGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #14
     .byte %00000000 ; |        | 
@@ -3594,7 +3623,7 @@ SkyPatrolGfx:
     .byte %00001000 ; |    X   |
 
 BobbyGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #9
     .byte %00000000 ; |        |
@@ -3674,7 +3703,7 @@ LynxGfx:
     .byte %00000101 ; |     X X|
 
 RabbitTransitGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #6
     .byte %00000000 ; |        |
@@ -3692,7 +3721,7 @@ RabbitTransitGfx:
     .byte %00000010 ; |      X |
 
 PitfallGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #10
     .byte %00000000 ; |        |
@@ -3718,7 +3747,7 @@ PitfallGfx:
     .byte %00000001 ; |       X|
 
 MontezumaGfx:
-    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL
+    .byte #SPRITE_MOVABLE | #SPRITE_ANIMATABLE | #SPRITE_ORIENTABLE | #SPRITE_NUSIZ_ALL | #SPRITE_MOVING_LINEAR
 
     .byte #12
     .byte %00000000 ; |        |

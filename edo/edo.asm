@@ -43,6 +43,9 @@ USE_MUSIC = 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 PLAYER_GFX_HEIGHT          = 14  ; プレイヤーの高さ
+PLAYER_STATUS_IS_JUMPING   = %00000001 ; ジャンプ中かどうかのマスク
+PLAYER_GRAVITY             = 1   ; プレイヤーの重力
+PLAYER_INITIAL_VELOCITY    = 4   ; プレイヤーの初速度
 MAX_LINES                  = 192 ; スキャンライン数 
 MAX_NUMBER_OF_ZONES        = 5   ; ゾーンの最大数
 MIN_ZONE_HEIGHT            = 24  ; ゾーンの最小の高さ
@@ -57,7 +60,6 @@ NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマス
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
-
 TITLE_GFX_HEIGHT           = 80  ; タイトルの高さ
 TITLE_MUSIC_LENGTH         = 16  ; タイトル音楽の長さ
 TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
@@ -217,7 +219,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 114 byte / 128 byte
+; 117 byte / 128 byte
 
 ; 6 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -227,7 +229,7 @@ RandomCounter       byte ; 乱数カウンタ
 RandomCounter2      byte ; 乱数カウンタ2
 RandomValue         byte ; 乱数値
 
-; 23 byte 作業用
+; 24 byte 作業用
 Tmp                 byte ; 一時変数
 ZoneIndex           byte ; ゾーンインデックス(ゾーン描画中のカウンタ)
 UsingHeight         byte ; 使用した高さ(ゾーンの生成時に使用)
@@ -252,9 +254,11 @@ PF0Buffer           byte ; PF0のバッファ
 PF1Buffer           byte ; PF1のバッファ
 PF2Buffer           byte ; PF2のバッファ
 
-; 4 byte プレイヤー関連
+; 6 byte プレイヤー関連
 PlayerXPos          byte   ; プレイヤーのX座標
 PlayerYPos          byte   ; プレイヤーのY座標
+PlayerVelocity      byte   ; プレイヤーの加速度
+PlayerStatus        byte   ; プレイヤーの状態(0~6bit: 空き, 7bit: ジャンプ中かどうか)
 PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
 PlayerGfxAddr = Sprite0Gfx ; プレイヤースプライトのアドレス
@@ -452,10 +456,6 @@ RenderTitle:
     sta PF1
     sta PF2
     sta COLUPF
-    
-    ; タイトルの色
-    lda $4C
-    sta COLUPF
 
     ; 非対称にする
     lda #PLAYFIELD_UNMIRRORING
@@ -579,6 +579,46 @@ RenderTitlePlayerZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcTitlePlayer:
+    ; 重力加速度の適用
+    lda PlayerVelocity
+    cmp #0
+    beq .SkipApplyVelocity
+    sta Tmp
+    lda PlayerYPos
+    clc
+    adc Tmp
+    sta PlayerYPos
+    dec PlayerVelocity
+.SkipApplyVelocity
+    ; 重力の適用
+    lda PlayerYPos
+    sec
+    sbc #PLAYER_GRAVITY
+    sta PlayerYPos
+    ; 最も下端の場合は下端に固定し、ジャンプもなくす
+    cmp #2
+    bpl .SkipJumpEnd
+    lda #2
+    sta PlayerYPos
+    lda PlayerStatus
+    and #%11111110
+    sta PlayerStatus
+.SkipJumpEnd
+    ; ジャンプボタンのチェック
+    bit INPT4
+    bmi .SkipButtonPush
+    ; ジャンプでない場合はジャンプ状態にする
+    lda PlayerStatus
+    and #PLAYER_STATUS_IS_JUMPING
+    cmp #PLAYER_STATUS_IS_JUMPING
+    beq .SkipButtonPush
+    ora #PLAYER_STATUS_IS_JUMPING
+    sta PlayerStatus
+    lda #PLAYER_INITIAL_VELOCITY
+    sta PlayerVelocity
+.SkipButtonPush
+
+    ; 十字キーのチェック
     lda #%01000000
     bit SWCHA
     bne .SkipMoveLeftTitle
@@ -1359,11 +1399,14 @@ Reset_1:
 ;; Bank1 初期化の開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ; プレイヤー座標の初期化
+    ; プレイヤーの初期化
     lda #1
     sta PlayerOrient
     lda #2
     sta PlayerYPos
+    lda #0
+    sta PlayerStatus
+    sta PlayerVelocity
 
     ; 音の初期化
     lda #0
@@ -2216,6 +2259,46 @@ EndMove1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ProcPlayer:
+    ; 重力加速度の適用
+    lda PlayerVelocity
+    cmp #0
+    beq .SkipApplyVelocity
+    sta Tmp
+    lda PlayerYPos
+    clc
+    adc Tmp
+    sta PlayerYPos
+    dec PlayerVelocity
+.SkipApplyVelocity
+    ; 重力の適用
+    lda PlayerYPos
+    sec
+    sbc #PLAYER_GRAVITY
+    sta PlayerYPos
+    ; 最も下端の場合は下端に固定し、ジャンプもなくす
+    cmp #2
+    bpl .SkipJumpEnd
+    lda #2
+    sta PlayerYPos
+    lda PlayerStatus
+    and #%11111110
+    sta PlayerStatus
+.SkipJumpEnd
+    ; ジャンプボタンのチェック
+    bit INPT4
+    bmi .SkipButtonPush
+    ; ジャンプでない場合はジャンプ状態にする
+    lda PlayerStatus
+    and #PLAYER_STATUS_IS_JUMPING
+    cmp #PLAYER_STATUS_IS_JUMPING
+    beq .SkipButtonPush
+    ora #PLAYER_STATUS_IS_JUMPING
+    sta PlayerStatus
+    lda #PLAYER_INITIAL_VELOCITY
+    sta PlayerVelocity
+.SkipButtonPush
+
+    ; 十字キーのチェック
     lda #%00010000
     bit SWCHA
     bne .SkipMoveUp
@@ -2236,6 +2319,7 @@ ProcPlayer:
     bne .SkipMoveRight
     jsr RightPlayerXPos
 .SkipMoveRight:
+    
     jmp ProcPlayerReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

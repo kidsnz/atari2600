@@ -51,7 +51,7 @@ PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
 MAX_X                      = 160 ; X座標の最大値
 MIN_X                      = 0   ; X座標の最小値
 LANDSCAPE_ZONE_HEIGHT      = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
-NUMBER_OF_SPRITES_MASK     = %01111111 ; スプライトの数のマスク
+NUMBER_OF_SPRITES_MASK     = %00111111 ; スプライトの数のマスク
 NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマスク
 NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT                = %00001000 ; 左向き
@@ -2808,78 +2808,6 @@ SpriteGfxs:
     .word Dragonstomper4Gfx
     .word SpringerGfx
     ; 56~63
-    .word SkyPatrolGfx
-    .word BobbyGfx
-    .word RaftRiderGfx
-    .word DungeonMasterGfx
-    .word LynxGfx
-    .word RabbitTransitGfx
-    .word PitfallGfx
-    .word MontezumaGfx
-    ; 64 ~ 71
-    .word CloudGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BirdGfx
-    .word FishGfx
-    .word HouseGfx
-    .word BuildingGfx
-    .word Building2Gfx
-    ; 72~79
-    .word BoxGfx
-    .word DonkeyKongGfx
-    .word ETGfx
-    .word Walker1Gfx
-    .word Walker2Gfx
-    .word Walker3Gfx
-    .word Walker4Gfx
-    .word Walker5Gfx
-    ; 80~87
-    .word Walker6Gfx
-    .word Walker7Gfx
-    .word Walker8Gfx
-    .word Dragonstomper1Gfx
-    .word Dragonstomper2Gfx
-    .word Dragonstomper3Gfx
-    .word Dragonstomper4Gfx
-    .word SpringerGfx
-    ; 88~95
-    .word SkyPatrolGfx
-    .word BobbyGfx
-    .word RaftRiderGfx
-    .word DungeonMasterGfx
-    .word LynxGfx
-    .word RabbitTransitGfx
-    .word PitfallGfx
-    .word MontezumaGfx
-    ; 96 ~ 103
-    .word CloudGfx
-    .word TreeGfx
-    .word Tree2Gfx
-    .word BirdGfx
-    .word FishGfx
-    .word HouseGfx
-    .word BuildingGfx
-    .word Building2Gfx
-    ; 104~111
-    .word BoxGfx
-    .word DonkeyKongGfx
-    .word ETGfx
-    .word Walker1Gfx
-    .word Walker2Gfx
-    .word Walker3Gfx
-    .word Walker4Gfx
-    .word Walker5Gfx
-    ; 112~119
-    .word Walker6Gfx
-    .word Walker7Gfx
-    .word Walker8Gfx
-    .word Dragonstomper1Gfx
-    .word Dragonstomper2Gfx
-    .word Dragonstomper3Gfx
-    .word Dragonstomper4Gfx
-    .word SpringerGfx
-    ; 120~127
     .word SkyPatrolGfx
     .word BobbyGfx
     .word RaftRiderGfx

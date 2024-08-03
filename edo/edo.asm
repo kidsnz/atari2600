@@ -62,10 +62,10 @@ ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
 TITLE_GFX_HEIGHT           = 80  ; タイトルの高さ
-TITLE_MUSIC_LENGTH         = 16  ; タイトル音楽の長さ
+TITLE_MUSIC_LENGTH         = 64  ; タイトル音楽の長さ
 TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
 TITLE_MUSIC_VOLUME         = 3   ; タイトル音楽の音量(0~15)
-TITLE_MUSIC_PITCH          = 128 ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
+TITLE_MUSIC_PITCH          = 16  ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -174,6 +174,16 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
         lda {1},y+1
         adc #0 
         sta {2},y+1
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; 指定のメモリのアドレスをコピーする
+    ;  {1}: 周波数(0~32)
+    ;  {2}: 音量(0~8)
+    MAC SOUND
+.freq	SET {1}
+.vol	SET {2}
+	.byte (.vol+(.freq<<3))
     ENDM
 
 #if DEBUG = 0
@@ -386,12 +396,17 @@ ProcTitlePlayerReturn:
     ;; Bank0 ミュージックの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ldx MusicFrameCounter
-    lda TitleMusicSfx,x
-    sta AUDF0
     lda #TITLE_MUSIC_TONE
     sta AUDC0
-    lda #TITLE_MUSIC_VOLUME
+    ldx MusicFrameCounter
+    lda TitleMusicSfx,x
+    lsr
+    lsr
+    lsr
+    sta AUDF0
+    lda TitleMusicSfx,x
+    and #%00000111
+    asl
     sta AUDV0
 #endif
 
@@ -695,8 +710,93 @@ RightPlayerXPosTitle subroutine
 
 ; タイトルミュージック
 TitleMusicSfx:
-    .byte $4e, $4f, $4e, $4c, $4e, $53, $51, $4f
-    .byte $4e, $4f, $4e, $4c, $4b, $4c, $4e, $4f
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,4
+    SOUND 14,3
+    SOUND 14,2
+    SOUND 14,1
+
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,4
+    SOUND 15,3
+    SOUND 15,2
+    SOUND 15,1
+
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,4
+    SOUND 14,3
+    SOUND 14,2
+    SOUND 14,1
+
+    SOUND 12,7
+    SOUND 12,7
+    SOUND 12,7
+    SOUND 12,7
+    SOUND 12,4
+    SOUND 12,3
+    SOUND 12,2
+    SOUND 12,1
+
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,4
+    SOUND 14,3
+    SOUND 14,2
+    SOUND 14,1
+
+    SOUND 17,7
+    SOUND 17,7
+    SOUND 17,7
+    SOUND 17,7
+    SOUND 17,4
+    SOUND 17,3
+    SOUND 17,2
+    SOUND 17,1
+
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,7
+    SOUND 15,4
+    SOUND 15,3
+    SOUND 15,2
+    SOUND 15,1
+
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,7
+    SOUND 14,4
+    SOUND 14,3
+    SOUND 14,2
+    SOUND 14,1
+
+    ; SOUND 3,11
+    ; SOUND 3,11
+    ; SOUND 3,11
+    ; SOUND 0,11
+
+    ; SOUND 3,15
+    ; SOUND 3,15
+    ; SOUND 3,15
+    ; SOUND 0,15
+    
+    ; .byte $4e, $4f, $4e, $4c, $4e, $53, $51, $4f
+    ; .byte $4e, $4f, $4e, $4c, $4b, $4c, $4e, $4f
+
+
+; TitleMusicSfx2:
 
 ; プレイヤースプライト
 PlayerGfx0:

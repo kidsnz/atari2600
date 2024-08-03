@@ -1851,15 +1851,15 @@ RenderPlayerZoneReturn:
 .StartMove{1}
         ldx ZoneIndex
         lda ZoneSprite{1}Abilities,x
-        ; 移動の種類をチェック
-        and #SPRITE_MOVING_PULSED
-        beq .MoveLinear{1}
-        ; パルス移動
-        lda FrameCounter
-        and #%10000000
-        bne .EndMove{1} ; 特定フレームでなかったら移動しない
-.MoveLinear{1}
-        lda ZoneSprite{1}Abilities,x
+;         ; 移動の種類をチェック
+;         and #SPRITE_MOVING_PULSED
+;         beq .MoveLinear{1}
+;         ; パルス移動
+;         lda FrameCounter
+;         and #%10000000
+;         bne .EndMove{1} ; 特定フレームでなかったら移動しない
+; .MoveLinear{1}
+;         lda ZoneSprite{1}Abilities,x
         and #SPRITE_SPEED_MASK
         tay
         lda SpeedTable,y

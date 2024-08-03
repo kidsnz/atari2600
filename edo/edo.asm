@@ -53,6 +53,7 @@ MAX_ZONE_HEIGHT            = 64  ; ゾーンの最大の高さ
 PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
 MAX_X                      = 160 ; X座標の最大値
 MIN_X                      = 0   ; X座標の最小値
+MIN_Y                      = 2   ; Y座標の最小値
 LANDSCAPE_ZONE_HEIGHT      = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 NUMBER_OF_SPRITES_MASK     = %00111111 ; スプライトの数のマスク
 NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマスク
@@ -322,7 +323,7 @@ Reset_0:
     sta PlayerXPos
     lda #1
     sta PlayerOrient
-    lda #2
+    lda #MIN_Y
     sta PlayerYPos
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -596,9 +597,9 @@ ProcTitlePlayer:
     sbc #PLAYER_GRAVITY
     sta PlayerYPos
     ; 最も下端の場合は下端に固定し、ジャンプもなくす
-    cmp #2
+    cmp #MIN_Y
     bpl .SkipJumpEnd
-    lda #2
+    lda #MIN_Y
     sta PlayerYPos
     lda PlayerStatus
     and #%11111110
@@ -1402,7 +1403,7 @@ Reset_1:
     ; プレイヤーの初期化
     lda #1
     sta PlayerOrient
-    lda #2
+    lda #MIN_Y
     sta PlayerYPos
     lda #0
     sta PlayerStatus

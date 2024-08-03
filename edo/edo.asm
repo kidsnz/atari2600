@@ -1365,6 +1365,12 @@ Reset_1:
     lda #2
     sta PlayerYPos
 
+    ; 音の初期化
+    lda #0
+    sta AUDF0
+    sta AUDC0
+    sta AUDV0
+
     ; シーンの初期化
 #if DEBUG = 1 && DEBUG_BANK = 1
     lda #INITIAL_RANDOM_COUNTER

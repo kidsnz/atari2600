@@ -20,7 +20,7 @@ DEBUG = 0
 DEBUG_BANK = 0
 
 ; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER   = 8
+INITIAL_RANDOM_COUNTER   = 0
 INITIAL_RANDOM_COUNTER_2 = 128
 ; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
 ; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
@@ -30,6 +30,9 @@ USE_SPRITE_1 = 1
 
 ; プレイフィールドを使う
 USE_PLAYFIELD = 1
+
+; 音楽を使う
+USE_MUSIC = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
@@ -53,8 +56,13 @@ NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマス
 NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
-RENDER_ZONE_INIT_TIME      = 12 ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
-TITLE_GFX_HEIGHT           = 80 ; タイトルの高さ
+RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
+
+TITLE_GFX_HEIGHT           = 80  ; タイトルの高さ
+TITLE_MUSIC_LENGTH         = 16  ; タイトル音楽の長さ
+TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
+TITLE_MUSIC_VOLUME         = 3   ; タイトル音楽の音量(0~15)
+TITLE_MUSIC_PITCH          = 128 ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -209,11 +217,12 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 113 byte / 128 byte
+; 114 byte / 128 byte
 
-; 5 byte グローバルに使う用途
+; 6 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
 AnimFrameCounter    byte ; アニメーション用フレームカウンター
+MusicFrameCounter   byte ; ミュージック用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
 RandomCounter2      byte ; 乱数カウンタ2
 RandomValue         byte ; 乱数値
@@ -347,12 +356,39 @@ StartFrame0:
     sta AnimFrameCounter
 .SkipToggleAnimFrameCounter_0
 
+#if USE_MUSIC = 1
+; TITLE_MUSIC_PITCHで指定されたフレームに1回MusicFrameCounterをインクリメントする
+    lda FrameCounter
+    and #TITLE_MUSIC_PITCH-#1
+    cmp #TITLE_MUSIC_PITCH-#1
+    bne .SkipToggleMusicFrameCounter_0
+    inc MusicFrameCounter
+    lda MusicFrameCounter
+    and #TITLE_MUSIC_LENGTH-#1
+    sta MusicFrameCounter
+.SkipToggleMusicFrameCounter_0
+#endif
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Bank0 プレイヤーの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     jmp ProcTitlePlayer
 ProcTitlePlayerReturn:
+
+#if USE_MUSIC = 1
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; Bank0 ミュージックの処理
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ldx MusicFrameCounter
+    lda TitleMusicSfx,x
+    sta AUDF0
+    lda #TITLE_MUSIC_TONE
+    sta AUDC0
+    lda #TITLE_MUSIC_VOLUME
+    sta AUDV0
+#endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 処理の終了(垂直ブランクの終了)
@@ -615,6 +651,11 @@ RightPlayerXPosTitle subroutine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; タイトルミュージック
+TitleMusicSfx:
+    .byte $4e, $4f, $4e, $4c, $4e, $53, $51, $4f
+    .byte $4e, $4f, $4e, $4c, $4b, $4c, $4e, $4f
 
 ; プレイヤースプライト
 PlayerGfx0:

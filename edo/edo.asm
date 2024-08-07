@@ -62,7 +62,7 @@ ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
 RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
 TITLE_GFX_HEIGHT           = 80  ; タイトルの高さ
-TITLE_MUSIC_LENGTH         = 64  ; タイトル音楽の長さ
+TITLE_MUSIC_LENGTH         = 128  ; タイトル音楽の長さ
 TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
 TITLE_MUSIC_VOLUME         = 3   ; タイトル音楽の音量(0~15)
 TITLE_MUSIC_PITCH          = 16  ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
@@ -712,78 +712,166 @@ RightPlayerXPosTitle subroutine
 
 ; タイトルミュージック
 TitleMusicSfx:
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,4
-    SOUND 14,3
-    SOUND 14,2
-    SOUND 14,1
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
 
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,4
-    SOUND 15,3
-    SOUND 15,2
-    SOUND 15,1
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
 
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,4
-    SOUND 14,3
-    SOUND 14,2
-    SOUND 14,1
+    SOUND 19,7
+    SOUND 19,4
+    SOUND 19,2
+    SOUND 19,1
 
-    SOUND 12,7
-    SOUND 12,7
-    SOUND 12,7
-    SOUND 12,7
-    SOUND 12,4
-    SOUND 12,3
-    SOUND 12,2
-    SOUND 12,1
-
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,4
-    SOUND 14,3
-    SOUND 14,2
-    SOUND 14,1
-
-    SOUND 17,7
-    SOUND 17,7
-    SOUND 17,7
     SOUND 17,7
     SOUND 17,4
-    SOUND 17,3
     SOUND 17,2
     SOUND 17,1
 
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,7
-    SOUND 15,4
-    SOUND 15,3
-    SOUND 15,2
-    SOUND 15,1
+    SOUND 17,7
+    SOUND 17,4
+    SOUND 17,2
+    SOUND 17,1
+    
+    SOUND 19,7
+    SOUND 19,4
+    SOUND 19,2
+    SOUND 19,1
 
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,7
-    SOUND 14,4
-    SOUND 14,3
-    SOUND 14,2
-    SOUND 14,1
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
 
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+    
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+    
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+    
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+    
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+    
+    SOUND 23,0
+    SOUND 23,0
+    SOUND 23,0
+    SOUND 23,0 ; first phrase ends
+
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+
+    SOUND 19,7
+    SOUND 19,4
+    SOUND 19,2
+    SOUND 19,1
+
+    SOUND 17,7
+    SOUND 17,4
+    SOUND 17,2
+    SOUND 17,1
+
+    SOUND 17,7
+    SOUND 17,4
+    SOUND 17,2
+    SOUND 17,1
+    
+    SOUND 19,7
+    SOUND 19,4
+    SOUND 19,2
+    SOUND 19,1
+
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+    
+    SOUND 20,7
+    SOUND 20,4
+    SOUND 20,2
+    SOUND 20,1
+    
+    SOUND 23,7
+    SOUND 23,4
+    SOUND 23,2
+    SOUND 23,1
+    
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+    
+    SOUND 26,7
+    SOUND 26,4
+    SOUND 26,2
+    SOUND 26,1
+    
+    SOUND 23,0
+    SOUND 23,0
+    SOUND 23,0
+    SOUND 23,0 ; second phrase ends
+    
     ; SOUND 3,11
     ; SOUND 3,11
     ; SOUND 3,11

@@ -1159,7 +1159,7 @@ Lf57e
     jmp     $d21b                   ;3   =   9
     
 Lf586
-    lda     #$00                    ;2        
+    lda     #$00 ; MEMO 多分ここでBANK1に切り替え後の飛び先を決めている？                   ;2        
     sta     ram_F7                  ;3        
     lda     #$f0                    ;2        
     sta     ram_F8                  ;3        
@@ -2146,7 +2146,7 @@ Lf059
     lda     ram_80                  ;3        
     and     #$bf                    ;2        
     sta     ram_80                  ;3        
-    lda     SWCHB                   ;4        
+    lda     SWCHB ; MEMO: ここがリセットボタンの処理                   ;4        
     ror                             ;2        
     bcs     Lf07d                   ;2/3      
     lda     #$00                    ;2        
@@ -3648,7 +3648,7 @@ Lf9e1
 Lfa03
     lda     #$08                    ;2        
     sta     ram_C7                  ;3        
-    sta     ram_C4                  ;3        
+    sta     ram_C4 ; MEMO: BANK1に切り替え後の飛び先                 ;3        
     lda     #$fe                    ;2        
     sta     ram_F0                  ;3        
     sta     ram_F2                  ;3        

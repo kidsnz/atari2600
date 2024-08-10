@@ -2146,9 +2146,13 @@ Lf059
     lda     ram_80                  ;3        
     and     #$bf                    ;2        
     sta     ram_80                  ;3        
-    lda     SWCHB ; MEMO: ここがリセットボタンの処理                   ;4        
-    ror                             ;2        
-    bcs     Lf07d                   ;2/3      
+    ; lda     SWCHB                   ;4 ; MEMO: ここがリセットボタンの処理
+    ; ror                             ;2        
+    ; bcs     Lf07d                   ;2/3      
+    bit     INPT4                   ;3
+    nop                             ;2
+    nop                             ;2 ; 元の処理がldaで3バイト、rorで1バイトの4バイトの命令のため、bitで2バイト、nopの1バイトを2つ入れて4バイトで合わせる
+    bmi     Lf07d                   ;2/3
     lda     #$00                    ;2        
     sta     COLUBK                  ;3        
     ldx     #$83                    ;2   =  23

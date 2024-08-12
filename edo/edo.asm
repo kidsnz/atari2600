@@ -519,7 +519,6 @@ MusicSfx{1}:
         SOUND 23,0 ; second phrase ends
     ENDM
 
-    
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; BGMの処理
     MAC PROC_MUSIC
@@ -595,14 +594,14 @@ ProcPlayer{1}:
         ; 十字キーのチェック
         lda #%01000000
         bit SWCHA
-        bne .SkipMoveLeftTitle{1}
-        jsr LeftPlayerXPosTitle
-.SkipMoveLeftTitle{1}:
+        bne .SkipMoveLeft{1}
+        LEFT_PLAYER_XPOS {1}
+.SkipMoveLeft{1}:
         lda #%10000000
         bit SWCHA
-        bne .SkipMoveRightTitle{1}
-        jsr RightPlayerXPosTitle
-.SkipMoveRightTitle{1}:
+        bne .SkipMoveRight{1}
+        RIGHT_PLAYER_XPOS {1}
+.SkipMoveRight{1}:
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -620,6 +619,81 @@ ProcPlayer{1}:
         eor #%00000001
         sta AnimFrameCounter
 .SkipToggleAnimFrameCounter_{1}
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイヤーを左に動かす
+    MAC LEFT_PLAYER_XPOS
+.StartLeftMove{1}
+    lda #%00001000
+    sta PlayerOrient
+    dec PlayerXPos
+    lda PlayerXPos
+    cmp #MAX_X
+    bcc .EndLeftMove{1}
+.ResetPlayerXPosToRight{1}
+#if {1} = 0
+#if DEBUG = 0
+    lda FrameCounter
+    sta RandomCounter
+    BANK_SWITCH 1,Reset_1
+#endif
+#else
+    lda #MAX_X-#20
+    sta PlayerXPos
+    jsr ResetRandomCounter
+    jsr ResetScene
+#endif
+.EndLeftMove{1}
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイヤーを右に動かす
+    MAC RIGHT_PLAYER_XPOS
+.StartRightMove{1}
+        lda #%00000000
+        sta PlayerOrient
+        inc PlayerXPos
+        lda PlayerXPos
+        cmp #MAX_X-#20
+        bcc .EndMoveRight{1}
+.ResetPlayerXPosToLeft{1}
+#if {1} = 0
+#if DEBUG = 0
+        lda FrameCounter
+        sta RandomCounter
+        BANK_SWITCH 1,Reset_1
+#endif
+#else
+        lda #MIN_X
+        sta PlayerXPos
+        jsr ResetRandomCounter
+        jsr ResetScene
+#endif
+.EndMoveRight{1}
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; SetObjectXPosの定義
+    MAC DEFINE_SET_OBJECT_XPOS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 対象のX座標の位置をセットする
+;  A は対象のピクセル単位のX座標
+;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
+SetObjectXPos{1} subroutine
+    sec
+    sta WSYNC
+.Div15Loop{1}
+    sbc #15
+    bcs .Div15Loop{1}
+    eor #%0111
+    asl
+    asl
+    asl
+    asl
+    sta HMP0,Y
+    sta RESP0,Y
+    rts
     ENDM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -859,73 +933,26 @@ RenderTitlePlayerZone:
     jmp RenderTitlePlayerZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bank0 プレイヤーの処理
+;; Bank0 サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 対象のX座標の位置をセットする
-;  A は対象のピクセル単位のX座標
-;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
-SetObjectXPos0 subroutine
-    sec
-    sta WSYNC
-.Div15Loop
-    sbc #15
-    bcs .Div15Loop
-    eor #%0111
-    asl
-    asl
-    asl
-    asl
-    sta HMP0,Y
-    sta RESP0,Y
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; プレイヤーを左に動かす
-LeftPlayerXPosTitle subroutine
-    lda #%00001000
-    sta PlayerOrient
-    dec PlayerXPos
-    lda PlayerXPos
-    cmp #MAX_X
-    bcc .EndMoveTitle
-    lda #MAX_X-#20
-    sta PlayerXPos
-#if DEBUG = 0
-    lda FrameCounter
-    sta RandomCounter
-    BANK_SWITCH 1,Reset_1
-#endif
-.EndMoveTitle
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; プレイヤーを右に動かす
-RightPlayerXPosTitle subroutine
-    lda #%00000000
-    sta PlayerOrient
-    inc PlayerXPos
-    lda PlayerXPos
-    cmp #MAX_X-#20
-    bcc .EndMoveTitle
-    lda #MIN_X
-    sta PlayerXPos
-#if DEBUG = 0
-    lda FrameCounter
-    sta RandomCounter
-    BANK_SWITCH 1,Reset_1
-#endif
-.EndMoveTitle
-    rts
+    DEFINE_SET_OBJECT_XPOS 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     MUSIC_DATA 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bank0 BGMデータ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     PLAYER_DATA 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bank0 タイトルプレイフィールドデータ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 TitleGfx0:
     .byte %00000000
@@ -1794,8 +1821,13 @@ StartFrame1:
     ;; Bank1 プレイヤーの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    jmp ProcPlayer
-ProcPlayerReturn:
+    PROC_PLAYER 1
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; Bank1 BGMの処理
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    PROC_MUSIC 1
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Bank1 風景ゾーンの処理
@@ -2373,13 +2405,13 @@ RenderZone:
     ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
     ldy #0 ; プレイヤー0
-    jsr SetObjectXPos
+    jsr SetObjectXPos1
 
 #if USE_SPRITE_1 = 1
     ; スプライト1の横位置の補正
     lda ZoneSprite1XPos,x
     ldy #1 ; プレイヤー1
-    jsr SetObjectXPos
+    jsr SetObjectXPos1
 #endif
 
     ; 横位置の補正を適用
@@ -2510,7 +2542,7 @@ RenderPlayerZone:
     ; 横位置の補正
     lda PlayerXPos
     ldy #0 ; プレイヤー0スプライト
-    jsr SetObjectXPos
+    jsr SetObjectXPos1
 
     ; 横位置の補正を適用
     sta WSYNC
@@ -2605,76 +2637,10 @@ EndMove1
     jmp ProcZoneReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bank1 プレイヤーの処理
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-ProcPlayer:
-    ; 重力加速度の適用
-    lda PlayerVelocity
-    cmp #0
-    beq .SkipApplyVelocity
-    sta Tmp
-    lda PlayerYPos
-    clc
-    adc Tmp
-    sta PlayerYPos
-    dec PlayerVelocity
-.SkipApplyVelocity
-    ; 重力の適用
-    lda PlayerYPos
-    sec
-    sbc #PLAYER_GRAVITY
-    sta PlayerYPos
-    ; 最も下端の場合は下端に固定し、ジャンプもなくす
-    cmp #2
-    bpl .SkipJumpEnd
-    lda #2
-    sta PlayerYPos
-    lda PlayerStatus
-    and #%11111110
-    sta PlayerStatus
-.SkipJumpEnd
-    ; ジャンプボタンのチェック
-    bit INPT4
-    bmi .SkipButtonPush
-    ; ジャンプでない場合はジャンプ状態にする
-    lda PlayerStatus
-    and #PLAYER_STATUS_IS_JUMPING
-    cmp #PLAYER_STATUS_IS_JUMPING
-    beq .SkipButtonPush
-    ora #PLAYER_STATUS_IS_JUMPING
-    sta PlayerStatus
-    lda #PLAYER_INITIAL_VELOCITY
-    sta PlayerVelocity
-.SkipButtonPush
-
-    ; 十字キーのチェック
-    lda #%00010000
-    bit SWCHA
-    bne .SkipMoveUp
-    jsr ResetRandomCounter
-    jsr ResetScene
-.SkipMoveUp:
-    lda #%00100000
-    bit SWCHA
-    bne .SkipMoveDown
-.SkipMoveDown:
-    lda #%01000000
-    bit SWCHA
-    bne .SkipMoveLeft
-    jsr LeftPlayerXPos
-.SkipMoveLeft:
-    lda #%10000000
-    bit SWCHA
-    bne .SkipMoveRight
-    jsr RightPlayerXPos
-.SkipMoveRight:
-    
-    jmp ProcPlayerReturn
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    DEFINE_SET_OBJECT_XPOS 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; シーンをリセットする(ゾーンを再生成するなど)
@@ -2880,67 +2846,18 @@ NextRandomValue subroutine
     tax
     pla
     rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; プレイヤーを左に動かす
-LeftPlayerXPos subroutine
-.StartMove
-    lda #%00001000
-    sta PlayerOrient
-    dec PlayerXPos
-    lda PlayerXPos
-    cmp #MAX_X
-    bcc .EndMove
-.ResetPlayerXPosToRight
-    lda #MAX_X-#20
-    sta PlayerXPos
-    jsr ResetRandomCounter
-    jsr ResetScene
-.EndMove
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; プレイヤーを右に動かす
-RightPlayerXPos subroutine
-.StartMove
-    lda #%00000000
-    sta PlayerOrient
-    inc PlayerXPos
-    lda PlayerXPos
-    cmp #MAX_X-#20
-    bcc .EndMove
-.ResetPlayerXPosToLeft
-    lda #MIN_X
-    sta PlayerXPos
-    jsr ResetRandomCounter
-    jsr ResetScene
-.EndMove
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 対象のX座標の位置をセットする
-;  A は対象のピクセル単位のX座標
-;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
-SetObjectXPos subroutine
-    sec
-    sta WSYNC
-.Div15Loop
-    sbc #15
-    bcs .Div15Loop
-    eor #%0111
-    asl
-    asl
-    asl
-    asl
-    sta HMP0,Y
-    sta RESP0,Y
-    rts
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     PLAYER_DATA 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bank1 BGMデータ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    MUSIC_DATA 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 プレイフィールドデータ

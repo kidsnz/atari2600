@@ -117,7 +117,7 @@ PLAYFIELD_UNMIRRORING = %00000000 ; プレイフィールドをミラーリン�
 PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; 共通マクロ
+;; 汎用マクロ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -224,7 +224,6 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     ENDM
 #endif
 
-    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -301,6 +300,329 @@ ZoneSprite1Numbers   ds MAX_NUMBER_OF_ZONES ; 各ゾーンのスプライト1の
     seg Code
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 共通マクロ・データ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイヤーデータ
+    MAC PLAYER_DATA
+PlayerGfx{1}:
+        .byte %00000000 ; |        |
+        .byte %10001010 ; |X   X X |
+        .byte %01000100 ; | X   X  |
+        .byte %10100100 ; |X X  X  |
+        .byte %01101110 ; | XX XXX |
+        .byte %11011110 ; |XX XXXX |
+        .byte %00111110 ; |  XXXXX |
+        .byte %11110100 ; |XXXX X  |
+        .byte %00010100 ; |   X X  |
+        .byte %11101111 ; |XXX XXXX|
+        .byte %00001010 ; |    X X |
+        .byte %00001100 ; |    XX  |
+        .byte %00001000 ; |    X   |
+        .byte %00010100 ; |   X X  |
+
+        .byte %00000000 ; |        |
+        .byte %11001110 ; |XX  XXX |
+        .byte %00100100 ; |  X  X  |
+        .byte %11101110 ; |XXX XXX |
+        .byte %01011110 ; | X XXXX |
+        .byte %10111110 ; |X XXXXX |
+        .byte %01110100 ; | XXX X  |
+        .byte %10010100 ; |X  X X  |
+        .byte %01101111 ; | XX XXXX|
+        .byte %10001010 ; |X   X X |
+        .byte %00001100 ; |    XX  |
+        .byte %00001000 ; |    X   |
+        .byte %00010100 ; |   X X  |
+        .byte %00000000 ; |        |
+
+PlayerGfxColor{1}:
+        .byte $00
+        .byte $16
+        .byte $26
+        .byte $36
+        .byte $46
+        .byte $56
+        .byte $66
+        .byte $76
+        .byte $86
+        .byte $86
+        .byte $86
+        .byte $86
+        .byte $86
+        .byte $86
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; BGM
+    MAC MUSIC_DATA
+MusicSfx{1}:
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 19,7
+        SOUND 19,4
+        SOUND 19,2
+        SOUND 19,1
+
+        SOUND 17,7
+        SOUND 17,4
+        SOUND 17,2
+        SOUND 17,1
+
+        SOUND 17,7
+        SOUND 17,4
+        SOUND 17,2
+        SOUND 17,1
+        
+        SOUND 19,7
+        SOUND 19,4
+        SOUND 19,2
+        SOUND 19,1
+
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+        
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+        
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+        
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+        
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+        
+        SOUND 23,0
+        SOUND 23,0
+        SOUND 23,0
+        SOUND 23,0 ; first phrase ends
+
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 19,7
+        SOUND 19,4
+        SOUND 19,2
+        SOUND 19,1
+
+        SOUND 17,7
+        SOUND 17,4
+        SOUND 17,2
+        SOUND 17,1
+
+        SOUND 17,7
+        SOUND 17,4
+        SOUND 17,2
+        SOUND 17,1
+        
+        SOUND 19,7
+        SOUND 19,4
+        SOUND 19,2
+        SOUND 19,1
+
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+        
+        SOUND 20,7
+        SOUND 20,4
+        SOUND 20,2
+        SOUND 20,1
+        
+        SOUND 23,7
+        SOUND 23,4
+        SOUND 23,2
+        SOUND 23,1
+        
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+        
+        SOUND 26,7
+        SOUND 26,4
+        SOUND 26,2
+        SOUND 26,1
+        
+        SOUND 23,0
+        SOUND 23,0
+        SOUND 23,0
+        SOUND 23,0 ; second phrase ends
+    ENDM
+
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; BGMの処理
+    MAC PROC_MUSIC
+#if USE_MUSIC = 1
+        ; TITLE_MUSIC_PITCHで指定されたフレームに1回MusicFrameCounterをインクリメントする
+        lda FrameCounter
+        and #TITLE_MUSIC_PITCH-#1
+        cmp #TITLE_MUSIC_PITCH-#1
+        bne .SkipToggleMusicFrameCounter_{1}
+        inc MusicFrameCounter
+        lda MusicFrameCounter
+        and #TITLE_MUSIC_LENGTH-#1
+        sta MusicFrameCounter
+.SkipToggleMusicFrameCounter_{1}
+
+        lda #TITLE_MUSIC_TONE
+        sta AUDC0
+        ldx MusicFrameCounter
+        lda MusicSfx{1},x
+        lsr
+        lsr
+        lsr
+        sta AUDF0
+        lda MusicSfx{1},x
+        and #%00000111
+        asl
+        sta AUDV0
+#endif
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; プレイヤーの処理
+    MAC PROC_PLAYER
+ProcPlayer{1}:
+        ; 重力加速度の適用
+        lda PlayerVelocity
+        cmp #0
+        beq .SkipApplyVelocity{1}
+        sta Tmp
+        lda PlayerYPos
+        clc
+        adc Tmp
+        sta PlayerYPos
+        dec PlayerVelocity
+.SkipApplyVelocity{1}
+        ; 重力の適用
+        lda PlayerYPos
+        sec
+        sbc #PLAYER_GRAVITY
+        sta PlayerYPos
+        ; 最も下端の場合は下端に固定し、ジャンプもなくす
+        cmp #MIN_Y
+        bpl .SkipJumpEnd{1}
+        lda #MIN_Y
+        sta PlayerYPos
+        lda PlayerStatus
+        and #%11111110
+        sta PlayerStatus
+.SkipJumpEnd{1}
+        ; ジャンプボタンのチェック
+        bit INPT4
+        bmi .SkipButtonPush{1}
+        ; ジャンプでない場合はジャンプ状態にする
+        lda PlayerStatus
+        and #PLAYER_STATUS_IS_JUMPING
+        cmp #PLAYER_STATUS_IS_JUMPING
+        beq .SkipButtonPush{1}
+        ora #PLAYER_STATUS_IS_JUMPING
+        sta PlayerStatus
+        lda #PLAYER_INITIAL_VELOCITY
+        sta PlayerVelocity
+.SkipButtonPush{1}
+        ; 十字キーのチェック
+        lda #%01000000
+        bit SWCHA
+        bne .SkipMoveLeftTitle{1}
+        jsr LeftPlayerXPosTitle
+.SkipMoveLeftTitle{1}:
+        lda #%10000000
+        bit SWCHA
+        bne .SkipMoveRightTitle{1}
+        jsr RightPlayerXPosTitle
+.SkipMoveRightTitle{1}:
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; フレームカウンターの処理
+    MAC PROC_FRAME_COUNTER
+        ; フレームカウンターをインクリメント
+        inc FrameCounter
+
+        ; 32フレームに1回AnimFrameCounterをトグルする
+        lda FrameCounter
+        and #%00011111
+        cmp #%00011111
+        bne .SkipToggleAnimFrameCounter_{1}
+        lda AnimFrameCounter
+        eor #%00000001
+        sta AnimFrameCounter
+.SkipToggleAnimFrameCounter_{1}
+    ENDM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 プログラムコードの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -356,65 +678,9 @@ StartFrame0:
 
     TIMER_SETUP 37
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; Bank0 カウンターの処理
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    ; フレームカウンターをインクリメント
-    inc FrameCounter
-
-    ; 32フレームに1回AnimFrameCounterをトグルする
-    lda FrameCounter
-    and #%00011111
-    cmp #%00011111
-    bne .SkipToggleAnimFrameCounter_0
-    lda AnimFrameCounter
-    eor #%00000001
-    sta AnimFrameCounter
-.SkipToggleAnimFrameCounter_0
-
-#if USE_MUSIC = 1
-; TITLE_MUSIC_PITCHで指定されたフレームに1回MusicFrameCounterをインクリメントする
-    lda FrameCounter
-    and #TITLE_MUSIC_PITCH-#1
-    cmp #TITLE_MUSIC_PITCH-#1
-    bne .SkipToggleMusicFrameCounter_0
-    inc MusicFrameCounter
-    lda MusicFrameCounter
-    and #TITLE_MUSIC_LENGTH-#1
-    sta MusicFrameCounter
-.SkipToggleMusicFrameCounter_0
-#endif
-
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; Bank0 プレイヤーの処理
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    jmp ProcTitlePlayer
-ProcTitlePlayerReturn:
-
-#if USE_MUSIC = 1
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; Bank0 ミュージックの処理
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    lda #TITLE_MUSIC_TONE
-    sta AUDC0
-    ldx MusicFrameCounter
-    lda TitleMusicSfx,x
-    lsr
-    lsr
-    lsr
-    sta AUDF0
-    lda TitleMusicSfx,x
-    and #%00000111
-    asl
-    sta AUDV0
-#endif
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Bank0 処理の終了(垂直ブランクの終了)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    PROC_FRAME_COUNTER 0
+    PROC_PLAYER 0
+    PROC_MUSIC 0
 
     TIMER_WAIT
     lda #%00000000
@@ -596,58 +862,6 @@ RenderTitlePlayerZone:
 ;; Bank0 プレイヤーの処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-ProcTitlePlayer:
-    ; 重力加速度の適用
-    lda PlayerVelocity
-    cmp #0
-    beq .SkipApplyVelocity
-    sta Tmp
-    lda PlayerYPos
-    clc
-    adc Tmp
-    sta PlayerYPos
-    dec PlayerVelocity
-.SkipApplyVelocity
-    ; 重力の適用
-    lda PlayerYPos
-    sec
-    sbc #PLAYER_GRAVITY
-    sta PlayerYPos
-    ; 最も下端の場合は下端に固定し、ジャンプもなくす
-    cmp #MIN_Y
-    bpl .SkipJumpEnd
-    lda #MIN_Y
-    sta PlayerYPos
-    lda PlayerStatus
-    and #%11111110
-    sta PlayerStatus
-.SkipJumpEnd
-    ; ジャンプボタンのチェック
-    bit INPT4
-    bmi .SkipButtonPush
-    ; ジャンプでない場合はジャンプ状態にする
-    lda PlayerStatus
-    and #PLAYER_STATUS_IS_JUMPING
-    cmp #PLAYER_STATUS_IS_JUMPING
-    beq .SkipButtonPush
-    ora #PLAYER_STATUS_IS_JUMPING
-    sta PlayerStatus
-    lda #PLAYER_INITIAL_VELOCITY
-    sta PlayerVelocity
-.SkipButtonPush
-
-    ; 十字キーのチェック
-    lda #%01000000
-    bit SWCHA
-    bne .SkipMoveLeftTitle
-    jsr LeftPlayerXPosTitle
-.SkipMoveLeftTitle:
-    lda #%10000000
-    bit SWCHA
-    bne .SkipMoveRightTitle
-    jsr RightPlayerXPosTitle
-.SkipMoveRightTitle:
-    jmp ProcTitlePlayerReturn
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 対象のX座標の位置をセットする
@@ -710,232 +924,8 @@ RightPlayerXPosTitle subroutine
 ;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; タイトルミュージック
-TitleMusicSfx:
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 19,7
-    SOUND 19,4
-    SOUND 19,2
-    SOUND 19,1
-
-    SOUND 17,7
-    SOUND 17,4
-    SOUND 17,2
-    SOUND 17,1
-
-    SOUND 17,7
-    SOUND 17,4
-    SOUND 17,2
-    SOUND 17,1
-    
-    SOUND 19,7
-    SOUND 19,4
-    SOUND 19,2
-    SOUND 19,1
-
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-    
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-    
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-    
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-    
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-    
-    SOUND 23,0
-    SOUND 23,0
-    SOUND 23,0
-    SOUND 23,0 ; first phrase ends
-
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 19,7
-    SOUND 19,4
-    SOUND 19,2
-    SOUND 19,1
-
-    SOUND 17,7
-    SOUND 17,4
-    SOUND 17,2
-    SOUND 17,1
-
-    SOUND 17,7
-    SOUND 17,4
-    SOUND 17,2
-    SOUND 17,1
-    
-    SOUND 19,7
-    SOUND 19,4
-    SOUND 19,2
-    SOUND 19,1
-
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-    
-    SOUND 20,7
-    SOUND 20,4
-    SOUND 20,2
-    SOUND 20,1
-    
-    SOUND 23,7
-    SOUND 23,4
-    SOUND 23,2
-    SOUND 23,1
-    
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-    
-    SOUND 26,7
-    SOUND 26,4
-    SOUND 26,2
-    SOUND 26,1
-    
-    SOUND 23,0
-    SOUND 23,0
-    SOUND 23,0
-    SOUND 23,0 ; second phrase ends
-    
-    ; SOUND 3,11
-    ; SOUND 3,11
-    ; SOUND 3,11
-    ; SOUND 0,11
-
-    ; SOUND 3,15
-    ; SOUND 3,15
-    ; SOUND 3,15
-    ; SOUND 0,15
-    
-    ; .byte $4e, $4f, $4e, $4c, $4e, $53, $51, $4f
-    ; .byte $4e, $4f, $4e, $4c, $4b, $4c, $4e, $4f
-
-
-; TitleMusicSfx2:
-
-; プレイヤースプライト
-PlayerGfx0:
-    .byte %00000000 ; |        |
-    .byte %10001010 ; |X   X X |
-    .byte %01000100 ; | X   X  |
-    .byte %10100100 ; |X X  X  |
-    .byte %01101110 ; | XX XXX |
-    .byte %11011110 ; |XX XXXX |
-    .byte %00111110 ; |  XXXXX |
-    .byte %11110100 ; |XXXX X  |
-    .byte %00010100 ; |   X X  |
-    .byte %11101111 ; |XXX XXXX|
-    .byte %00001010 ; |    X X |
-    .byte %00001100 ; |    XX  |
-    .byte %00001000 ; |    X   |
-    .byte %00010100 ; |   X X  |
-
-    .byte %00000000 ; |        |
-    .byte %11001110 ; |XX  XXX |
-    .byte %00100100 ; |  X  X  |
-    .byte %11101110 ; |XXX XXX |
-    .byte %01011110 ; | X XXXX |
-    .byte %10111110 ; |X XXXXX |
-    .byte %01110100 ; | XXX X  |
-    .byte %10010100 ; |X  X X  |
-    .byte %01101111 ; | XX XXXX|
-    .byte %10001010 ; |X   X X |
-    .byte %00001100 ; |    XX  |
-    .byte %00001000 ; |    X   |
-    .byte %00010100 ; |   X X  |
-    .byte %00000000 ; |        |
-
-; プレイヤースプライトカラー
-PlayerGfxColor0:
-    .byte $00
-    .byte $16
-    .byte $26
-    .byte $36
-    .byte $46
-    .byte $56
-    .byte $66
-    .byte $76
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
+    MUSIC_DATA 0
+    PLAYER_DATA 0
 
 TitleGfx0:
     .byte %00000000
@@ -2527,9 +2517,9 @@ RenderPlayerZone:
     sta HMOVE
 
     ; プレイヤースプライトのアドレスをセット
-    lda #<PlayerGfx
+    lda #<PlayerGfx1
     sta PlayerGfxAddr
-    lda #>PlayerGfx
+    lda #>PlayerGfx1
     ldy #1
     sta PlayerGfxAddr,y
     ldy #0
@@ -2573,7 +2563,7 @@ RenderPlayerZone:
     tay
     lda (PlayerGfxAddr),y
     sta GRP0
-    lda PlayerGfxColor,y
+    lda PlayerGfxColor1,y
     sta COLUP0
 
     dex
@@ -2950,54 +2940,7 @@ SetObjectXPos subroutine
 ;; Bank1 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; プレイヤースプライト
-PlayerGfx:
-    .byte %00000000 ; |        |
-    .byte %10001010 ; |X   X X |
-    .byte %01000100 ; | X   X  |
-    .byte %10100100 ; |X X  X  |
-    .byte %01101110 ; | XX XXX |
-    .byte %11011110 ; |XX XXXX |
-    .byte %00111110 ; |  XXXXX |
-    .byte %11110100 ; |XXXX X  |
-    .byte %00010100 ; |   X X  |
-    .byte %11101111 ; |XXX XXXX|
-    .byte %00001010 ; |    X X |
-    .byte %00001100 ; |    XX  |
-    .byte %00001000 ; |    X   |
-    .byte %00010100 ; |   X X  |
-
-    .byte %00000000 ; |        |
-    .byte %11001110 ; |XX  XXX |
-    .byte %00100100 ; |  X  X  |
-    .byte %11101110 ; |XXX XXX |
-    .byte %01011110 ; | X XXXX |
-    .byte %10111110 ; |X XXXXX |
-    .byte %01110100 ; | XXX X  |
-    .byte %10010100 ; |X  X X  |
-    .byte %01101111 ; | XX XXXX|
-    .byte %10001010 ; |X   X X |
-    .byte %00001100 ; |    XX  |
-    .byte %00001000 ; |    X   |
-    .byte %00010100 ; |   X X  |
-    .byte %00000000 ; |        |
-
-; プレイヤースプライトカラー
-PlayerGfxColor:
-    .byte $00
-    .byte $16
-    .byte $26
-    .byte $36
-    .byte $46
-    .byte $56
-    .byte $66
-    .byte $76
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
-    .byte $86
+    PLAYER_DATA 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank1 プレイフィールドデータ

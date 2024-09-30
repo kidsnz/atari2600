@@ -60,7 +60,7 @@ NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマス
 NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
 ORIENT_LEFT                = %00001000 ; 左向き
 ORIENT_RIGHT               = %00000000 ; 右向き
-RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理しているので4の倍数である必要がある
+RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理している場合は4の倍数である必要がある
 TITLE_GFX_HEIGHT           = 100  ; タイトルの高さ
 TITLE_MUSIC_LENGTH         = 128  ; タイトル音楽の長さ
 TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
@@ -2009,10 +2009,10 @@ RenderPlayerZoneReturn:
         sta PF2
 #endif
     ENDM
-    
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; プレイフィールドをロードする
-    MAC LOAD_PLAYFIELD
+    ; プレイフィールド情報をロードする
+    MAC LOAD_PLAYFIELD_INFO
         ; PlayFieldGfxの先頭アドレスを得てPlayFieldInfoをセット
         lda ZonePlayFieldNumbers,x
         asl
@@ -2027,6 +2027,12 @@ RenderPlayerZoneReturn:
         ; PlayFieldGfx0のアドレスをインクリメントして高さのアドレスを指すようにしてPlayFieldHeightのセット
         ADD_ADDRESS PlayFieldGfx0,#1
         lda (PlayFieldGfx0),y
+        sta PlayFieldHeight
+    ENDM
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; プレイフィールドをロードする
+    MAC LOAD_PLAYFIELD
         sta PlayFieldHeight
         ; PlayFieldGfx0のアドレスをインクリメントしてグラフィック部を指すようにインクリメント
         ADD_ADDRESS PlayFieldGfx0,#1
@@ -2204,6 +2210,7 @@ RenderPlayerZoneReturn:
     MAC RESET_SPRITE
         jsr NextRandomValue
         lda RandomValue
+        ; lda #9 ; ゾーン初期化処理のデバッグをしたい場合にコメントインする
         and #NUMBER_OF_SPRITES_MASK
         sta ZoneSprite{1}Numbers,x
     ENDM
@@ -2268,6 +2275,7 @@ RenderPlayerZoneReturn:
     MAC RESET_SPRITE_MOVABLE
         jsr NextRandomValue
         lda RandomValue
+        ; lda #1 ; ゾーン初期化処理のデバッグをしたい場合にコメントインする
         and #%00000001
         beq .SetZoneSprite{1}Unmovable
         lda ZoneSprite{1}Abilities,x
@@ -2373,34 +2381,12 @@ RenderPlayerZoneReturn:
 RenderZone:
     TIMER_SETUP #RENDER_ZONE_INIT_TIME
 
-    ; まず背景色をセットしてゾーンがガタつかないようにする
+    ; まず背景色をセットしてゾーンの境目で色がガタつかないようにする
     lda ZoneBgColors,x
     sta COLUBK
 
-; >>> 横位置補正前初期化
-;  NOTE: 処理時間の関係で横位置補正前にいくつか初期化をしておく(この処理が横位置補正後だとタイマーに間に合わない)
-
-    ; スプライト0色のセット
-    lda ZoneSprite0Colors,x
-    sta COLUP0
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1色のセット
-    lda ZoneSprite1Colors,x
-    sta COLUP1
-#endif
-
-    ; スプライト0のNUSIZのセット
-    lda ZoneSprite0Nusiz,x
-    sta NUSIZ0
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1のNUSIZのセット
-    lda ZoneSprite1Nusiz,x
-    sta NUSIZ1
-#endif
-
-; <<< 横位置補正前初期化終わり
+    ; プレイフィールド情報のロード(プレイフィールドの有無で初期化処理が分岐するので最初にロードが必要)
+    LOAD_PLAYFIELD_INFO
 
     ; スプライト0の横位置の補正
     lda ZoneSprite0XPos,x
@@ -2408,10 +2394,17 @@ RenderZone:
     jsr SetObjectXPos1
 
 #if USE_SPRITE_1 = 1
+    ; スプライト1を表示しない場合は横位置の補正をスキップ
+    lda PlayFieldHeight
+    cmp #0
+    bne .SkipSprite1XposAdjust
+
     ; スプライト1の横位置の補正
     lda ZoneSprite1XPos,x
     ldy #1 ; プレイヤー1
     jsr SetObjectXPos1
+
+.SkipSprite1XposAdjust
 #endif
 
     ; 横位置の補正を適用
@@ -2421,20 +2414,17 @@ RenderZone:
     ; スプライト0をロード
     LOAD_SPRITE 0
 
-#if USE_SPRITE_1 = 1
-    ; スプライト1をロード
-    LOAD_SPRITE 1
-#endif
+    ; スプライト0色のセット
+    lda ZoneSprite0Colors,x
+    sta COLUP0
+
+    ; スプライト0のNUSIZのセット
+    lda ZoneSprite0Nusiz,x
+    sta NUSIZ0
 
     ; スプライト0のY座標のセット
     lda ZoneSprite0YPos,x
     sta Sprite0YPos
-
-#if USE_SPRITE_1 = 1
-    ; スプライト1のY座標のセット
-    lda ZoneSprite1YPos,x
-    sta Sprite1YPos
-#endif
 
     ; スプライト0の向きのセット
     lda ZoneSprite0Abilities,x
@@ -2443,7 +2433,27 @@ RenderZone:
     lsr
     sta REFP0
 
+    ; スプライト1をロードするかプレイフィールドをロードするか分岐
+    lda PlayFieldHeight
+    cmp #0
+    bne .SkipSprite1Load
+
 #if USE_SPRITE_1 = 1
+    ; スプライト1をロード
+    LOAD_SPRITE 1
+
+    ; スプライト1色のセット
+    lda ZoneSprite1Colors,x
+    sta COLUP1
+
+    ; スプライト1のNUSIZのセット
+    lda ZoneSprite1Nusiz,x
+    sta NUSIZ1
+
+    ; スプライト1のY座標のセット
+    lda ZoneSprite1YPos,x
+    sta Sprite1YPos
+
     ; スプライト1の向きのセット
     lda ZoneSprite1Abilities,x
     and #SPRITE_ORIENT_LEFT
@@ -2451,6 +2461,8 @@ RenderZone:
     lsr
     sta REFP1
 #endif
+    jmp .SkipPlayFieldLoad
+.SkipSprite1Load
 
 #if USE_PLAYFIELD = 1
     ; プレイフィールドのロード
@@ -2465,6 +2477,7 @@ RenderZone:
     and #PLAYFIELD_MIRRORING
     sta CTRLPF
 #endif
+.SkipPlayFieldLoad
 
     ; ゾーンの高さ分のループ
     lda ZoneHeights,x
@@ -2474,16 +2487,13 @@ RenderZone:
 
     TIMER_WAIT
 
-    ; プレイフィールドがあるかどうかを判定
+    ; プレイフィールドがない場合はスプライトを2つ表示、ある場合はスプライト0とプレイフィールドを表示
     lda PlayFieldHeight
     cmp #0
-
-    ; プレイフィールドがない場合はスプライトを2つ表示
-    beq .BeginRenderSpritesLoop 
-
-    ; プレイフィールドがある場合はスプライト0とプレイフィールドを表示
+    beq .BeginRenderSpritesLoop
     jmp .BeginRenderSprite0AndPlayFieldLoop 
 
+; スプライトを2つ表示する描画ループ
 .BeginRenderSpritesLoop
 
     sta WSYNC
@@ -2492,7 +2502,8 @@ RenderZone:
     
     beq .EndRenderLoop
     jmp .BeginRenderSpritesLoop
-    
+
+; スプライト0とプレイフィールドを表示する描画ループ
 .BeginRenderSprite0AndPlayFieldLoop
 
     sta WSYNC

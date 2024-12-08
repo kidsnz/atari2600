@@ -44,16 +44,15 @@ USE_MUSIC = 1
 
 PLAYER_GFX_HEIGHT            = 14  ; プレイヤーの高さ
 PLAYER_STATUS_IS_JUMPING     = %00000001 ; ジャンプ中かどうかのマスク
-PLAYER_GRAVITY               = 1   ; プレイヤーの重力
-PLAYER_INITIAL_VELOCITY      = 4   ; プレイヤーの初速度
+PLAYER_JUMPING_MAX_FRAME     = 32  ; ジャンプの最大フレーム数
 MAX_LINES                    = 192 ; スキャンライン数 
 MAX_NUMBER_OF_ZONES          = 5   ; ゾーンの最大数
 MIN_ZONE_HEIGHT              = 24  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT              = 64  ; ゾーンの最大の高さ
-PLAYER_ZONE_HEIGHT           = 32  ; プレイヤーのゾーンの高さ
+PLAYER_ZONE_HEIGHT           = 36  ; プレイヤーのゾーンの高さ
 MAX_X                        = 160 ; X座標の最大値
 MIN_X                        = 0   ; X座標の最小値
-MIN_Y                        = 2   ; Y座標の最小値
+MIN_Y                        = 0   ; Y座標の最小値
 LANDSCAPE_ZONE_HEIGHT        = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
 NUMBER_OF_SPRITES_MASK       = %00111111 ; スプライトの数のマスク
 NUMBER_OF_PLAY_FIELDS_MASK   = %00001111 ; プレイフィールドの数のマスク
@@ -232,7 +231,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 118 byte / 128 byte
+; 117 byte / 128 byte
 
 ; 6 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -267,11 +266,10 @@ PF0Buffer           byte ; PF0のバッファ
 PF1Buffer           byte ; PF1のバッファ
 PF2Buffer           byte ; PF2のバッファ
 
-; 7 byte プレイヤー関連
+; 6 byte プレイヤー関連
 PlayerXPos          byte   ; プレイヤーのX座標
 PlayerYPos          byte   ; プレイヤーのY座標
-PlayerYPrevPos      byte   ; プレイヤーのY座標(前回)
-PlayerVelocity      byte   ; プレイヤーの加速度
+PlayerJumpingIndex  byte   ; プレイヤーのY座標のインデックス
 PlayerStatus        byte   ; プレイヤーの状態(0~6bit: 空き, 7bit: ジャンプ中かどうか)
 PlayerOrient        byte   ; プレイヤーの向き
 PlayerBgColor       byte   ; プレイヤーの背景色
@@ -354,6 +352,41 @@ PlayerGfxColor{1}:
         .byte $86
         .byte $86
         .byte $86
+
+; ジャンプ中のY座標
+PlayerJumpingYPos{1}:
+        .byte #0    ; 0
+        .byte #1    ; 1
+        .byte #2    ; 2
+        .byte #4    ; 3
+        .byte #6    ; 4
+        .byte #8    ; 5
+        .byte #10   ; 6
+        .byte #12   ; 7
+        .byte #14   ; 8
+        .byte #16   ; 9
+        .byte #17   ; 10
+        .byte #18   ; 11
+        .byte #19   ; 12
+        .byte #19   ; 13
+        .byte #19   ; 14
+        .byte #19   ; 15 (頂点)
+        .byte #19   ; 16 (頂点)
+        .byte #19   ; 17
+        .byte #18   ; 18
+        .byte #17   ; 19
+        .byte #16   ; 20
+        .byte #14   ; 21
+        .byte #12   ; 22
+        .byte #10   ; 23
+        .byte #8    ; 24
+        .byte #6    ; 25
+        .byte #4    ; 26
+        .byte #2    ; 27
+        .byte #1    ; 28
+        .byte #0    ; 29
+        .byte #0    ; 30 (地面)
+        .byte #0    ; 31 (地面)
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -555,27 +588,25 @@ MusicSfx{1}:
     ;; プレイヤーの処理
     MAC PROC_PLAYER
 ProcPlayer{1}:
-        ; 重力加速度の適用
-        lda PlayerVelocity
-        cmp #0
-        beq .SkipApplyVelocity{1}
-        sta Tmp
-        lda PlayerYPos
-        clc
-        adc Tmp
+        ; Y座標はPlayerJumpingYPos,PlayerJumpingIndexから取得してセット
+        ldx PlayerJumpingIndex
+        lda PlayerJumpingYPos{1},x
         sta PlayerYPos
-        dec PlayerVelocity
-.SkipApplyVelocity{1}
-        ; 重力の適用
-        lda PlayerYPos
-        sec
-        sbc #PLAYER_GRAVITY
-        sta PlayerYPos
-        ; 最も下端の場合は下端に固定し、ジャンプもなくす
-        cmp #MIN_Y
-        bpl .SkipJumpEnd{1}
-        lda #MIN_Y
-        sta PlayerYPos
+        ; ジャンプ中ならジャンプインデックスをインクリメント
+        lda PlayerStatus
+        and #PLAYER_STATUS_IS_JUMPING
+        cmp #PLAYER_STATUS_IS_JUMPING
+        bne .SkipIncPlayerJumpingIndex{1}
+        inc PlayerJumpingIndex
+.SkipIncPlayerJumpingIndex{1}
+        ; ジャンプインデックスの最大値を超えたらジャンプを終了する
+        lda PlayerJumpingIndex
+        cmp #PLAYER_JUMPING_MAX_FRAME
+        bcc .SkipJumpEnd{1}
+        ; ジャンプインデックスを0に戻す
+        lda #0
+        sta PlayerJumpingIndex
+        ; ジャンプフラグをクリア
         lda PlayerStatus
         and #%11111110
         sta PlayerStatus
@@ -590,8 +621,8 @@ ProcPlayer{1}:
         beq .SkipButtonPush{1}
         ora #PLAYER_STATUS_IS_JUMPING
         sta PlayerStatus
-        lda #PLAYER_INITIAL_VELOCITY
-        sta PlayerVelocity
+        lda #0
+        sta PlayerJumpingIndex
 .SkipButtonPush{1}
         ; 十字キーのチェック
         lda #%01000000
@@ -944,13 +975,13 @@ RenderTitlePlayerZone:
 ;; Bank0 プレイヤーデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    MUSIC_DATA 0
+    PLAYER_DATA 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 BGMデータ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    PLAYER_DATA 0
+    MUSIC_DATA 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 タイトルプレイフィールドデータ
@@ -1766,7 +1797,6 @@ Reset_1:
     sta PlayerYPos
     lda #0
     sta PlayerStatus
-    sta PlayerVelocity
 
     ; 音の初期化
     lda #0
@@ -2546,7 +2576,7 @@ RenderZone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 RenderPlayerZone:
-    TIMER_SETUP #RENDER_ZONE_INIT_TIME
+    TIMER_SETUP #RENDER_PLAYER_ZONE_INIT_TIME
     
     ; 背景色のセット
     lda PlayerBgColor
@@ -2589,7 +2619,7 @@ RenderPlayerZone:
     ; プレイヤーゾーンの高さ
     lda #PLAYER_ZONE_HEIGHT
     sec
-    sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
+    sbc #RENDER_PLAYER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
 
     ; プレイヤーゾーンの描画を開始

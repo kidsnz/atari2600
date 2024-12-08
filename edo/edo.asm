@@ -42,30 +42,31 @@ USE_MUSIC = 1
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-PLAYER_GFX_HEIGHT          = 14  ; プレイヤーの高さ
-PLAYER_STATUS_IS_JUMPING   = %00000001 ; ジャンプ中かどうかのマスク
-PLAYER_GRAVITY             = 1   ; プレイヤーの重力
-PLAYER_INITIAL_VELOCITY    = 4   ; プレイヤーの初速度
-MAX_LINES                  = 192 ; スキャンライン数 
-MAX_NUMBER_OF_ZONES        = 5   ; ゾーンの最大数
-MIN_ZONE_HEIGHT            = 24  ; ゾーンの最小の高さ
-MAX_ZONE_HEIGHT            = 64  ; ゾーンの最大の高さ
-PLAYER_ZONE_HEIGHT         = 32  ; プレイヤーのゾーンの高さ
-MAX_X                      = 160 ; X座標の最大値
-MIN_X                      = 0   ; X座標の最小値
-MIN_Y                      = 2   ; Y座標の最小値
-LANDSCAPE_ZONE_HEIGHT      = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
-NUMBER_OF_SPRITES_MASK     = %00111111 ; スプライトの数のマスク
-NUMBER_OF_PLAY_FIELDS_MASK = %00001111 ; プレイフィールドの数のマスク
-NUMBER_OF_SPEEDS_MASK      = %00000011 ; スプライトの速度の数のマスク
-ORIENT_LEFT                = %00001000 ; 左向き
-ORIENT_RIGHT               = %00000000 ; 右向き
-RENDER_ZONE_INIT_TIME      = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理している場合は4の倍数である必要がある
-TITLE_GFX_HEIGHT           = 100  ; タイトルの高さ
-TITLE_MUSIC_LENGTH         = 128  ; タイトル音楽の長さ
-TITLE_MUSIC_TONE           = 12  ; タイトル音楽のトーン(0~15)
-TITLE_MUSIC_VOLUME         = 3   ; タイトル音楽の音量(0~15)
-TITLE_MUSIC_PITCH          = 16  ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
+PLAYER_GFX_HEIGHT            = 14  ; プレイヤーの高さ
+PLAYER_STATUS_IS_JUMPING     = %00000001 ; ジャンプ中かどうかのマスク
+PLAYER_GRAVITY               = 1   ; プレイヤーの重力
+PLAYER_INITIAL_VELOCITY      = 4   ; プレイヤーの初速度
+MAX_LINES                    = 192 ; スキャンライン数 
+MAX_NUMBER_OF_ZONES          = 5   ; ゾーンの最大数
+MIN_ZONE_HEIGHT              = 24  ; ゾーンの最小の高さ
+MAX_ZONE_HEIGHT              = 64  ; ゾーンの最大の高さ
+PLAYER_ZONE_HEIGHT           = 32  ; プレイヤーのゾーンの高さ
+MAX_X                        = 160 ; X座標の最大値
+MIN_X                        = 0   ; X座標の最小値
+MIN_Y                        = 2   ; Y座標の最小値
+LANDSCAPE_ZONE_HEIGHT        = MAX_LINES - PLAYER_ZONE_HEIGHT ; 風景ゾーンの高さ
+NUMBER_OF_SPRITES_MASK       = %00111111 ; スプライトの数のマスク
+NUMBER_OF_PLAY_FIELDS_MASK   = %00001111 ; プレイフィールドの数のマスク
+NUMBER_OF_SPEEDS_MASK        = %00000011 ; スプライトの速度の数のマスク
+ORIENT_LEFT                  = %00001000 ; 左向き
+ORIENT_RIGHT                 = %00000000 ; 右向き
+RENDER_ZONE_INIT_TIME        = 12  ; ゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理している場合は4の倍数である必要がある
+RENDER_PLAYER_ZONE_INIT_TIME = 4 ; プレイヤーゾーン描画の初期化処理に使う時間(ライン数) 4xlinesで処理している場合は4の倍数である必要がある
+TITLE_GFX_HEIGHT             = 100  ; タイトルの高さ
+TITLE_MUSIC_LENGTH           = 128  ; タイトル音楽の長さ
+TITLE_MUSIC_TONE             = 12  ; タイトル音楽のトーン(0~15)
+TITLE_MUSIC_VOLUME           = 3   ; タイトル音楽の音量(0~15)
+TITLE_MUSIC_PITCH            = 16  ; タイトル音楽のピッチ(2の乗数で指定する。大きいほど音の間隔が長い)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト情報用定数
@@ -231,7 +232,7 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 117 byte / 128 byte
+; 118 byte / 128 byte
 
 ; 6 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
@@ -266,9 +267,10 @@ PF0Buffer           byte ; PF0のバッファ
 PF1Buffer           byte ; PF1のバッファ
 PF2Buffer           byte ; PF2のバッファ
 
-; 6 byte プレイヤー関連
+; 7 byte プレイヤー関連
 PlayerXPos          byte   ; プレイヤーのX座標
 PlayerYPos          byte   ; プレイヤーのY座標
+PlayerYPrevPos      byte   ; プレイヤーのY座標(前回)
 PlayerVelocity      byte   ; プレイヤーの加速度
 PlayerStatus        byte   ; プレイヤーの状態(0~6bit: 空き, 7bit: ジャンプ中かどうか)
 PlayerOrient        byte   ; プレイヤーの向き
@@ -859,7 +861,7 @@ RenderTitle:
     jmp RenderTitleReturn
 
 RenderTitlePlayerZone:
-    TIMER_SETUP #RENDER_ZONE_INIT_TIME
+    TIMER_SETUP #RENDER_PLAYER_ZONE_INIT_TIME
     
     ; 横位置の補正
     lda PlayerXPos
@@ -898,7 +900,7 @@ RenderTitlePlayerZone:
     ; プレイヤーゾーンの高さ
     lda #PLAYER_ZONE_HEIGHT
     sec
-    sbc #RENDER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
+    sbc #RENDER_PLAYER_ZONE_INIT_TIME ; ゾーンの初期化処理にかかった時間分ライン数を減らす
     tax
 
     ; プレイヤーゾーンの描画を開始

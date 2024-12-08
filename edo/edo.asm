@@ -766,6 +766,8 @@ Reset_0:
     sta PlayerOrient
     lda #MIN_Y
     sta PlayerYPos
+    lda #0
+    sta PlayerJumpingIndex
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bank0 フレームの開始
@@ -1797,6 +1799,8 @@ Reset_1:
     sta PlayerYPos
     lda #0
     sta PlayerStatus
+    lda #0
+    sta PlayerJumpingIndex
 
     ; 音の初期化
     lda #0

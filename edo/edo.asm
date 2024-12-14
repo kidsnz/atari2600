@@ -2243,12 +2243,67 @@ RenderPlayerZoneReturn:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; スプライトの決定
     ;  {1}: スプライト番号
+    ;  {2}: 最小のY座標
+    ;  {3}: 最大のY座標
     MAC RESET_SPRITE
+.StartResetSprite{1}
+        ; スプライトを決定
         jsr NextRandomValue
         lda RandomValue
         ; lda #9 ; ゾーン初期化処理のデバッグをしたい場合にコメントインする
         and #NUMBER_OF_SPRITES_MASK
         sta ZoneSprite{1}Numbers,x
+
+        ; Y座標を決定
+        ; {2}~{3}の乱数を取る
+        sec
+.ModLoop
+        sbc #({3} - {2} + 1)
+        bcs .ModLoop
+        adc #({3} - {2} + 1)
+        clc
+        adc #{2}
+
+        LOAD_SPRITE_INFO {1}
+
+        ; 一旦Y座標を保持
+        sta ZoneSprite{1}YPos,x
+        
+        ; ゾーンの実質の高さを計算
+        lda ZoneHeights,x
+        sec
+        sbc #RENDER_ZONE_INIT_TIME
+        sta Tmp
+        
+        ; Y座標とスプライトの高さを足して上部のY座標を得る
+        lda ZoneSprite{1}YPos,x
+        clc
+        adc Sprite{1}Height
+        
+        ; スプライトの上部のY座標 - ゾーンの実質の高さ
+        sec
+        sbc Tmp
+        
+        ; プラスならはみ出ているのではみ出た分を調整
+        bpl .JustifySprite{1}YPos
+        jmp .SkipSubSprite{1}Height
+.JustifySprite{1}YPos
+    sta Tmp
+    lda ZoneSprite{1}YPos,x
+        sec
+        sbc Tmp
+        
+        ; 0なら座標1にセット(0だと表示がバグるので)
+        beq .SetSprite{1}HeightOne
+        
+        ; それでY座標がマイナスになる場合はもう一度リセット
+        bcc .StartResetSprite{1}
+        jmp .StoreSprite{1}Height
+.SetSprite{1}HeightOne
+        lda #1
+.StoreSprite{1}Height
+        sta ZoneSprite{1}YPos,x
+.SkipSubSprite{1}Height
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2775,20 +2830,12 @@ ResetScene subroutine
     ; プレイフィールドの色を決定
     RESET_PLAYFIELD_COLOR
 
-    ; スプライト0を決定
-    RESET_SPRITE 0
-    LOAD_SPRITE_INFO 0
-    
-    ; スプライト0のY座標を決定
-    RESET_SPRITE_YPOS 0,#1,#16
+    ; スプライト0(とY座標)を決定
+    RESET_SPRITE 0,#1,#16
 
 #if USE_SPRITE_1 = 1
-    ; スプライト1を決定
-    RESET_SPRITE 1
-    LOAD_SPRITE_INFO 1
-
-    ; スプライト1のY座標を決定
-    RESET_SPRITE_YPOS 1,#16,#32
+    ; スプライト1(とY座標)を決定
+    RESET_SPRITE 1,#16,#32
 #endif
 
     ; スプライト0の色を決定

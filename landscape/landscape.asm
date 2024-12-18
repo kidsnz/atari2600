@@ -34,6 +34,9 @@ USE_PLAYFIELD = 1
 ; 音楽を使う
 USE_MUSIC = 1
 
+; 上下キーによるシーン切り替えを使う
+USE_SCENE_CHANGE = 1
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -624,12 +627,29 @@ ProcPlayer{1}:
         lda #0
         sta PlayerJumpingIndex
 .SkipButtonPush{1}
-        ; 十字キーのチェック
+#if USE_SCENE_CHANGE && {1} = 1 ; Bank1の場合は上下によるシーン切り替えを行う
+        ; 上キーのチェック
+        lda #%00010000
+        bit SWCHA
+        bne .SkipMoveUp{1}
+        jsr ResetRandomCounter
+        jsr ResetScene
+.SkipMoveUp{1}
+        ; 下キーのチェック
+        lda #%00100000
+        bit SWCHA
+        bne .SkipMoveDown{1}
+        jsr ResetRandomCounter
+        jsr ResetScene
+#endif
+.SkipMoveDown{1}
+        ; 左キーのチェック
         lda #%01000000
         bit SWCHA
         bne .SkipMoveLeft{1}
         LEFT_PLAYER_XPOS {1}
 .SkipMoveLeft{1}:
+        ; 右キーのチェック
         lda #%10000000
         bit SWCHA
         bne .SkipMoveRight{1}

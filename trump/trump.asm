@@ -154,7 +154,7 @@ NextFrame:
     ; 下部開始色インデックスが0未満になったらHALF_PF_GFX_HEIGHT-1に戻す
     bne .SkipLowerStartColorIdxZero
     ldx #HALF_PF_GFX_HEIGHT-1
-	dex
+    dex
 .SkipLowerStartColorIdxZero
     stx LowerStartColorIdx
 #endif
@@ -460,9 +460,9 @@ PFColorsLower:
 ;; プレイフィールド
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
 
 PfGfx0:
     .byte %00000000
@@ -647,9 +647,9 @@ PfGfx0Upper:
     .byte %00000000
     .byte %00000000
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
 
 PfGfx1
     .byte %00000000
@@ -834,9 +834,9 @@ PfGfx1Upper
     .byte %00000000
     .byte %00000000
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
 
 PfGfx2
     .byte %00000000
@@ -1021,9 +1021,9 @@ PfGfx2Upper
     .byte %00000000
     .byte %00000000
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
 
 PfGfx3
     .byte %00000000
@@ -1208,9 +1208,9 @@ PfGfx3Upper
     .byte %00000000
     .byte %00000000
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
     
 PfGfx4
     .byte %00000000
@@ -1395,9 +1395,9 @@ PfGfx4Upper
     .byte %00000000
     .byte %00000000
 
-	if >. != >[.+(PF_GFX_HEIGHT)]
-		align 256
-	endif
+    if >. != >[.+(PF_GFX_HEIGHT)]
+        align 256
+    endif
 
 PfGfx5
     .byte %00000000

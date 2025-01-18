@@ -26,6 +26,12 @@ UPPER_MOVE_DOWN = 0
 ; 下部のグラデーションの移動(0: 上方向, 2: 下方向)
 LOWER_MOVE_DOWN = 1
 
+; 上部のPFのグラデーションの移動(0: 上方向, 1: 下方向)
+UPPER_PF_MOVE_DOWN = 1
+
+; 下部のPFのグラデーションの移動(0: 上方向, 1: 下方向)
+LOWER_PF_MOVE_DOWN = 0
+
 ; 上部のグラデーションの向き(0: 上から下に暗く, 1: 逆)
 UPPER_GRADATION_DOWN = 0
 
@@ -120,7 +126,11 @@ PF_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
 
 UpperStartColorIdx byte
 LowerStartColorIdx byte
+UpperPfStartColorIdx byte
+LowerPfStartColorIdx byte
 BgColorIdx byte
+PfColorIdx byte
+Tmp byte
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -138,8 +148,10 @@ Reset:
 
     lda #START_UPPER_COLOR_IDX
     sta UpperStartColorIdx
+    sta UpperPfStartColorIdx
     lda #START_LOWER_COLOR_IDX
     sta LowerStartColorIdx
+    sta LowerPfStartColorIdx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
@@ -173,6 +185,7 @@ NextFrame:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #if ANIMATION = 1
+
 #if UPPER_MOVE_DOWN = 0
     ; 上部開始色インデックスをインクリメント
     ldx UpperStartColorIdx
@@ -185,6 +198,7 @@ NextFrame:
 .SkipUpperStartColorIdxZero
     stx UpperStartColorIdx
 #endif
+
 #if UPPER_MOVE_DOWN = 1
     ; 上部開始色インデックスをデクリメント
     ldx UpperStartColorIdx
@@ -197,6 +211,7 @@ NextFrame:
 .SkipUpperStartColorIdxZero
     stx UpperStartColorIdx
 #endif
+
 #if LOWER_MOVE_DOWN = 0
     ; 下部開始色インデックスをインクリメント
     ldx LowerStartColorIdx
@@ -209,6 +224,7 @@ NextFrame:
 .SkipLowerStartColorIdxZero
     stx LowerStartColorIdx
 #endif
+
 #if LOWER_MOVE_DOWN = 1
     ; 下部開始色インデックスをデクリメント
     ldx LowerStartColorIdx
@@ -220,6 +236,58 @@ NextFrame:
     dex
 .SkipLowerStartColorIdxZero
     stx LowerStartColorIdx
+#endif
+
+#if UPPER_PF_MOVE_DOWN = 0
+    ; 上部開始色インデックスをインクリメント
+    ldx UpperPfStartColorIdx
+    inx
+
+    ; 上部開始色インデックスがHALF_PF_GFX_HEIGHTを超えたら0に戻す
+    cpx #HALF_PF_GFX_HEIGHT-1
+    bne .SkipUpperPfStartColorIdxZero
+    ldx #0
+.SkipUpperPfStartColorIdxZero
+    stx UpperPfStartColorIdx
+#endif
+
+#if UPPER_PF_MOVE_DOWN = 1
+    ; 上部開始色インデックスをデクリメント
+    ldx UpperPfStartColorIdx
+    dex
+
+    ; 上部開始色インデックスが0未満になったらHALF_PF_GFX_HEIGHT-1に戻す
+    bne .SkipUpperPfStartColorIdxZero
+    ldx #HALF_PF_GFX_HEIGHT-1
+    dex
+.SkipUpperPfStartColorIdxZero
+    stx UpperPfStartColorIdx
+#endif
+
+#if LOWER_PF_MOVE_DOWN = 0
+    ; 下部開始色インデックスをインクリメント
+    ldx LowerPfStartColorIdx
+    inx
+
+    ; 下部開始色インデックスがHALF_PF_GFX_HEIGHTを超えたら0に戻す
+    cpx #HALF_PF_GFX_HEIGHT-1
+    bne .SkipLowerPfStartColorIdxZero
+    ldx #0
+.SkipLowerPfStartColorIdxZero
+    stx LowerPfStartColorIdx
+#endif
+
+#if LOWER_PF_MOVE_DOWN = 1
+    ; 下部開始色インデックスをデクリメント
+    ldx LowerPfStartColorIdx
+    dex
+
+    ; 下部開始色インデックスが0未満になったらHALF_PF_GFX_HEIGHT-1に戻す
+    bne .SkipLowerPfStartColorIdxZero
+    ldx #HALF_PF_GFX_HEIGHT-1
+    dex
+.SkipLowerPfStartColorIdxZero
+    stx LowerPfStartColorIdx
 #endif
 
 #endif
@@ -269,6 +337,11 @@ NextFrame:
     ;lda #1
     ;sta VDELP0
     ;sta VDELP1
+    
+    ;lda UpperStartColorIdx
+    ;sta BgColorIdx
+    ;lda UpperPfStartColorIdx
+    ;sta PfColorIdx
 
     TIMER_WAIT
     
@@ -292,6 +365,15 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     ldy #HALF_PF_GFX_HEIGHT-1
+    ;lda #HALF_PF_GFX_HEIGHT-1
+    ;sta Tmp
+    
+    lda UpperPfStartColorIdx
+    pha
+    
+    ;lda UpperStartColorIdx
+    ;pha
+    
     ldx UpperStartColorIdx
 .UpperScanLoop
     sta WSYNC
@@ -301,8 +383,9 @@ NextFrame:
     ; 背景色の設定
     lda BgColorsUpper,x
     sta COLUBK
-
+    
     ; プレイフィールド色の設定
+    pha
     lda PFColorsUpper,x
     sta COLUPF
 
@@ -334,6 +417,8 @@ NextFrame:
 
     ; 次のラインへ
     dey
+    ;dec Tmp
+    ;ldy Tmp
     bne .UpperScanLoop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

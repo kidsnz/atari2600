@@ -12,6 +12,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DEBUG = 0
+ANIMATION = 1
+START_UPPER_COLOR_IDX = 15
+START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-15
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
@@ -93,9 +96,9 @@ Reset:
 ;; 初期化の開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lda #0
+    lda #START_UPPER_COLOR_IDX
     sta UpperStartColorIdx
-	lda #HALF_PF_GFX_HEIGHT-1
+	lda #START_LOWER_COLOR_IDX
     sta LowerStartColorIdx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,12 +128,13 @@ NextFrame:
     lda #PF_UNMIRRORING
     sta CTRLPF
 
+#if ANIMATION = 1
     ; 上部開始色インデックスを変更
     ldx UpperStartColorIdx
     inx
 
     ; 上部開始色インデックスがHALF_PF_GFX_HEIGHTを超えたら0に戻す
-    cpx #HALF_PF_GFX_HEIGHT
+    cpx #HALF_PF_GFX_HEIGHT-1
     bne .SkipUpperStartColorIdxZero
     ldx #0
 .SkipUpperStartColorIdxZero
@@ -146,6 +150,7 @@ NextFrame:
 	dex
 .SkipLowerStartColorIdxZero
     stx LowerStartColorIdx
+#endif
 
     TIMER_WAIT
 
@@ -156,8 +161,9 @@ NextFrame:
 ;; 上部6ラインはスキップ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    TIMER_SETUP 6
-    TIMER_WAIT
+    REPEAT 6
+        sta WSYNC
+    REPEND
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 上部の描画
@@ -173,7 +179,7 @@ NextFrame:
     sta COLUBK
 
     ; プレイフィールド色の設定
-    lda #$40
+    lda PFColorsUpper,x
     sta COLUPF
 
     ; プレイフィールドのセット
@@ -183,9 +189,9 @@ NextFrame:
     sta PF1
     lda PfGfx2Upper,y
     sta PF2
-    ; nop
-    ; nop
-    ; nop
+    ;nop
+    ;nop
+    ;nop
     lda PfGfx3Upper,y
     sta PF0
     lda PfGfx4Upper,y
@@ -218,7 +224,7 @@ NextFrame:
     sta COLUBK
 
     ; プレイフィールド色の設定
-    lda #$40
+    lda PFColorsLower,x
     sta COLUPF
 
     ; プレイフィールドのセット
@@ -265,8 +271,9 @@ NextFrame:
 ;; 下部6ラインはスキップ
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    TIMER_SETUP 6
-    TIMER_WAIT
+    REPEAT 6
+        sta WSYNC
+    REPEND
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 処理の開始（オーバースキャン）
@@ -368,7 +375,25 @@ RED_BASE_COLOR   = $40
         .byte BLUE_BASE_COLOR+14
     ENDM
     
-    MAC RED_COLORS
+    MAC RED_COLORS_UPPER
+        .byte RED_BASE_COLOR+14
+        .byte RED_BASE_COLOR+13
+        .byte RED_BASE_COLOR+12
+        .byte RED_BASE_COLOR+11
+        .byte RED_BASE_COLOR+10
+        .byte RED_BASE_COLOR+9
+        .byte RED_BASE_COLOR+8 
+        .byte RED_BASE_COLOR+7 
+        .byte RED_BASE_COLOR+6 
+        .byte RED_BASE_COLOR+5 
+        .byte RED_BASE_COLOR+4
+        .byte RED_BASE_COLOR+3
+        .byte RED_BASE_COLOR+2
+        .byte RED_BASE_COLOR+1
+        .byte RED_BASE_COLOR+0
+    ENDM
+
+	MAC RED_COLORS_LOWER
         .byte RED_BASE_COLOR+0 
         .byte RED_BASE_COLOR+1 
         .byte RED_BASE_COLOR+2 
@@ -384,9 +409,7 @@ RED_BASE_COLOR   = $40
         .byte RED_BASE_COLOR+12
         .byte RED_BASE_COLOR+13
         .byte RED_BASE_COLOR+14
-    ENDM
-
-	align 256
+	ENDM
 
 BgColorsUpper:
     BLUE_COLORS_UPPER
@@ -403,6 +426,22 @@ BgColorsLower:
     BLUE_COLORS_LOWER
     WHITE_COLORS_LOWER
     BLUE_COLORS_LOWER
+
+PFColorsUpper:
+	RED_COLORS_UPPER
+	RED_COLORS_UPPER
+	RED_COLORS_UPPER
+	RED_COLORS_UPPER
+	RED_COLORS_UPPER
+	RED_COLORS_UPPER
+
+PFColorsLower:
+	RED_COLORS_LOWER
+	RED_COLORS_LOWER
+	RED_COLORS_LOWER
+	RED_COLORS_LOWER
+	RED_COLORS_LOWER
+	RED_COLORS_LOWER
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド

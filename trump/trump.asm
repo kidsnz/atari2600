@@ -13,11 +13,37 @@
 
 ANIMATION             = 1
 OFFSET                = 1
-START_UPPER_COLOR_IDX = OFFSET
-START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-OFFSET
 
+; 上部を描画する
 RENDER_UPPER = 1
+
+; 下部を描画する
 RENDER_LOWER = 1
+
+; 上部のグラデーションの移動(0: 上方向, 1: 下方向)
+UPPER_MOVE_DOWN = 0
+
+; 下部のグラデーションの移動(0: 上方向, 2: 下方向)
+LOWER_MOVE_DOWN = 1
+
+; 上部のグラデーションの向き(0: 上から下に暗く, 1: 逆)
+UPPER_GRADATION_DOWN = 0
+
+; 下部のグラデーションの向き(0: 上から下に暗く, 1: 逆)
+LOWER_GRADATION_DOWN = 1
+
+#if UPPER_MOVE_DOWN = 0
+START_UPPER_COLOR_IDX = OFFSET
+#endif
+#if UPPER_MOVE_DOWN = 1
+START_UPPER_COLOR_IDX = HALF_PF_GFX_HEIGHT-OFFSET
+#endif
+#if LOWER_MOVE_DOWN = 0
+START_LOWER_COLOR_IDX = OFFSET
+#endif
+#if LOWER_MOVE_DOWN = 1
+START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-OFFSET
+#endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
@@ -146,7 +172,8 @@ NextFrame:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #if ANIMATION = 1
-    ; 上部開始色インデックスを変更
+#if UPPER_MOVE_DOWN = 0
+    ; 上部開始色インデックスをインクリメント
     ldx UpperStartColorIdx
     inx
 
@@ -156,8 +183,33 @@ NextFrame:
     ldx #0
 .SkipUpperStartColorIdxZero
     stx UpperStartColorIdx
+#endif
+#if UPPER_MOVE_DOWN = 1
+    ; 上部開始色インデックスをデクリメント
+    ldx UpperStartColorIdx
+    dex
 
-    ; 下部開始色インデックスを変更
+    ; 上部開始色インデックスが0未満になったらHALF_PF_GFX_HEIGHT-1に戻す
+    bne .SkipUpperStartColorIdxZero
+    ldx #HALF_PF_GFX_HEIGHT-1
+    dex
+.SkipUpperStartColorIdxZero
+    stx UpperStartColorIdx
+#endif
+#if LOWER_MOVE_DOWN = 0
+    ; 下部開始色インデックスをインクリメント
+    ldx LowerStartColorIdx
+    inx
+
+    ; 下部開始色インデックスがHALF_PF_GFX_HEIGHTを超えたら0に戻す
+    cpx #HALF_PF_GFX_HEIGHT-1
+    bne .SkipLowerStartColorIdxZero
+    ldx #0
+.SkipLowerStartColorIdxZero
+    stx LowerStartColorIdx
+#endif
+#if LOWER_MOVE_DOWN = 1
+    ; 下部開始色インデックスをデクリメント
     ldx LowerStartColorIdx
     dex
 
@@ -351,20 +403,20 @@ NextFrame:
     sta COLUBK
 
     ; TODO: 文字の描画
-    SLEEP SPRITE_SLEEP
-    lda ChGfx0,y
-    sta GRP0
-    lda ChGfx1,y
-    sta GRP1
-    lda ChGfx2,y
-    sta GRP0
-    lda ChGfx3,y
-    sta GRP1
-    lda #0
-    ;lda #%11111111
-    sta GRP0
-    ;lda #%11111111
-    sta GRP1
+    ; SLEEP SPRITE_SLEEP
+    ; lda ChGfx0,y
+    ; sta GRP0
+    ; lda ChGfx1,y
+    ; sta GRP1
+    ; lda ChGfx2,y
+    ; sta GRP0
+    ; lda ChGfx3,y
+    ; sta GRP1
+    ; lda #0
+    ; ;lda #%11111111
+    ; sta GRP0
+    ; ;lda #%11111111
+    ; sta GRP1
 
     ; 色を変える
     inx
@@ -567,36 +619,76 @@ SetObjectXPos subroutine
     align 256
     
 BgColorsUpper:
+#if UPPER_GRADATION_DOWN = 0
     BLUE_COLORS_UPPER
     WHITE_COLORS_UPPER
     BLUE_COLORS_UPPER
     WHITE_COLORS_UPPER
     BLUE_COLORS_UPPER
     WHITE_COLORS_UPPER
+#endif
+#if UPPER_GRADATION_DOWN = 1
+    BLUE_COLORS_LOWER
+    WHITE_COLORS_LOWER
+    BLUE_COLORS_LOWER
+    WHITE_COLORS_LOWER
+    BLUE_COLORS_LOWER
+    WHITE_COLORS_LOWER
+#endif
 
 BgColorsLower:
+#if LOWER_GRADATION_DOWN = 0
+    WHITE_COLORS_UPPER
+    BLUE_COLORS_UPPER
+    WHITE_COLORS_UPPER
+    BLUE_COLORS_UPPER
+    WHITE_COLORS_UPPER
+    BLUE_COLORS_UPPER
+#endif
+#if LOWER_GRADATION_DOWN = 1
     WHITE_COLORS_LOWER
     BLUE_COLORS_LOWER
     WHITE_COLORS_LOWER
     BLUE_COLORS_LOWER
     WHITE_COLORS_LOWER
     BLUE_COLORS_LOWER
+#endif
 
 PFColorsUpper:
+#if UPPER_GRADATION_DOWN = 0
     RED_COLORS_UPPER
     RED_COLORS_UPPER
     RED_COLORS_UPPER
     RED_COLORS_UPPER
     RED_COLORS_UPPER
     RED_COLORS_UPPER
+#endif
+#if UPPER_GRADATION_DOWN = 1
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+#endif
 
 PFColorsLower:
+#if LOWER_GRADATION_DOWN = 0
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+#endif
+#if LOWER_GRADATION_DOWN = 1
     RED_COLORS_LOWER
     RED_COLORS_LOWER
     RED_COLORS_LOWER
     RED_COLORS_LOWER
     RED_COLORS_LOWER
     RED_COLORS_LOWER
+#endif
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 文字

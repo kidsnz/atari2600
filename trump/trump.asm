@@ -26,6 +26,7 @@ RENDER_LOWER = 1
 WHITE_BASE_COLOR = $00
 BLUE_BASE_COLOR  = $70
 RED_BASE_COLOR   = $40
+CHARACTER_COLOR  = $0E
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
@@ -266,7 +267,53 @@ NextFrame:
 
     ; 次のラインへ
     dey
+    cpy #30 ; 残り30ラインになったら文字を描画するループへ
+    bmi .LowerScanLoop2
     bne .LowerScanLoop
+    
+.LowerScanLoop2
+    ; 文字を描画するエリアのループ(下部の下30ラインのエリア)
+    sta WSYNC
+    
+#if RENDER_LOWER = 1
+
+    ; 背景色の設定
+    lda BgColorsLower,x
+    sta COLUBK
+
+    ; プレイフィールド色の設定
+    lda #CHARACTER_COLOR ; 常に文字色を使う
+    sta COLUPF
+
+    ; プレイフィールドのセット
+    lda #0 ; 更新が間に合わないので左側のPF0は常に非表示
+    sta PF0
+    lda PfGfx1,y
+    sta PF1
+    lda PfGfx2,y
+    sta PF2
+    ;nop
+    ;nop
+    ;nop
+    lda PfGfx3,y
+    sta PF0
+    lda PfGfx4,y
+    sta PF1
+    lda #0 ; 更新が間に合わないので右側のPF2は常に非表示
+    sta PF2
+
+    ; 色を変える
+    inx
+    cpx #HALF_PF_GFX_HEIGHT
+    bne .SkipLowerResetColorIdx2
+    ldx #0
+.SkipLowerResetColorIdx2
+
+#endif
+
+    ; 次のラインへ
+    dey
+    bne .LowerScanLoop2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 描画の後処理
@@ -292,7 +339,7 @@ NextFrame:
 ;; 処理の開始（オーバースキャン）
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    TIMER_SETUP 28
+    TIMER_SETUP 30
     lda #%00000010
     sta VBLANK
 
@@ -1007,8 +1054,6 @@ PfGfx2Upper
     .byte %00000000
     .byte %00000000
 
-    
-
 PfGfx3
     .byte %00000000
     .byte %00000000
@@ -1211,19 +1256,19 @@ PfGfx4
     .byte %00000000
     .byte %00000000
     .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
-    .byte %00000000
+    .byte %00000101
+    .byte %00000101
+    .byte %00000101
+    .byte %00000111
+    .byte %00000111
+    .byte %00000111
+    .byte %00000101
+    .byte %00000101
+    .byte %00000101
+    .byte %00000101
+    .byte %00000111
+    .byte %00000111
+    .byte %00000111
     .byte %00000000
     .byte %11111111
     .byte %11111111

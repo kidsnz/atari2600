@@ -76,7 +76,6 @@ HALF_PF_GFX_HEIGHT = PF_GFX_HEIGHT / 2
 
 UpperStartColorIdx byte
 LowerStartColorIdx byte
-LineCounter byte
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 共通マクロ・データ

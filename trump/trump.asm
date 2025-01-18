@@ -12,13 +12,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DEBUG = 0
-ANIMATION = 0
-START_UPPER_COLOR_IDX = 15
-START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-15
+ANIMATION = 1
+OFFSET = 1
+START_UPPER_COLOR_IDX = OFFSET
+START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-OFFSET
+
+RENDER_UPPER = 1
+RENDER_LOWER = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; カラーコード
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+WHITE_BASE_COLOR = $00
+BLUE_BASE_COLOR  = $70
+RED_BASE_COLOR   = $40
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
@@ -173,24 +181,24 @@ NextFrame:
     ldx UpperStartColorIdx
 .UpperScanLoop
     sta WSYNC
-    
-    ; HBLANKは68colorclock=22.666cpuclock
+
+#if RENDER_UPPER = 1
     
     ; 背景色の設定
-    lda BgColorsUpper,x ; 4 (4)
-    sta COLUBK ; 3 (7)
+    lda BgColorsUpper,x
+    sta COLUBK
 
     ; プレイフィールド色の設定
-    lda PFColorsUpper,x ; 4 (11)
-    sta COLUPF ; 3 (14)
+    lda PFColorsUpper,x
+    sta COLUPF
 
     ; プレイフィールドのセット
-    lda PfGfx0Upper,y ; 4 (18)
-    ;sta PF0           ; 3 (21)
-    lda PfGfx1Upper,y ; 4 (25)
-    sta PF1           ; 3 (28)
-    lda PfGfx2Upper,y ; 4 (32)
-    sta PF2           ; 3 (35)
+    lda #0 ; 更新が間に合わないので左側のPF0は常に非表示
+    sta PF0
+    lda PfGfx1Upper,y
+    sta PF1
+    lda PfGfx2Upper,y
+    sta PF2
     ;nop
     ;nop
     ;nop
@@ -198,7 +206,7 @@ NextFrame:
     sta PF0
     lda PfGfx4Upper,y
     sta PF1
-    lda PfGfx5Upper,y
+    lda #0 ; 更新が間に合わないので右側のPF2は常に非表示
     sta PF2
 
     ; 色を変える
@@ -208,6 +216,8 @@ NextFrame:
     ldx #0
 .SkipUpperResetColorIdx
 
+#endif
+
     ; 次のラインへ
     dey
     bne .UpperScanLoop
@@ -215,11 +225,13 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 下部の描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+    
     ldy #HALF_PF_GFX_HEIGHT
     ldx LowerStartColorIdx
 .LowerScanLoop
     sta WSYNC
+
+#if RENDER_LOWER = 1
     
     ; 背景色の設定
     lda BgColorsLower,x
@@ -230,20 +242,20 @@ NextFrame:
     sta COLUPF
 
     ; プレイフィールドのセット
-    lda PfGfx0,y
+    lda #0 ; 更新が間に合わないので左側のPF0は常に非表示
     sta PF0
     lda PfGfx1,y
     sta PF1
     lda PfGfx2,y
     sta PF2
-    ; nop
-    ; nop
-    ; nop
+    ;nop
+    ;nop
+    ;nop
     lda PfGfx3,y
     sta PF0
     lda PfGfx4,y
     sta PF1
-    lda PfGfx5,y
+    lda #0 ; 更新が間に合わないので右側のPF2は常に非表示
     sta PF2
 
     ; 色を変える
@@ -252,6 +264,8 @@ NextFrame:
     bne .SkipLowerResetColorIdx
     ldx #0
 .SkipLowerResetColorIdx
+
+#endif
 
     ; 次のラインへ
     dey
@@ -300,10 +314,6 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 色
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-WHITE_BASE_COLOR = $00
-BLUE_BASE_COLOR  = $70
-RED_BASE_COLOR   = $40
 
     MAC WHITE_COLORS_UPPER
         .byte WHITE_BASE_COLOR+14
@@ -395,7 +405,7 @@ RED_BASE_COLOR   = $40
         .byte RED_BASE_COLOR+0
     ENDM
 
-	MAC RED_COLORS_LOWER
+    MAC RED_COLORS_LOWER
         .byte RED_BASE_COLOR+0 
         .byte RED_BASE_COLOR+1 
         .byte RED_BASE_COLOR+2 
@@ -411,8 +421,10 @@ RED_BASE_COLOR   = $40
         .byte RED_BASE_COLOR+12
         .byte RED_BASE_COLOR+13
         .byte RED_BASE_COLOR+14
-	ENDM
+    ENDM
 
+    align 256
+    
 BgColorsUpper:
     BLUE_COLORS_UPPER
     WHITE_COLORS_UPPER
@@ -430,24 +442,28 @@ BgColorsLower:
     BLUE_COLORS_LOWER
 
 PFColorsUpper:
-	RED_COLORS_UPPER
-	RED_COLORS_UPPER
-	RED_COLORS_UPPER
-	RED_COLORS_UPPER
-	RED_COLORS_UPPER
-	RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
+    RED_COLORS_UPPER
 
 PFColorsLower:
-	RED_COLORS_LOWER
-	RED_COLORS_LOWER
-	RED_COLORS_LOWER
-	RED_COLORS_LOWER
-	RED_COLORS_LOWER
-	RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
+    RED_COLORS_LOWER
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
 
 PfGfx0:
     .byte %00000000
@@ -632,6 +648,10 @@ PfGfx0Upper:
     .byte %00000000
     .byte %00000000
 
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
+
 PfGfx1
     .byte %00000000
     .byte %00000000
@@ -814,6 +834,10 @@ PfGfx1Upper
     .byte %00000000
     .byte %00000000
     .byte %00000000
+
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
 
 PfGfx2
     .byte %00000000
@@ -998,6 +1022,10 @@ PfGfx2Upper
     .byte %00000000
     .byte %00000000
 
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
+
 PfGfx3
     .byte %00000000
     .byte %00000000
@@ -1180,6 +1208,10 @@ PfGfx3Upper
     .byte %00000000
     .byte %00000000
     .byte %00000000
+
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
     
 PfGfx4
     .byte %00000000
@@ -1363,6 +1395,10 @@ PfGfx4Upper
     .byte %00000000
     .byte %00000000
     .byte %00000000
+
+	if >. != >[.+(PF_GFX_HEIGHT)]
+		align 256
+	endif
 
 PfGfx5
     .byte %00000000

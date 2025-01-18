@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 DEBUG = 0
-ANIMATION = 1
+ANIMATION = 0
 START_UPPER_COLOR_IDX = 15
 START_LOWER_COLOR_IDX = HALF_PF_GFX_HEIGHT-15
 
@@ -98,7 +98,7 @@ Reset:
 
     lda #START_UPPER_COLOR_IDX
     sta UpperStartColorIdx
-	lda #START_LOWER_COLOR_IDX
+    lda #START_LOWER_COLOR_IDX
     sta LowerStartColorIdx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -169,26 +169,28 @@ NextFrame:
 ;; 上部の描画
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ldy #HALF_PF_GFX_HEIGHT
+    ldy #HALF_PF_GFX_HEIGHT-1
     ldx UpperStartColorIdx
 .UpperScanLoop
     sta WSYNC
     
+    ; HBLANKは68colorclock=22.666cpuclock
+    
     ; 背景色の設定
-    lda BgColorsUpper,x
-    sta COLUBK
+    lda BgColorsUpper,x ; 4 (4)
+    sta COLUBK ; 3 (7)
 
     ; プレイフィールド色の設定
-    lda PFColorsUpper,x
-    sta COLUPF
+    lda PFColorsUpper,x ; 4 (11)
+    sta COLUPF ; 3 (14)
 
     ; プレイフィールドのセット
-    lda PfGfx0Upper,y
-    sta PF0
-    lda PfGfx1Upper,y
-    sta PF1
-    lda PfGfx2Upper,y
-    sta PF2
+    lda PfGfx0Upper,y ; 4 (18)
+    ;sta PF0           ; 3 (21)
+    lda PfGfx1Upper,y ; 4 (25)
+    sta PF1           ; 3 (28)
+    lda PfGfx2Upper,y ; 4 (32)
+    sta PF2           ; 3 (35)
     ;nop
     ;nop
     ;nop

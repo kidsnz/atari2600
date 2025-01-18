@@ -120,6 +120,7 @@ PF_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
 
 UpperStartColorIdx byte
 LowerStartColorIdx byte
+BgColorIdx byte
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -219,6 +220,8 @@ NextFrame:
     dex
 .SkipLowerStartColorIdxZero
     stx LowerStartColorIdx
+#endif
+
 #endif
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -53,7 +53,7 @@ WHITE_BASE_COLOR = $00
 BLUE_BASE_COLOR  = $70
 RED_BASE_COLOR   = $40
 CHARACTER_COLOR  = $0E
-CHARACTER_COLOR2 = $40
+CHARACTER_COLOR2 = $0E
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 定数
@@ -61,15 +61,14 @@ CHARACTER_COLOR2 = $40
 
 PF_GFX_HEIGHT      = 180               ; プレイフィールドの高さ
 HALF_PF_GFX_HEIGHT = PF_GFX_HEIGHT / 2 ; プレイフィールドの高さの半分
-SPRITE_X_POS       = 70                ; 文字の開始位置
-SPRITE0_X_POS      = SPRITE_X_POS      ; スプライト0の横位置
-SPRITE1_X_POS      = SPRITE_X_POS + 12 ; スプライト1の横位置(横位置を変えると若干ずれるので手動で調整する)
-SPRITE_SLEEP       = 16
+SPRITE_X_POS       = 45                ; 文字の開始位置
+SPRITE_SLEEP       = 10                ; 文字描画の待機時間(文字の開始位置に応じて調整)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+SPRITE_NUSIZ_TWO_COPY   = %00000001 ; 2つコピー表示
 SPRITE_NUSIZ_THREE_COPY = %00000011 ; 3つコピー表示
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,11 +115,11 @@ PF_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
     seg.u Variables
     org $80
 
-; 2 byte / 128 byte
+; 3 byte / 128 byte
 
 UpperStartColorIdx byte
 LowerStartColorIdx byte
-BgColorIdx byte
+xTemp byte;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -138,6 +137,7 @@ Reset:
 
     lda #START_UPPER_COLOR_IDX
     sta UpperStartColorIdx
+    
     lda #START_LOWER_COLOR_IDX
     sta LowerStartColorIdx
 
@@ -228,8 +228,22 @@ NextFrame:
     ;; スプライトの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    
+    ; スプライト色をセット
+    lda #CHARACTER_COLOR
+    sta COLUP0
+    lda #CHARACTER_COLOR2
+    sta COLUP1
+
+    ; スプライトのNUSIZをセット
+    lda #SPRITE_NUSIZ_THREE_COPY
+    sta NUSIZ0
+    lda #SPRITE_NUSIZ_TWO_COPY
+    sta NUSIZ1
+    
+    ; スプライトの座標
     sta WSYNC
-    SLEEP #SPRITE0_X_POS
+    SLEEP SPRITE_X_POS
     sta RESP0
     sta RESP1
     lda #$10
@@ -239,7 +253,7 @@ NextFrame:
     sta HMCLR
 
     ; ; スプライト0の横位置の補正
-    ; ; lda #SPRITE0_X_POS
+    ; lda #SPRITE0_X_POS
     ; ldy #0 ; プレイヤー0スプライト
     ; jsr SetObjectXPos
     ; ; スプライト0の横位置の補正を適用
@@ -253,22 +267,11 @@ NextFrame:
     ; ; スプライト1の横位置の補正を適用
     ; sta WSYNC
     ; sta HMOVE
-
-    ; スプライト色をセット
-    lda #CHARACTER_COLOR
-    sta COLUP0
-    lda #CHARACTER_COLOR2
-    sta COLUP1
-
-    ; スプライトのNUSIZをセット
-    lda #SPRITE_NUSIZ_THREE_COPY
-    sta NUSIZ0
-    sta NUSIZ1
     
     ; VDELPを有効(GRP0,1へのアクセスがバッファリングされる)
-    ;lda #1
-    ;sta VDELP0
-    ;sta VDELP1
+    lda #1
+    sta VDELP0
+    sta VDELP1
 
     TIMER_WAIT
     
@@ -395,7 +398,7 @@ NextFrame:
     sta PF0
     sta PF1
     sta PF2
-
+    
 .LowerScanLoop2
     sta WSYNC
     
@@ -404,22 +407,21 @@ NextFrame:
     ; 背景色の設定
     lda BgColorsLower,x
     sta COLUBK
-
-    ; TODO: 文字の描画
-    ; SLEEP SPRITE_SLEEP
-    ; lda ChGfx0,y
-    ; sta GRP0
-    ; lda ChGfx1,y
-    ; sta GRP1
-    ; lda ChGfx2,y
-    ; sta GRP0
-    ; lda ChGfx3,y
-    ; sta GRP1
-    ; lda #0
-    ; ;lda #%11111111
-    ; sta GRP0
-    ; ;lda #%11111111
-    ; sta GRP1
+    stx xTemp
+    lda ChGfx0,y
+    sta GRP0 ; B0 -> [GRP0]
+    lda ChGfx1,y
+    sta GRP1 ; B1 -> [GRP1], B0 -> GRP0
+    lda ChGfx2,y
+    sta GRP0 ; B2 -> [GRP0], B1 -> GRP1
+    ldx ChGfx4,y ; 5個目をxにバッファ
+    lda ChGfx3,y ; 4個目をaにバッファ
+    SLEEP SPRITE_SLEEP ; 2個目のスプライトにラインがかかるくらいまで待つ
+    sta GRP1 ; B3 -> [GRP1], B2 -> GRP0
+    stx GRP0 ; B4 -> [GRP0], B3 -> GRP1
+    sta GRP1 ; B4 -> GRP0
+    ldx xTemp
+.RenderCharacterEnd
 
     ; 色を変える
     inx
@@ -434,13 +436,14 @@ NextFrame:
     dey
     bne .LowerScanLoop2
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 描画の後処理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     sta WSYNC ; ガタつくので1ライン待つ
 
-    ; プレイフィールドをクリア
+    ; クリア
     lda #0
     sta PF0
     sta PF1
@@ -449,10 +452,8 @@ NextFrame:
     sta COLUBK
     sta GRP0
     sta GRP1
-    ;sta GRP0
-    ;sta GRP1
-    ;sta VDELP0
-    ;sta VDELP1
+    sta VDELP0
+    sta VDELP1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 下部6ラインはスキップ
@@ -481,7 +482,6 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
     jmp NextFrame
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
@@ -698,9 +698,6 @@ PFColorsLower:
 
     align 256
 
-ChGfx:
-    .byte %10101010
-
 ChGfx0:
     .byte %00000000
     .byte %00000000
@@ -723,21 +720,15 @@ ChGfx0:
     .byte %00000000
     .byte %00000000
     .byte %00000000
-    ; .byte %11111101
-    ; .byte %10000101
-    ; .byte %10110101
-    ; .byte %10100100
-    ; .byte %10110101
-    ; .byte %10000100
-    ; .byte %11111100
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
+    .byte %00000000
+    .byte %00000000
+    .byte %11111101
+    .byte %10000101
+    .byte %10110101
+    .byte %10100100
+    .byte %10110101
+    .byte %10000100
+    .byte %11111100
     
 ChGfx1:
     .byte %00000000
@@ -761,28 +752,15 @@ ChGfx1:
     .byte %00000000
     .byte %00000000
     .byte %00000000
-    ; .byte %11011101
-    ; .byte %00010101
-    ; .byte %11010101
-    ; .byte %01010100
-    ; .byte %11011101
     .byte %00000000
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
+    .byte %00000000
+    .byte %11011101
+    .byte %00010101
+    .byte %11010101
+    .byte %01010100
+    .byte %11011101
+    .byte %00000000
+    .byte %00000000
     
 ChGfx2:
     .byte %00000000
@@ -807,27 +785,14 @@ ChGfx2:
     .byte %00000000
     .byte %00000000
     .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %11011100
-    ; .byte %00000100
-    ; .byte %11011100
-    ; .byte %01010000
-    ; .byte %11011100
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
+    .byte %00000000
+    .byte %11011101
+    .byte %00000101
+    .byte %11011101
+    .byte %01010001
+    .byte %11011101
+    .byte %00000000
+    .byte %00000000
     
 ChGfx3:
     .byte %00000000
@@ -852,22 +817,78 @@ ChGfx3:
     .byte %00000000
     .byte %00000000
     .byte %00000000
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    .byte %10101010
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
-    ; .byte %00000000
+    .byte %00000000
+    .byte %00010101
+    .byte %01010101
+    .byte %01010111
+    .byte %01010101
+    .byte %11110111
+    .byte %00000000
+    .byte %00000000
+    
+ChGfx4:
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %01110101
+    .byte %01010101
+    .byte %01010111
+    .byte %01000101
+    .byte %01110111
+    .byte %00000000
+    .byte %00000000
+    
+ChGfx5:
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
+    .byte %00000000
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド

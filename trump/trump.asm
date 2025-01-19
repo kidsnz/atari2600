@@ -27,10 +27,10 @@ UPPER_MOVE_DOWN = 0
 LOWER_MOVE_DOWN = 1
 
 ; 上部のグラデーションの向き(0: 上から下に暗く, 1: 逆)
-UPPER_GRADATION_DOWN = 1
+UPPER_GRADATION_DOWN = 0
 
 ; 下部のグラデーションの向き(0: 上から下に暗く, 1: 逆)
-LOWER_GRADATION_DOWN = 0
+LOWER_GRADATION_DOWN = 1
 
 #if UPPER_MOVE_DOWN = 0
 START_UPPER_COLOR_IDX = OFFSET
@@ -755,7 +755,7 @@ ChGfx2:
     .byte %11011101
     .byte %01010001
     .byte %11011101
-    .byte %00000000
+    .byte %00000001
     .byte %00000000
     
 ChGfx3:
@@ -786,8 +786,8 @@ ChGfx3:
     .byte %01010101
     .byte %01010111
     .byte %01010101
+    .byte %01010101
     .byte %11110111
-    .byte %00000000
     .byte %00000000
     
 ChGfx4:
@@ -818,8 +818,8 @@ ChGfx4:
     .byte %01010101
     .byte %01010111
     .byte %01000101
+    .byte %01000101
     .byte %01110111
-    .byte %00000000
     .byte %00000000
     
 ChGfx5:

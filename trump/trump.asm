@@ -250,23 +250,6 @@ NextFrame:
     sta HMP1
     sta WSYNC
     sta HMOVE
-    sta HMCLR
-
-    ; ; スプライト0の横位置の補正
-    ; lda #SPRITE0_X_POS
-    ; ldy #0 ; プレイヤー0スプライト
-    ; jsr SetObjectXPos
-    ; ; スプライト0の横位置の補正を適用
-    ; sta WSYNC
-    ; sta HMOVE
-    
-    ; ; スプライト1の横位置の補正
-    ; lda #SPRITE1_X_POS
-    ; ldy #1 ; プレイヤー1スプライト
-    ; jsr SetObjectXPos
-    ; ; スプライト1の横位置の補正を適用
-    ; sta WSYNC
-    ; sta HMOVE
     
     ; VDELPを有効(GRP0,1へのアクセスがバッファリングされる)
     lda #1
@@ -486,25 +469,6 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 対象のX座標の位置をセットする
-;  A は対象のピクセル単位のX座標
-;  Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
-SetObjectXPos subroutine
-    sec
-    sta WSYNC
-.Div15Loop
-    sbc #15
-    bcs .Div15Loop
-    eor #%0111
-    asl
-    asl
-    asl
-    asl
-    sta HMP0,Y
-    sta RESP0,Y
-    rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 色

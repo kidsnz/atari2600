@@ -107,7 +107,7 @@ SPRITE_MOVING_PULSED    = %00001000 ; スプライトがパルス(停止と動�
 ;  2bit: 空き
 ;  1~0bit: 速度番号
 SPRITE_MOVING_ON        = %10000000 ; スプライトの移動ON
-SPRITE_ANIMATION_ON     = %01000000 ; スプライトの向き右
+SPRITE_ANIMATION_ON     = %01000000 ; スプライトのアニメーションON
 SPRITE_ORIENT_RIGHT     = %00000000 ; スプライトの向き右
 SPRITE_ORIENT_LEFT      = %00100000 ; スプライトの向き右
 SPRITE_SPEED_MASK       = %00000011 ; スプライトの速度を取得するマスク
@@ -2143,20 +2143,22 @@ RenderPlayerZoneReturn:
     MAC _CALCULATE_SPRITE_GFX
         ; SpriteGfxがスプライトのグラフィックのアドレスを指すようにする
         ADD_ADDRESS Sprite{1}Gfx,#1
+        ; アニメーション不可の場合はスキップ
+        IF_SPRITE_IS_UNANIMATABLE {1},SkipSprite{1}Animation
         ; スプライトのアニメーション情報を取得してスプライトのアドレスをずらす
         lda Sprite{1}Info
         and #SPRITE_ANIMATABLE
-        beq .SkipSprite{1}Animation
+        beq SkipSprite{1}Animation
         lda AnimFrameCounter
         and #%00000001
         ; アニメーションカウンタが1の場合はアドレスをずらす
-        beq .SkipSprite{1}Animation
+        beq SkipSprite{1}Animation
         ADD_ADDRESS Sprite{1}Gfx,Sprite{1}Height
-.SkipSprite{1}Animation
+SkipSprite{1}Animation
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; SpriteInfoが移動不可の場合はジャンプする
+    ; SpriteInfoが移動不可の場合はjumpする
     MAC IF_SPRITE_IS_UNMOVABLE
         lda Sprite{1}Info
         and #SPRITE_MOVABLE
@@ -2164,6 +2166,20 @@ RenderPlayerZoneReturn:
         ldx ZoneIndex
         lda ZoneSprite{1}Abilities,x
         and #SPRITE_MOVING_ON
+        beq {2}
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; SpriteInfoがアニメーション不可の場合はjumpする
+    MAC IF_SPRITE_IS_UNANIMATABLE
+        ; スプライト自体がアニメーション不可ならjump
+        lda Sprite{1}Info
+        and #SPRITE_ANIMATABLE
+        beq {2}
+        ; スプライトのアビリティでアニメーション不可ならjump
+        ldx ZoneIndex
+        lda ZoneSprite{1}Abilities,x
+        and #SPRITE_ANIMATION_ON
         beq {2}
     ENDM
 
@@ -2396,6 +2412,35 @@ RenderPlayerZoneReturn:
         lda ZoneSprite{1}Abilities,x
         ora #SPRITE_UNMOVABLE
 .SetZoneSprite{1}MovableEnd
+        sta ZoneSprite{1}Abilities,x
+    ENDM
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; スプライトのアニメーション可否の決定
+    ;  {1}: スプライト番号
+    MAC RESET_SPRITE_ANIMATABLE
+        ; 移動可能だった場合は、アニメーション可能にする
+        lda ZoneSprite{1}Abilities,x
+        and #SPRITE_MOVABLE
+        beq .SetZoneSprite{1}AnimatableOrUnanimatable
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_ANIMATABLE
+        jmp .SetZoneSprite{1}AnimatableEnd
+        ; 移動不可だった場合は、アニメーション可否を決める
+.SetZoneSprite{1}AnimatableOrUnanimatable
+        jsr NextRandomValue
+        lda RandomValue
+        and #%00000001
+        beq .SetZoneSprite{1}Unanimatable
+        ; アニメーション可能にする
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_ANIMATABLE
+        jmp .SetZoneSprite{1}AnimatableEnd
+.SetZoneSprite{1}Unanimatable
+        ; アニメーション不可能にする
+        lda ZoneSprite{1}Abilities,x
+        ora #SPRITE_UNANIMATABLE
+.SetZoneSprite{1}AnimatableEnd
         sta ZoneSprite{1}Abilities,x
     ENDM
 
@@ -2896,6 +2941,14 @@ ResetScene subroutine
 #if USE_SPRITE_1 = 1
     ; スプライト1の移動可否を決定
     RESET_SPRITE_MOVABLE 1
+#endif
+
+    ; スプライト0のアニメーション可否を決定
+    RESET_SPRITE_ANIMATABLE 0
+
+#if USE_SPRITE_1 = 1
+    ; スプライト1のアニメーション可否を決定
+    RESET_SPRITE_ANIMATABLE 1
 #endif
 
     ; スプライト0の移動の種類を決定

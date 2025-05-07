@@ -14,11 +14,6 @@
 ; 開発時は1を指定する
 DEBUG = 0
 
-; 開発したいバンクを指定する
-;  0: タイトル
-;  1: シーン
-DEBUG_BANK = 0
-
 ; 乱数カウンターの初期値
 INITIAL_RANDOM_COUNTER   = 0
 INITIAL_RANDOM_COUNTER_2 = 128
@@ -190,42 +185,6 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
 .vol	SET {2}
 	.byte (.vol+(.freq<<3))
     ENDM
-
-#if DEBUG = 0
-    MAC BANK_SWITCH_TRAMPOLINE
-        pha             ; push hi byte
-        tya             ; Y -> A
-        pha             ; push lo byte
-        lda $1FF8,x     ; do the bank switch
-        rts             ; return to target
-    ENDM
-
-    MAC BANK_SWITCH
-.Bank   SET {1}
-.Addr   SET {2}
-        lda #>(.Addr-1)
-        ldy #<(.Addr-1)
-        ldx #.Bank
-        jmp BankSwitch
-    ENDM
-
-; Bank prologue that handles reset
-; no matter which bank is selected at powerup
-; it switches to bank 0 and jumps to Reset_0
-    MAC BANK_PROLOGUE
-        lda #>(Reset_1-1)
-        ldy #<(Reset_1-1)
-        ldx #$ff
-        txs
-        inx
-    ENDM
-
-    MAC BANK_VECTORS
-        .word Start ; NMI
-        .word Start ; RESET
-        .word Start    ; BRK
-    ENDM
-#endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RAM
@@ -685,18 +644,10 @@ ProcPlayer{1}:
     cmp #MAX_X
     bcc .EndLeftMove{1}
 .ResetPlayerXPosToRight{1}
-#if {1} = 0
-#if DEBUG = 0
-    lda FrameCounter
-    sta RandomCounter
-    BANK_SWITCH 1,Reset_1
-#endif
-#else
     lda #MAX_X-#20
     sta PlayerXPos
     jsr ResetRandomCounter
     jsr ResetScene
-#endif
 .EndLeftMove{1}
     ENDM
 
@@ -711,18 +662,10 @@ ProcPlayer{1}:
         cmp #MAX_X-#20
         bcc .EndMoveRight{1}
 .ResetPlayerXPosToLeft{1}
-#if {1} = 0
-#if DEBUG = 0
-        lda FrameCounter
-        sta RandomCounter
-        BANK_SWITCH 1,Reset_1
-#endif
-#else
         lda #MIN_X
         sta PlayerXPos
         jsr ResetRandomCounter
         jsr ResetScene
-#endif
 .EndMoveRight{1}
     ENDM
 
@@ -753,24 +696,8 @@ SetObjectXPos{1} subroutine
 ;; Bank1 プログラムコードの開始
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#if DEBUG = 1 && DEBUG_BANK = 1
     org $F000
 Start:
-#endif
-
-#if DEBUG = 0
-    org $F000
-    rorg $F000
-Start:
-#endif
-
-#if DEBUG = 0
-    BANK_PROLOGUE
-BankSwitch:
-    BANK_SWITCH_TRAMPOLINE
-#endif
-
-#if DEBUG = 0 || DEBUG_BANK = 1
 
 Reset_1:
 
@@ -3378,16 +3305,6 @@ RandomTable:
 ;; Bank1 末尾
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#if DEBUG = 1 && DEBUG_BANK = 1
-    org $FFFC
-    word Start
-    word Start
-#endif
-
-#if DEBUG = 0
-    org  $2FFA
-    rorg $FFFA
-    BANK_VECTORS
-#endif
-
-#endif
+    org  $FFFC
+    .word Start
+    .word Start

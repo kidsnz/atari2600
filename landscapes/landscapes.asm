@@ -722,13 +722,6 @@ Reset_1:
     sta AUDV0
 
     ; シーンの初期化
-#if DEBUG = 1 && DEBUG_BANK = 1
-    lda #INITIAL_RANDOM_COUNTER
-    sta RandomCounter
-    lda #INITIAL_RANDOM_COUNTER_2
-    sta RandomCounter2
-#endif
-
     jsr ResetScene
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

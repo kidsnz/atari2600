@@ -10,17 +10,22 @@ NO_ILLEGAL_OPCODES = 1
     include "macro.h"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 動作調整用定数
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; 乱数カウンターの初期値
+INITIAL_RANDOM_COUNTER   = 0
+INITIAL_RANDOM_COUNTER_2 = 128
+
+; シーン切り替えの秒数
+SCENE_CHANGE_SECONDS = 5
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; デバッグ用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 開発時は1を指定する
 DEBUG = 0
-
-; 乱数カウンターの初期値
-INITIAL_RANDOM_COUNTER   = 0
-INITIAL_RANDOM_COUNTER_2 = 128
-; INITIAL_RANDOM_COUNTER = 2 ; 初期化が間に合わないシーン
-; INITIAL_RANDOM_COUNTER = 24 ; 縦ズレが確認できるシーン
 
 ; スプライト1を使う
 USE_SPRITE_1 = 1
@@ -49,7 +54,7 @@ MAX_LINES                    = 192 ; スキャンライン数
 MAX_NUMBER_OF_ZONES          = 5   ; ゾーンの最大数
 MIN_ZONE_HEIGHT              = 24  ; ゾーンの最小の高さ
 MAX_ZONE_HEIGHT              = 64  ; ゾーンの最大の高さ
-PLAYER_ZONE_HEIGHT           = 36  ; プレイヤーのゾーンの高さ
+PLAYER_ZONE_HEIGHT           = 0  ; プレイヤーのゾーンの高さ
 MAX_X                        = 160 ; X座標の最大値
 MIN_X                        = 0   ; X座標の最小値
 MIN_Y                        = 0   ; Y座標の最小値
@@ -195,10 +200,11 @@ PLAYFIELD_MIRRORING   = %00000001 ; プレイフィールドをミラーリン�
     seg.u Variables
     org $80
 
-; 117 byte / 128 byte
+; 118 byte / 128 byte
 
-; 6 byte グローバルに使う用途
+; 7 byte グローバルに使う用途
 FrameCounter        byte ; フレームカウンタ
+SecondCounter       byte ; 秒数カウンタ
 AnimFrameCounter    byte ; アニメーション用フレームカウンター
 MusicFrameCounter   byte ; ミュージック用フレームカウンター
 RandomCounter       byte ; 乱数カウンタ
@@ -619,20 +625,32 @@ ProcPlayer{1}:
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;; フレームカウンターの処理
-    MAC PROC_FRAME_COUNTER
-        ; フレームカウンターをインクリメント
-        inc FrameCounter
+    ;; シーン変更の処理
+    MAC PROC_CHANGE_SCENE
+        ; Fireボタンが押下されたらシーン切り替えを行う
+        bit INPT4
+        ; 押されていたらChangeScene
+        bmi .SkipChangeSceneByFire
+        ; シーンのリセット
+        jsr ResetRandomCounter
+        jsr ResetScene
+.SkipChangeSceneByFire
 
-        ; 32フレームに1回AnimFrameCounterをトグルする
-        lda FrameCounter
-        and #%00011111
-        cmp #%00011111
-        bne .SkipToggleAnimFrameCounter_{1}
-        lda AnimFrameCounter
-        eor #%00000001
-        sta AnimFrameCounter
-.SkipToggleAnimFrameCounter_{1}
+        ; SCENE_CHANGE_SECONDSが0ならスキップ
+#if SCENE_CHANGE_SECONDS > 0
+        ; 秒数カウンターをチェック
+        lda SecondCounter
+        cmp #SCENE_CHANGE_SECONDS
+        ; 到達したかどうか
+        bcc .SkipChangeSceneBySecondCounter
+        ; 秒数カウンターをリセット
+        lda #0
+        sta SecondCounter
+        ; シーンのリセット
+        jsr ResetRandomCounter
+        jsr ResetScene
+.SkipChangeSceneBySecondCounter
+#endif
     ENDM
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -762,11 +780,25 @@ StartFrame1:
     sta AnimFrameCounter
 .SkipToggleAnimFrameCounter
 
+    ; 60フレームに1回秒数カウンターをトグルする
+    lda FrameCounter
+    and #%00111111
+    cmp #%00111111
+    bne .SkipToggleSecondCounter
+    inc SecondCounter
+.SkipToggleSecondCounter:
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Bank1 プレイヤーの処理
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    PROC_PLAYER 1
+    ; PROC_PLAYER 1
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; Bank1 シーン切り替えの処理
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    PROC_CHANGE_SCENE
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Bank1 BGMの処理
@@ -818,7 +850,7 @@ RenderZoneReturn:
     ;; Bank1 プレイヤーゾーンの描画
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    jmp RenderPlayerZone
+    ; jmp RenderPlayerZone
 RenderPlayerZoneReturn:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -158,7 +158,7 @@ NextFrame:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    
     TIMER_SETUP 37
-
+    
     ;　背景色のスクロール処理
     inc StartColorIdx
 
@@ -184,7 +184,7 @@ NextFrame:
     sta COLUP1
 
     ; 顔0, 1のスプライトのサイズを設定
-    lda #SPRITE_NUSIZ_DOUBLE_SIZE
+    lda #SPRITE_NUSIZ_QUAD_SIZE
     sta NUSIZ0
     sta NUSIZ1
 

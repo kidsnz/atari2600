@@ -31,14 +31,20 @@ RIGHT_EDGE_X  = 138 ; 右端のX座標
 LEFT_EDGE_X   = 1   ; 左端のX座標
 TOP_EDGE_Y    = 1   ; 上端のY座標
 BOTTOM_EDGE_Y = 175 ; 下端のY座標
+DIR_LEFT      = 0   ; 左方向
+DIR_RIGHT     = 1   ; 右方向
+DIR_UP        = 0   ; 上方向
+DIR_DOWN      = 1   ; 下方向
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト用定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 SPRITE_HEIGHT = 15
-SPRITE_NUSIZ_TWO_COPY   = %00000001 ; 2つコピー表示
-SPRITE_NUSIZ_THREE_COPY = %00000011 ; 3つコピー表示
+SPRITE_NUSIZ_TWO_COPY    = %00000001 ; 2つコピー表示
+SPRITE_NUSIZ_THREE_COPY  = %00000011 ; 3つコピー表示
+SPRITE_NUSIZ_DOUBLE_SIZE = %00000101 ; 2倍サイズ表示
+SPRITE_NUSIZ_QUAD_SIZE   = %00000111 ; 4倍サイズ表示
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プレイフィールド用定数
@@ -177,6 +183,11 @@ NextFrame:
     sta COLUP0
     sta COLUP1
 
+    ; 顔0, 1のスプライトのサイズを設定
+    lda #SPRITE_NUSIZ_DOUBLE_SIZE
+    sta NUSIZ0
+    sta NUSIZ1
+
     TIMER_WAIT
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -281,7 +292,7 @@ MoveFace subroutine
 .MoveFaceXBegin
     ; X座標の移動処理
     lda Face0_DirX,y
-    cmp #0
+    cmp #DIR_LEFT
     beq .MoveFaceXToLeft
 .MoveFaceXToRight
     ; 右に移動
@@ -311,7 +322,7 @@ MoveFace subroutine
 .MoveFaceYBegin
     ; Y座標の移動処理
     lda Face0_DirY,y
-    cmp #0
+    cmp #DIR_UP
     beq .MoveFaceYToTop
 .MoveFaceYToBottom
     ; 下に移動
@@ -346,19 +357,20 @@ MoveFace subroutine
 ;; Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 SetObjectXPos subroutine
-    sta WSYNC ; 水平同期を待つ
-    sec ; キャリーフラグを1にセット(キャリーフラグは計算命令で繰り上がりや繰り下がりが起きたときに立つフラグ)
+    sec
+    sta WSYNC
 .Div15Loop
-    sbc #15 ; A から 15 を減算してその結果を A にセット
-    bcs .Div15Loop ; キャリーフラグが 0 になるまで繰り返す(このループを抜ける時は A を 15 で割った余りが A に入る)
-    eor #%0111 ; A と 7(%0111) でXORして A を -8~7 に調整する
-    asl ; A を左に4ビットシフト(このあとのHMP0には上位4ビットにセットする必要があるため)
+    sbc #15
+    bcs .Div15Loop
+    eor #%0111
     asl
     asl
     asl
-    sta HMP0,Y ; 指定のスプライト(Y の値によってどのスプライトかが変わる)の水平位置のオフセット値をセット(-7~8)
-    sta RESP0,Y ; 指定のスプライト(Y の値によってどのスプライトかが変わる)の描画を開始
+    asl
+    sta HMP0,Y
+    sta RESP0,Y
     rts
+    ENDM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト

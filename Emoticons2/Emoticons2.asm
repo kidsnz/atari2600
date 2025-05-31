@@ -27,6 +27,8 @@ YELLOW_COLOR = $1E
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+RIGHT_EDGE_X = 138 ; 右端のX座標
+LEFT_EDGE_X  = 1   ; 左端のX座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト用定数
@@ -82,14 +84,16 @@ PF_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
 
 ; 0 byte / 128 byte
 
-LoopCounter byte
-StartColorIdx byte
-Face0_X byte
-Face0_Y byte
-Face0_Status byte
-Face1_X byte
-Face1_Y byte
-Face1_Status byte
+LoopCounter byte    ; ループカウンター
+StartColorIdx byte  ; 背景色の開始インデックス
+Face0_X byte        ; 顔0のX座標
+Face0_Y byte        ; 顔0のY座標ル
+Face0_DirX byte     ; 顔0のXの向き(0:左, 1:右)
+Face0_DirY byte     ; 顔0のYの向き(0:上, 1:下)
+Face1_X byte        ; 顔1のX座標
+Face1_Y byte        ; 顔1のY座標
+Face1_DirX byte     ; 顔1のXの向き(0:左, 1:右)
+Face1_DirY byte     ; 顔1のYの向き(0:上, 1:下)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; プログラムコードの開始
@@ -107,15 +111,23 @@ Reset:
 
     lda #0
     sta StartColorIdx
-    sta Face0_Status
 
+    ; 顔0の初期置
     lda #40
     sta Face0_X
     sta Face0_Y
+    lda #1
+    sta Face0_DirX
+    sta Face0_DirY
 
+    ; 顔1の初期値
     lda #80
     sta Face1_X
+    lda #80
     sta Face1_Y
+    lda #1
+    sta Face1_DirX
+    sta Face1_DirY
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; フレームの開始
@@ -137,18 +149,46 @@ NextFrame:
 
     ;　背景色のスクロール処理
     inc StartColorIdx
-    
-    ; 顔0, 1の水平位置のセット
-    MAC SET_OBJECT_XPOS
+
+    ; 顔0, 1のX座標の移動
+    MAC MOVE_FACE_X
+        lda Face{1}_DirX
+        cmp #0
+        beq .MoveFaceXToLeft{1}
+.MoveFaceXToRight{1}
+        ; 右に移動
+        inc Face{1}_X
         lda Face{1}_X
-        ldy #{1}
-        jsr SetObjectXPos
-        sta WSYNC
-        sta HMOVE
+        cmp #RIGHT_EDGE_X
+        bcc .MoveFaceXEnd{1}
+        ; RIGHT_EDGE_Xを超えたら反転
+        lda #0
+        sta Face{1}_DirX
+        jmp .MoveFaceXEnd{1}
+.MoveFaceXToLeft{1}
+        ; 左に移動
+        dec Face{1}_X
+        lda Face{1}_X
+        cmp #LEFT_EDGE_X
+        bcs .MoveFaceXEnd{1}
+        ; LEFT_EDGE_Xを下回ったら反転
+        lda #1
+        sta Face{1}_DirX
+.MoveFaceXEnd{1}
     ENDM
 
-    SET_OBJECT_XPOS 0
-    SET_OBJECT_XPOS 1
+    MOVE_FACE_X 0
+    MOVE_FACE_X 1
+    
+    ; 顔0, 1の水平位置のセット
+    lda Face0_X
+    ldy #0
+    jsr SetObjectXPos
+    lda Face1_X
+    ldy #1
+    jsr SetObjectXPos
+    sta WSYNC
+    sta HMOVE
     
     ; 顔0, 1の色のセット
     lda #YELLOW_COLOR
@@ -185,7 +225,7 @@ RenderLoopBegin:
     sta COLUBK
 
     ; 顔0, 1の表示
-    MAC RENDER_OBJECT
+    MAC RENDER_FACE
         txa
         sec
         sbc Face{1}_Y
@@ -198,8 +238,8 @@ RenderLoopBegin:
         sta GRP{1}
     ENDM
 
-    RENDER_OBJECT 0
-    RENDER_OBJECT 1
+    RENDER_FACE 0
+    RENDER_FACE 1
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; ライン処理の終了

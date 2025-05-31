@@ -27,8 +27,10 @@ YELLOW_COLOR = $1E
 ;; 定数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-RIGHT_EDGE_X = 138 ; 右端のX座標
-LEFT_EDGE_X  = 1   ; 左端のX座標
+RIGHT_EDGE_X  = 138 ; 右端のX座標
+LEFT_EDGE_X   = 1   ; 左端のX座標
+TOP_EDGE_Y    = 1   ; 上端のY座標
+BOTTOM_EDGE_Y = 175 ; 下端のY座標
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; スプライト用定数
@@ -82,17 +84,21 @@ PF_MIRRORING   = %00000001 ; プレイフィールドをミラーリングする
     seg.u Variables
     org $80
 
-; 0 byte / 128 byte
+; 10 byte / 128 byte
 
 LoopCounter byte    ; ループカウンター
 StartColorIdx byte  ; 背景色の開始インデックス
+
 Face0_X byte        ; 顔0のX座標
-Face0_Y byte        ; 顔0のY座標ル
-Face0_DirX byte     ; 顔0のXの向き(0:左, 1:右)
-Face0_DirY byte     ; 顔0のYの向き(0:上, 1:下)
 Face1_X byte        ; 顔1のX座標
+
+Face0_Y byte        ; 顔0のY座標
 Face1_Y byte        ; 顔1のY座標
+
+Face0_DirX byte     ; 顔0のXの向き(0:左, 1:右)
 Face1_DirX byte     ; 顔1のXの向き(0:左, 1:右)
+
+Face0_DirY byte     ; 顔0のYの向き(0:上, 1:下)
 Face1_DirY byte     ; 顔1のYの向き(0:上, 1:下)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,7 +131,7 @@ Reset:
     sta Face1_X
     lda #80
     sta Face1_Y
-    lda #1
+    lda #0
     sta Face1_DirX
     sta Face1_DirY
 
@@ -150,35 +156,11 @@ NextFrame:
     ;　背景色のスクロール処理
     inc StartColorIdx
 
-    ; 顔0, 1のX座標の移動
-    MAC MOVE_FACE_X
-        lda Face{1}_DirX
-        cmp #0
-        beq .MoveFaceXToLeft{1}
-.MoveFaceXToRight{1}
-        ; 右に移動
-        inc Face{1}_X
-        lda Face{1}_X
-        cmp #RIGHT_EDGE_X
-        bcc .MoveFaceXEnd{1}
-        ; RIGHT_EDGE_Xを超えたら反転
-        lda #0
-        sta Face{1}_DirX
-        jmp .MoveFaceXEnd{1}
-.MoveFaceXToLeft{1}
-        ; 左に移動
-        dec Face{1}_X
-        lda Face{1}_X
-        cmp #LEFT_EDGE_X
-        bcs .MoveFaceXEnd{1}
-        ; LEFT_EDGE_Xを下回ったら反転
-        lda #1
-        sta Face{1}_DirX
-.MoveFaceXEnd{1}
-    ENDM
-
-    MOVE_FACE_X 0
-    MOVE_FACE_X 1
+    ; 顔0, 1の移動処理
+    ldy #0
+    jsr MoveFace
+    ldy #1
+    jsr MoveFace
     
     ; 顔0, 1の水平位置のセット
     lda Face0_X
@@ -287,13 +269,82 @@ RenderLoopEnd:
 ;; サブルーチン
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 対象の顔の移動処理
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Y は対象の種類 (0:顔0, 1:顔1)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+MoveFace subroutine
+
+.MoveFaceXBegin
+    ; X座標の移動処理
+    lda Face0_DirX,y
+    cmp #0
+    beq .MoveFaceXToLeft
+.MoveFaceXToRight
+    ; 右に移動
+    lda Face0_X,y
+    clc
+    adc #1
+    sta Face0_X,y
+    cmp #RIGHT_EDGE_X
+    bcc .MoveFaceXEnd
+    ; RIGHT_EDGE_Xを超えたら反転
+    lda #0
+    sta Face0_DirX,y
+    jmp .MoveFaceXEnd
+.MoveFaceXToLeft
+    ; 左に移動
+    lda Face0_X,y
+    sec
+    sbc #1
+    sta Face0_X,y
+    cmp #LEFT_EDGE_X
+    bcs .MoveFaceXEnd
+    ; LEFT_EDGE_Xを下回ったら反転
+    lda #1
+    sta Face0_DirX,y
+.MoveFaceXEnd
+
+.MoveFaceYBegin
+    ; Y座標の移動処理
+    lda Face0_DirY,y
+    cmp #0
+    beq .MoveFaceYToTop
+.MoveFaceYToBottom
+    ; 下に移動
+    lda Face0_Y,y
+    clc
+    adc #1
+    sta Face0_Y,y
+    cmp #BOTTOM_EDGE_Y
+    bcc .MoveFaceYEnd
+    ; BOTTOM_EDGE_Xを超えたら反転
+    lda #0
+    sta Face0_DirY,y
+    jmp .MoveFaceYEnd
+.MoveFaceYToTop
+    ; 上に移動
+    lda Face0_Y,y
+    sec
+    sbc #1
+    sta Face0_Y,y
+    cmp #TOP_EDGE_Y
+    bcs .MoveFaceYEnd
+    ; TOP_EDGE_Xを下回ったら反転
+    lda #1
+    sta Face0_DirY,y
+.MoveFaceYEnd
+    rts
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 対象のX座標の位置をセットする
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; A は対象のピクセル単位のX座標
 ;; Y は対象の種類 (0:player0, 1:player1, 2:missile0, 3:missile1, 4:ball)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 SetObjectXPos subroutine
     sta WSYNC ; 水平同期を待つ
     sec ; キャリーフラグを1にセット(キャリーフラグは計算命令で繰り上がりや繰り下がりが起きたときに立つフラグ)
